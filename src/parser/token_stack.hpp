@@ -1,18 +1,18 @@
-#ifndef STACK_HPP
-#define STACK_HPP
+#ifndef TOKEN_STACK_HPP
+#define TOKEN_STACK_HPP
 
 #include <vector>
 
 #include <token.hpp>
 
-class Stack
+class TokenStack
 {
 private:
     unsigned int       m_index;
     std::vector<Token> m_stack;
 
 public:
-    Stack();
+    TokenStack();
 
     void push(const Token& tk);
     Token pop();
@@ -20,4 +20,4 @@ public:
     void clear();
 };
 
-#endif // STACK_HPP
+#endif // TOKEN_STACK_HPP

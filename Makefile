@@ -5,6 +5,7 @@ LINK = "$(PATH)/link.exe"
 
 INC_PATH  = /I "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17763.0/ucrt"
 INC_PATH += /I "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/include"
+INC_PATH += /I ./src/misc/
 INC_PATH += /I ./src/parser/
 
 LIB_PATH  = /LIBPATH:"C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/lib/x64"
@@ -19,7 +20,7 @@ SRC = ./src
 EXE = C64.exe
 
 ROOT_OBJECTS   = $(patsubst $(SRC)/%.cpp,        $(BIN)/%.o,        $(wildcard $(SRC)/*.cpp))
-UTIL_OBJECTS   = $(patsubst $(SRC)/util/%.cpp,   $(BIN)/util/%.o,   $(wildcard $(SRC)/util/*.cpp))
+MISC_OBJECTS   = $(patsubst $(SRC)/misc/%.cpp,   $(BIN)/misc/%.o,   $(wildcard $(SRC)/misc/*.cpp))
 PARSER_OBJECTS = $(patsubst $(SRC)/parser/%.cpp, $(BIN)/parser/%.o, $(wildcard $(SRC)/parser/*.cpp))
 
 COMPILE_OBJ = $(CC) $(CC_OPTIONS) $(INC_PATH) /Fo:$@ /c
@@ -27,17 +28,18 @@ COMPILE_OBJ = $(CC) $(CC_OPTIONS) $(INC_PATH) /Fo:$@ /c
 $(BIN)/%.o: $(SRC)/%.cpp
 	$(COMPILE_OBJ) $^
 
-$(BIN)/util/%.o: $(SRC)/util/%.cpp
+$(BIN)/misc/%.o: $(SRC)/misc/%.cpp
 	$(COMPILE_OBJ) $^
 
 $(BIN)/parser/%.o: $(SRC)/parser/%.cpp
 	$(COMPILE_OBJ) $^
 
-$(EXE): $(ROOT_OBJECTS) $(UTIL_OBJECTS) $(PARSER_OBJECTS)
+$(EXE): $(ROOT_OBJECTS) $(MISC_OBJECTS) $(PARSER_OBJECTS)
 	$(LINK) $(LIB_PATH) $^ /OUT:$(BIN)/$@
 
 .PHONY: clean
 clean:
 	/bin/rm -f $(BIN)/*.o
+	/bin/rm -f $(BIN)/misc/*.o
 	/bin/rm -f $(BIN)/parser/*.o
 	/bin/rm -f $(BIN)/$(EXE)

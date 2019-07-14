@@ -4,8 +4,6 @@
 #include <vector>
 
 #include <status.hpp>
-#include <token.hpp>
-#include <stack.hpp>
 
 char Tokenizer::pop()
 {
@@ -470,7 +468,7 @@ bool Tokenizer::tokenize()
     return true;
 }
 
-Stack& Tokenizer::get_tokens()
+TokenStack& Tokenizer::get_tokens()
 {
     return m_tokens;
 }

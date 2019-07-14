@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 #include <token.hpp>
-#include <stack.hpp>
+#include <token_stack.hpp>
 
 class Tokenizer
 {
@@ -16,7 +16,7 @@ private:
 
     unsigned int m_read_ptr;
 
-    Stack m_tokens;
+    TokenStack m_tokens;
 
 private:
     char pop();
@@ -45,7 +45,7 @@ public:
     Tokenizer(const char* buffer, long size);
     
     bool tokenize();
-    Stack& get_tokens();
+    TokenStack& get_tokens();
 };
 
 #endif // TOKENIZER_HPP

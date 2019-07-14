@@ -1,16 +1,16 @@
-#include <stack.hpp>
+#include <token_stack.hpp>
 
-Stack::Stack()
+TokenStack::TokenStack()
 {
     m_index = 0;
 }
 
-void Stack::push(const Token& tk)
+void TokenStack::push(const Token& tk)
 {
     m_stack.push_back(tk);
 }
 
-Token Stack::pop()
+Token TokenStack::pop()
 {
     Token tk = { TK_INVALID };
     if(m_index < m_stack.size())
@@ -20,7 +20,7 @@ Token Stack::pop()
     return tk;
 }
 
-Token Stack::peek(unsigned int offset)
+Token TokenStack::peek(unsigned int offset)
 {
     Token tk = { TK_INVALID };
     if(m_index + offset < m_stack.size())
@@ -30,7 +30,7 @@ Token Stack::peek(unsigned int offset)
     return tk;
 }
 
-void Stack::clear()
+void TokenStack::clear()
 {
     m_index = 0;
     m_stack.clear();
