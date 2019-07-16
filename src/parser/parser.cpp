@@ -2,54 +2,14 @@
 
 #include <status.hpp>
 
-const char* expr_to_str(Expression* expr)
-{
-    const char* ptr = "Unknown";
-
-    switch(expr->type)
-    {
-        case EXPR_OPERATION:
-        {
-            switch(expr->operation.op)
-            {
-                case EXPR_OP_ADD: { ptr = "+"; break; }
-                case EXPR_OP_SUB: { ptr = "-"; break; }
-                case EXPR_OP_MUL: { ptr = "*"; break; }
-                case EXPR_OP_DIV: { ptr = "/"; break; }
-            }
-            break;
-        }
-
-        case EXPR_LITERAL:
-        {
-            ptr = "LITERAL";
-            break;
-        }
-    }
-
-    return ptr;
-}
-
-void debug_print_expression(Expression* expr, unsigned int level = 0)
-{
-    if(expr == nullptr) return;
-
-    for(unsigned int i = 0; i < level * 4; i++) printf(" ");
-    printf("%s\n", expr_to_str(expr));
-    if(expr->type == EXPR_OPERATION)
-    {
-        debug_print_expression(expr->operation.lhs, level + 1);
-        debug_print_expression(expr->operation.rhs, level + 1);
-    }
-}
-
 Parser::Parser(TokenStack* tokens)
 {
     m_stack = tokens;
 
     m_root = new Root();
-    m_func_ptr = &m_root->functions;
-    m_stmt_ptr = nullptr;
+    m_func_ptr  = nullptr;
+    m_func_tail = nullptr;
+    m_stmt_tail = nullptr;
 }
 
 bool Parser::parse_function(Arg& arg)
@@ -107,22 +67,143 @@ bool Parser::parse_function(Arg& arg)
         }
     }
 
-    Function* func = new Function();
-    func->ret_type = arg.decl.type;
-    func->name = arg.decl.name;
-    func->params = params;
-    printf("Function: %.*s\n", func->name.len, func->name.ptr);
+    if(status)
+    {
+        Function* func = new Function();
+        func->ret_type = arg.decl.type;
+        func->name = arg.decl.name;
+        func->params = params;
+        printf("Function: %.*s\n", func->name.len, func->name.ptr); 
 
-    *m_func_ptr = func;
-    m_func_ptr = &func->next;
-    m_stmt_ptr = &func->body; 
+        status = insert_function(func);
+    }
 
     return status;
 }
 
+bool Parser::insert_function(Function* func)
+{
+    bool status = true;
+
+    if(m_func_ptr != nullptr)
+    {
+        printf("Error: Cannot declare function inside function\n");
+        status = false;
+    }
+    else
+    {
+        if(m_func_tail == nullptr)
+        {
+            m_root->functions = func;
+        }
+        else
+        {
+            m_func_tail->next = func;   
+        }
+
+        m_func_tail = func;
+        m_func_ptr  = func;
+    }
+
+    return status;
+}
+
+bool Parser::insert_statement(Statement* stmt)
+{
+    bool status = true;
+
+    if(m_func_ptr == nullptr)
+    {
+        printf("Error: Cannot put statements outside function\n");
+        status = false;
+    }
+    else
+    {
+        if(m_stmt_tail == nullptr)
+        {
+            m_func_ptr->body = stmt;
+        }
+        else
+        {
+            m_stmt_tail->next = stmt;
+        }
+
+        m_stmt_tail = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::read_arguments(Argument** args)
+{
+    bool result = true;
+
+    Argument* head = nullptr;
+    Argument* tail = nullptr;
+
+    if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
+    {
+        printf("Error: Expected '(' token\n");
+        result = false;
+    }
+    else
+    {   
+        if(m_stack->peek(0).type == TK_CLOSE_ROUND_BRACKET)
+        {
+            m_stack->pop();
+        }
+        else
+        {
+            while(true)
+            {
+                Expression* expr = read_expression();
+
+                if(expr == nullptr)
+                {
+                    printf("Error: Expected expression\n");
+                    result = false;
+                    break;
+                }
+                
+                Argument* arg = new Argument();
+                arg->value = expr;
+                
+                if(head == nullptr)
+                {
+                    head = arg;
+                    tail = arg;
+                }
+                else
+                {
+                    tail->next = arg;
+                    tail = arg;
+                }
+
+                Token tk = m_stack->pop();
+                if(tk.type == TK_CLOSE_ROUND_BRACKET)
+                {
+                    break;
+                }
+                else if(tk.type != TK_COMMA)
+                {
+                    printf("Unexpected token\n");
+                    result = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    if(result)
+    {
+        *args = head;
+    }
+
+    return result;
+}
+
 Expression* Parser::read_value()
 {
-    printf("read_value\n");
     Expression* expr = nullptr;
 
     Token tk = m_stack->pop();
@@ -143,7 +224,19 @@ Expression* Parser::read_value()
             tk = m_stack->peek(0);
             if(tk.type == TK_OPEN_ROUND_BRACKET)
             {
-                printf("TODO: PARSE FUNCTION CALLS\n");
+                Argument* args = nullptr;
+
+                if(!read_arguments(&args))
+                {
+                    printf("Error reading arguments\n");
+                }
+                else
+                {
+                    expr = new Expression();
+                    expr->type = EXPR_CALL;
+                    expr->call.func_name = name;
+                    expr->call.arguments = args;
+                }
             }
             else
             {
@@ -151,11 +244,14 @@ Expression* Parser::read_value()
                 expr->type = EXPR_IDENTIFIER;
                 expr->identifier.name = name;
             }
+
+            break;
         }
 
         default:
         {
             printf("Error: Unexpected tokens in expression\n");
+            break;
         }
     }
 
@@ -224,9 +320,9 @@ Expression* Parser::process_expression(ExpressionList::Entry* expression)
         }
     }
 
-    debug_print_expression(head->expr);
+    // debug_print_expression(head->expr);
 
-    return nullptr;
+    return head->expr;
 }
 
 Expression* Parser::read_expression()
@@ -343,7 +439,6 @@ Expression* Parser::read_expression()
 
 bool Parser::parse_variable(Arg& arg)
 {
-    printf("parse_variable\n");
     bool status = true;
 
     Expression* value = nullptr;
@@ -372,7 +467,6 @@ bool Parser::parse_variable(Arg& arg)
                     printf("Error: Expected semicolon\n");
                     status = false;
                 }
-                
             }
         }
     }
@@ -382,14 +476,16 @@ bool Parser::parse_variable(Arg& arg)
         printf("Error: Unexpected token\n");
     }
 
-    Statement* stmt = new Statement();
-    stmt->type = STMT_DECL_VAR;
-    stmt->decl_var.name  = arg.decl.name;
-    stmt->decl_var.type  = arg.decl.type;
-    stmt->decl_var.value = value;
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_DECL_VAR;
+        stmt->decl_var.name  = arg.decl.name;
+        stmt->decl_var.type  = arg.decl.type;
+        stmt->decl_var.value = value;
 
-    *m_stmt_ptr = stmt;
-    m_stmt_ptr = &stmt->next;
+        status = insert_statement(stmt);
+    }
 
     return status;
 }
@@ -455,6 +551,75 @@ bool Parser::parse_decl()
     return status;
 }
 
+bool Parser::handle_end_of_block()
+{
+    bool result = true;
+
+    if(m_func_ptr == nullptr)
+    {
+        printf("Error: Unexpected end of block\n");
+        result = false;
+    }
+    else
+    {
+        m_func_ptr  = nullptr;
+        m_stmt_tail = nullptr;
+    }
+
+    return result;
+}
+
+bool Parser::parse_return()
+{
+    bool result = true;
+
+    if(m_stack->pop().type != TK_RETURN)
+    {
+        printf("ERROR: Expected return keyword\n");
+        result = false;
+    }
+    else
+    {
+        Expression* expr = read_expression();
+        if(expr == nullptr)
+        {
+            result = false;
+        }
+        else
+        {
+            if(m_stack->pop().type != TK_SEMICOLON)
+            {
+                printf("ERROR: Expected semicolon\n");
+                result = false;
+            }
+            else
+            {
+                Statement* stmt = new Statement();
+                stmt->type = STMT_RET;
+                stmt->ret_stmt.expression = expr;
+
+                result = insert_statement(stmt);
+            }
+        }
+    }
+
+    return result;
+}
+
+bool Parser::parse_statement()
+{
+    bool result = true;
+
+    Token tk = m_stack->peek(0);
+    switch(tk.type)
+    {
+        case TK_TYPE:   { result = parse_decl();   break; }
+        case TK_RETURN: { result = parse_return(); break; }
+    }
+
+    return result;
+}
+
 bool Parser::process()
 {
     printf("process\n");
@@ -465,9 +630,10 @@ bool Parser::process()
         Token tk = m_stack->peek(0);
         switch(tk.type)
         {
+            case TK_RETURN:
             case TK_TYPE:
             {
-                status = parse_decl() ? STATUS_WORKING : STATUS_ERROR;
+                status = parse_statement() ? STATUS_WORKING : STATUS_ERROR;
                 break;
             }
 
@@ -475,6 +641,11 @@ bool Parser::process()
             {
                 status = STATUS_SUCCESS;
                 break;
+            }
+
+            case TK_CLOSE_CURLY_BRACKET:
+            {
+                status = handle_end_of_block() ? STATUS_WORKING : STATUS_ERROR;
             }
 
             default:
@@ -486,4 +657,9 @@ bool Parser::process()
     }
 
     return (status == STATUS_SUCCESS);
+}
+
+Root* Parser::get_ast()
+{
+    return m_root;
 }

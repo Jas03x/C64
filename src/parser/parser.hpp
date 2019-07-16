@@ -18,9 +18,6 @@ class Parser
 private:
     Root* m_root;
 
-    Function**  m_func_ptr;
-    Statement** m_stmt_ptr;
-
     union Arg
     {
         struct
@@ -34,8 +31,15 @@ private:
     TokenStack*    m_stack;
     ExpressionList m_list;
 
+    Function* m_func_ptr;
+    Function* m_func_tail;
+
+    Statement* m_stmt_tail;
+
 private:
     bool parse_decl();
+
+    bool read_arguments(Argument** args);
 
     Expression* read_value();
     Expression* read_expression();
@@ -44,13 +48,22 @@ private:
 
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
+    bool parse_statement();
+    bool parse_return();
     bool parse_function(Arg& arg);
     bool parse_variable(Arg& arg);
+
+    bool handle_end_of_block();
+
+    bool insert_function(Function* func);
+    bool insert_statement(Statement* stmt);
 
 public:
     Parser(TokenStack* tokens);
 
     bool process();
+
+    Root* get_ast();
 };
 
 #endif // PARSER_HPP

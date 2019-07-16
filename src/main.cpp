@@ -6,6 +6,8 @@
 #include <file.hpp>
 #include <parser.hpp>
 
+#include <debug.hpp>
+
 bool process(const char* path)
 {
     bool status = true;
@@ -22,6 +24,8 @@ bool process(const char* path)
             Parser parser = Parser(&tokenizer.get_tokens());
             if(parser.process())
             {
+                printf("Successfully parsed!\n");
+                debug_print_ast(parser.get_ast());
             }
         }
     }
