@@ -2,6 +2,8 @@
 
 #include <status.hpp>
 
+#define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
+
 Parser::Parser(TokenStack* tokens)
 {
     m_stack = tokens;
@@ -14,56 +16,75 @@ Parser::Parser(TokenStack* tokens)
 
 bool Parser::parse_function(Arg& arg)
 {
-    printf("parse_function\n");
     bool status = true;
 
     Token tk = m_stack->pop();
     if(tk.type != TK_OPEN_ROUND_BRACKET)
     {
-        printf("Error: Expected open round bracket\n");
+        error("Expected open round bracket\n");
         status = false;
     }
 
     Parameter* params = nullptr;
     if(status)
     {
-        Parameter** p_ptr = &params;
-        while(true)
+        if(m_stack->peek(0).type == TK_CLOSE_ROUND_BRACKET)
         {
-            tk = m_stack->pop();
-            if(tk.type == TK_CLOSE_ROUND_BRACKET)
+            m_stack->pop();
+        }
+        else
+        {
+            Parameter** p_ptr = &params;
+            while(true)
             {
-                break;
-            }
-            else if(tk.type == TK_TYPE)
-            {
-                uint8_t type = tk.subtype;
-                
                 tk = m_stack->pop();
-                if(tk.type == TK_IDENTIFIER)
+                if(tk.type == TK_TYPE)
                 {
-                    strptr name = tk.identifier.string;
+                    uint8_t type = tk.subtype;
+                    
+                    tk = m_stack->pop();
+                    if(tk.type == TK_IDENTIFIER)
+                    {
+                        strptr name = tk.identifier.string;
 
-                    Parameter* p = new Parameter();
-                    p->type = type;
-                    p->name = name;
-                    *p_ptr = p;
-                    p_ptr = &p->next;
+                        Parameter* p = new Parameter();
+                        p->type = type;
+                        p->name = name;
+                        *p_ptr = p;
+                        p_ptr = &p->next;
+
+                        tk = m_stack->pop();
+                        if(tk.type == TK_CLOSE_ROUND_BRACKET)
+                        {
+                            break;
+                        }
+                        else if(tk.type != TK_COMMA)
+                        {
+                            status = false;
+                            error("Unexpected token\n");
+                        }
+                    }
+                    else
+                    {
+                        status = false;
+                        error("Expected parameter name\n");
+                    }
                 }
                 else
                 {
+                    error("Expected parameter type\n");
                     status = false;
-                    printf("Error: Expected identifier\n");
                 }
+            }
+        }
+    }
 
-                break;
-            }
-            else
-            {
-                printf("Error: Unexpected token\n");
-                status = false;
-                break;
-            }
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type != TK_OPEN_CURLY_BRACKET)
+        {
+            error("Expected block start after function declaration\n");
         }
     }
 
@@ -73,11 +94,10 @@ bool Parser::parse_function(Arg& arg)
         func->ret_type = arg.decl.type;
         func->name = arg.decl.name;
         func->params = params;
-        printf("Function: %.*s\n", func->name.len, func->name.ptr); 
 
         status = insert_function(func);
     }
-
+    
     return status;
 }
 
@@ -87,7 +107,7 @@ bool Parser::insert_function(Function* func)
 
     if(m_func_ptr != nullptr)
     {
-        printf("Error: Cannot declare function inside function\n");
+        error("Cannot declare function inside function\n");
         status = false;
     }
     else
@@ -114,7 +134,7 @@ bool Parser::insert_statement(Statement* stmt)
 
     if(m_func_ptr == nullptr)
     {
-        printf("Error: Cannot put statements outside function\n");
+        error("Cannot put statements outside function\n");
         status = false;
     }
     else
@@ -143,7 +163,7 @@ bool Parser::read_arguments(Argument** args)
 
     if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
     {
-        printf("Error: Expected '(' token\n");
+        error("Expected '(' token\n");
         result = false;
     }
     else
@@ -160,7 +180,7 @@ bool Parser::read_arguments(Argument** args)
 
                 if(expr == nullptr)
                 {
-                    printf("Error: Expected expression\n");
+                    error("Expected expression\n");
                     result = false;
                     break;
                 }
@@ -186,7 +206,7 @@ bool Parser::read_arguments(Argument** args)
                 }
                 else if(tk.type != TK_COMMA)
                 {
-                    printf("Unexpected token\n");
+                    error("Unexpected token\n");
                     result = false;
                     break;
                 }
@@ -228,7 +248,7 @@ Expression* Parser::read_value()
 
                 if(!read_arguments(&args))
                 {
-                    printf("Error reading arguments\n");
+                    error("Failed to read arguments\n");
                 }
                 else
                 {
@@ -250,7 +270,7 @@ Expression* Parser::read_value()
 
         default:
         {
-            printf("Error: Unexpected tokens in expression\n");
+            error("Unexpected tokens in expression\n");
             break;
         }
     }
@@ -260,23 +280,40 @@ Expression* Parser::read_value()
 
 bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op)
 {
+    // operator to precedence level map
+    const static uint8_t TABLE[] =
+    {
+        PRECEDENCE_LEVEL_INVALID, // EXPR_OP_INVALID
+        PRECEDENCE_LEVEL_9, // EXPR_OP_ADD
+        PRECEDENCE_LEVEL_9, // EXPR_OP_SUB
+        PRECEDENCE_LEVEL_8, // EXPR_OP_MUL
+        PRECEDENCE_LEVEL_8, // EXPR_OP_DIV,
+        PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_NOT
+        PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_AND
+        PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_OR
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_COMPLEMENT
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_XOR
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_AND
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_OR
+        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_L_SHIFT
+        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_R_SHIFT
+        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_EQUAL
+        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_NOT_EQUAL
+        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_LESS_THAN
+        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_MORE_THAN
+        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
+        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
+        PRECEDENCE_LEVEL_2, // EXPR_OP_REFERENCE
+        PRECEDENCE_LEVEL_2, // EXPR_OP_DEREFERENCE
+        PRECEDENCE_LEVEL_1, // EXPR_OP_ASSIGN
+        PRECEDENCE_LEVEL_3, // EXPR_OP_ARROW
+    };
+
     bool ret = false;
 
-    switch(precedence_level)
+    if((op > 0) && (op < sizeof(TABLE)))
     {
-        case PRECEDENCE_LEVEL_1:
-        {
-            ret = (op == EXPR_OP_MUL) || (op == EXPR_OP_DIV);
-            break;
-        }
-
-        case PRECEDENCE_LEVEL_2:
-        {
-            ret = (op == EXPR_OP_ADD) || (op == EXPR_OP_SUB);
-            break;
-        }
-
-        default: break;
+        ret = (precedence_level == TABLE[op]);
     }
 
     return ret;
@@ -291,31 +328,41 @@ Expression* Parser::process_expression(ExpressionList::Entry* expression)
         for(ExpressionList::Entry* it = head; it != nullptr; it = it->next)
         {
             if((it->expr->type == EXPR_OPERATION) && check_operator_precedence(i, it->expr->operation.op))
-            {   
+            {
+                bool single_operand = (it->expr->operation.op == EXPR_OP_REFERENCE) || (it->expr->operation.op == EXPR_OP_DEREFERENCE);
+
                 ExpressionList::Entry* prev = it->prev;
                 ExpressionList::Entry* next = it->next;
-                if((prev == nullptr) || (next == nullptr)) { printf("ERROR\n"); return nullptr; }
+                Expression* lhs = prev == nullptr ? nullptr : prev->expr;
+                Expression* rhs = next == nullptr ? nullptr : next->expr;
 
-                Expression* lhs = prev->expr;
-                Expression* rhs = next->expr;
-                if((lhs == nullptr) || (rhs == nullptr)) { printf("ERROR\n"); return nullptr; }
+                // TODO: handle these errors properly ...
+                if((next == nullptr) || (rhs == nullptr)) { error("Missing rhs operand\n"); return nullptr; }
+                if(!single_operand && ((prev == nullptr) || (lhs == nullptr))) { error("Missing lhs operand\n"); return nullptr; }
 
-                it->expr->operation.lhs = lhs;
                 it->expr->operation.rhs = rhs;
-
-                if(prev->prev != nullptr) { prev->prev->next = it; }
-                if(next->next != nullptr) { next->next->prev = it; }
-
-                it->prev = prev->prev;
-                it->next = next->next;
-
-                if(head == prev)
+                if(!single_operand)
                 {
-                    head = it;
+                    it->expr->operation.lhs = lhs;
                 }
 
-                m_list.ret_entry(prev);
+                if(next->next != nullptr) { next->next->prev = it; }
+                it->next = next->next;
                 m_list.ret_entry(next);
+
+                if(!single_operand)
+                {
+                    if(prev->prev != nullptr) { prev->prev->next = it; }
+                    it->prev = prev->prev;
+
+                    if(head == prev)
+                    {
+                        head = it;
+                    }
+
+                    m_list.ret_entry(prev);
+                }
+
             }
         }
     }
@@ -323,6 +370,87 @@ Expression* Parser::process_expression(ExpressionList::Entry* expression)
     // debug_print_expression(head->expr);
 
     return head->expr;
+}
+
+Expression* Parser::read_operator()
+{
+    bool status = true;
+    Expression* expr = nullptr;
+
+    Token tk = m_stack->pop();
+    
+    uint8_t op = EXPR_OP_INVALID;
+    switch(tk.type)
+    {
+        case TK_PLUS:          { op = EXPR_OP_ADD;         break; }
+        case TK_ASTERISK:      { op = EXPR_OP_MUL;         break; }
+        case TK_FORWARD_SLASH: { op = EXPR_OP_DIV;         break; }
+        case TK_AND:           { op = EXPR_OP_LOGICAL_AND; break; }
+        case TK_OR:            { op = EXPR_OP_LOGICAL_OR;  break; }
+        case TK_CARET:         { op = EXPR_OP_BITWISE_XOR; break; }
+        case TK_MINUS:
+        {
+            op = EXPR_OP_SUB;
+
+            tk = m_stack->peek(0);
+            if(tk.type == TK_RIGHT_ARROW_HEAD) { m_stack->pop(); op = EXPR_OP_ARROW; }
+
+            break;
+        }
+        case TK_LEFT_ARROW_HEAD:
+        {
+            op = EXPR_OP_CMP_LESS_THAN;
+            
+            tk = m_stack->peek(0);
+            if(tk.type == TK_LEFT_ARROW_HEAD) { m_stack->pop(); op = EXPR_OP_BITWISE_L_SHIFT;        }
+            else if(tk.type == TK_EQUAL)      { m_stack->pop(); op = EXPR_OP_CMP_LESS_THAN_OR_EQUAL; }
+
+            break;
+        }
+        case TK_RIGHT_ARROW_HEAD:
+        {
+            op = EXPR_OP_CMP_MORE_THAN;
+            
+            tk = m_stack->peek(0);
+            if(tk.type == TK_RIGHT_ARROW_HEAD) { m_stack->pop(); op = EXPR_OP_BITWISE_R_SHIFT;        }
+            else if(tk.type == TK_EQUAL)       { m_stack->pop(); op = EXPR_OP_CMP_MORE_THAN_OR_EQUAL; }
+
+            break;
+        }
+        case TK_EXPLANATION_MARK:
+        {
+            op = EXPR_OP_LOGICAL_NOT;
+
+            tk = m_stack->peek(0);
+            if(tk.type == TK_EQUAL) { m_stack->pop(); op = EXPR_OP_CMP_NOT_EQUAL; }
+
+            break;
+        }
+        case TK_EQUAL:
+        {
+            op = EXPR_OP_ASSIGN;
+
+            tk = m_stack->peek(0);
+            if(tk.type == TK_EQUAL) { m_stack->pop(); op = EXPR_OP_CMP_EQUAL; }
+
+            break;
+        }
+        default:
+        {
+            error("Unknown operator");
+            status = false;
+            break;
+        }
+    }
+    
+    if(status)
+    {
+        expr = new Expression();
+        expr->type = EXPR_OPERATION;
+        expr->operation.op = op;
+    }
+
+    return expr;
 }
 
 Expression* Parser::read_expression()
@@ -351,7 +479,7 @@ Expression* Parser::read_expression()
                 }
                 else if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
                 {
-                    printf("Invalid expression: Expected close bracket\n");
+                    error("Invalid expression, expected close bracket\n");
                     status = false;
                 }
                 break;
@@ -376,29 +504,52 @@ Expression* Parser::read_expression()
                 break;
             }
 
-            case TK_PLUS:
-            case TK_MINUS:
             case TK_ASTERISK:
-            case TK_FORWARD_SLASH:
+            case TK_AMPERSAND:
             {
-                m_stack->pop();
+                bool is_ptr_operator = false;
+                if(list_tail == nullptr)
+                {
+                    is_ptr_operator = true;
+                }
+                else
+                {
+                    is_ptr_operator = list_tail->expr->type == EXPR_OPERATION;
+                }
+
+                if(!is_ptr_operator)
+                {
+                    goto OPERATOR;
+                }
+                else
+                {
+                    m_stack->pop();
+                }
+                
+
+                uint8_t op = 0;
+                if(tk.type == TK_ASTERISK)       { op = EXPR_OP_DEREFERENCE; }
+                else if(tk.type == TK_AMPERSAND) { op = EXPR_OP_REFERENCE;   }
 
                 expr = new Expression();
                 expr->type = EXPR_OPERATION;
-                switch(tk.type)
-                {
-                    case TK_PLUS:          { expr->operation.op = EXPR_OP_ADD; break; }
-                    case TK_MINUS:         { expr->operation.op = EXPR_OP_SUB; break; }
-                    case TK_ASTERISK:      { expr->operation.op = EXPR_OP_MUL; break; }
-                    case TK_FORWARD_SLASH: { expr->operation.op = EXPR_OP_DIV; break; }
-                    default:               { break; }
-                }
+                expr->operation.op = op;
+                
+                break;
+            }
+
+            OPERATOR:
+            case TK_PLUS:
+            case TK_MINUS:
+            case TK_FORWARD_SLASH:
+            {
+                expr = read_operator();
                 break;
             }
 
             default:
             {
-                printf("Unexpected token in expression\n");
+                error("Unexpected token in expression\n");
                 status = false;
                 break;
             }
@@ -408,7 +559,7 @@ Expression* Parser::read_expression()
         {
             if(expr == nullptr)
             {
-                printf("Error reading expression\n");
+                error("Error reading expression\n");
                 status = false;
             }
             else
@@ -450,7 +601,7 @@ bool Parser::parse_variable(Arg& arg)
 
         if(value == nullptr)
         {
-            printf("Error: Expected value\n");
+            error("Expected value\n");
             status = false;
         }
         else
@@ -460,11 +611,11 @@ bool Parser::parse_variable(Arg& arg)
             {
                 if(tk.type == TK_COMMA)
                 {
-                    printf("TODO: HANDLE MULTI DECLARATIONS\n");
+                    error("TODO: HANDLE MULTI DECLARATIONS\n");
                 }
                 else
                 {
-                    printf("Error: Expected semicolon\n");
+                    error("Expected semicolon\n");
                     status = false;
                 }
             }
@@ -473,7 +624,7 @@ bool Parser::parse_variable(Arg& arg)
     else if(tk.type != TK_SEMICOLON)
     {
         status = false;
-        printf("Error: Unexpected token\n");
+        error("Unexpected token\n");
     }
 
     if(status)
@@ -492,7 +643,6 @@ bool Parser::parse_variable(Arg& arg)
 
 bool Parser::parse_decl()
 {
-    printf("parse_decl\n");
     bool status = true;
 
     Arg arg = {};
@@ -500,7 +650,7 @@ bool Parser::parse_decl()
     Token tk = m_stack->pop();
     if((tk.type != TK_TYPE) || (tk.subtype == TYPE_INVALID))
     {
-        printf("Error: Expected type\n");
+        error("Expected type\n");
         status = false;
     }
     else
@@ -513,7 +663,7 @@ bool Parser::parse_decl()
         tk = m_stack->pop();
         if(tk.type != TK_IDENTIFIER)
         {
-            printf("Error: Expected identifier\n");
+            error("Expected identifier\n");
             status = false;
         }
         else
@@ -542,7 +692,7 @@ bool Parser::parse_decl()
 
             default:
             {
-                printf("Error: Unexpected token\n");
+                error("Unexpected token\n");
                 status = false;
             }
         }
@@ -553,11 +703,19 @@ bool Parser::parse_decl()
 
 bool Parser::handle_end_of_block()
 {
+    Token tk = m_stack->pop();
+    if(tk.type != TK_CLOSE_CURLY_BRACKET)
+    {
+        error("Expected '}'\n");
+        return false;
+    }
+
+    printf("BLOCK end\n");
     bool result = true;
 
     if(m_func_ptr == nullptr)
     {
-        printf("Error: Unexpected end of block\n");
+        error("Unexpected end of block\n");
         result = false;
     }
     else
@@ -575,7 +733,7 @@ bool Parser::parse_return()
 
     if(m_stack->pop().type != TK_RETURN)
     {
-        printf("ERROR: Expected return keyword\n");
+        error("Expected return keyword\n");
         result = false;
     }
     else
@@ -589,7 +747,7 @@ bool Parser::parse_return()
         {
             if(m_stack->pop().type != TK_SEMICOLON)
             {
-                printf("ERROR: Expected semicolon\n");
+                error("Expected semicolon\n");
                 result = false;
             }
             else
@@ -622,12 +780,12 @@ bool Parser::parse_statement()
 
 bool Parser::process()
 {
-    printf("process\n");
     STATUS status = STATUS_WORKING;
 
     while(status == STATUS_WORKING)
     {
         Token tk = m_stack->peek(0);
+
         switch(tk.type)
         {
             case TK_RETURN:
@@ -636,6 +794,14 @@ bool Parser::process()
                 status = parse_statement() ? STATUS_WORKING : STATUS_ERROR;
                 break;
             }
+
+            /*
+            case TK_IF:
+            {
+                status = parse_if_stmt();
+                break;
+            }
+            */
 
             case TK_EOF:
             {
@@ -646,11 +812,13 @@ bool Parser::process()
             case TK_CLOSE_CURLY_BRACKET:
             {
                 status = handle_end_of_block() ? STATUS_WORKING : STATUS_ERROR;
+                break;
             }
 
             default:
             {
-                m_stack->pop();
+                status = STATUS_ERROR;
+                error("Unknown token %hhu\n", tk.type);
                 break;
             }
         }
@@ -663,3 +831,4 @@ Root* Parser::get_ast()
 {
     return m_root;
 }
+

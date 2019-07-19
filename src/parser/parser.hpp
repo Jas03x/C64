@@ -10,7 +10,19 @@ enum
     PRECEDENCE_LEVEL_INVALID = 0,
     PRECEDENCE_LEVEL_1       = 1,
     PRECEDENCE_LEVEL_2       = 2,
-    PRECEDENCE_LEVEL_MAX     = 3
+    PRECEDENCE_LEVEL_3       = 3,
+    PRECEDENCE_LEVEL_4       = 4,
+    PRECEDENCE_LEVEL_5       = 5,
+    PRECEDENCE_LEVEL_6       = 6,
+    PRECEDENCE_LEVEL_7       = 7,
+    PRECEDENCE_LEVEL_8       = 8,
+    PRECEDENCE_LEVEL_9       = 9,
+    PRECEDENCE_LEVEL_MAX     = 10
+};
+
+enum
+{
+    MAX_STMT_DEPTH = 128
 };
 
 class Parser
@@ -36,6 +48,9 @@ private:
 
     Statement* m_stmt_tail;
 
+    Statement*   m_stmt_stack[MAX_STMT_DEPTH];
+    unsigned int m_stmt_stack_idx;
+
 private:
     bool parse_decl();
 
@@ -43,6 +58,7 @@ private:
 
     Expression* read_value();
     Expression* read_expression();
+    Expression* read_operator();
 
     Expression* process_expression(ExpressionList::Entry* expression);
 

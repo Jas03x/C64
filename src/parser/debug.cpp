@@ -9,6 +9,8 @@ void debug_indent(unsigned int level)
 
 void debug_print_expr(Expression* expr, unsigned int level = 0)
 {
+    if(expr == nullptr) return;
+
     debug_indent(level);
 
     switch(expr->type)
@@ -17,11 +19,13 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
         {
             switch(expr->operation.op)
             {
-                case EXPR_OP_ADD: { printf("+\n"); break; }
-                case EXPR_OP_SUB: { printf("-\n"); break; }
-                case EXPR_OP_MUL: { printf("*\n"); break; }
-                case EXPR_OP_DIV: { printf("/\n"); break; }
-                default:          { printf("unknown operator\n"); break; }
+                case EXPR_OP_ADD:         { printf("+\n");                break; }
+                case EXPR_OP_SUB:         { printf("-\n");                break; }
+                case EXPR_OP_MUL:         { printf("*\n");                break; }
+                case EXPR_OP_DIV:         { printf("/\n");                break; }
+                case EXPR_OP_REFERENCE:   { printf("REF\n");              break; }
+                case EXPR_OP_DEREFERENCE: { printf("DEREF\n");            break; }
+                default:                  { printf("unknown operator\n"); break; }
             }
 
             debug_print_expr(expr->operation.lhs, level + 1);

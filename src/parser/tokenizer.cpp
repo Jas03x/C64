@@ -289,12 +289,15 @@ bool Tokenizer::process(char c, Token& tk)
 
     switch(c)
     {
-        case '<': { tk.type = TK_LESS_THAN;            break; }
-        case '>': { tk.type = TK_GREATER_THAN;         break; }
+        case '<': { tk.type = TK_LEFT_ARROW_HEAD;      break; }
+        case '>': { tk.type = TK_RIGHT_ARROW_HEAD;     break; }
         case '=': { tk.type = TK_EQUAL;                break; }
         case '+': { tk.type = TK_PLUS;                 break; }
         case '-': { tk.type = TK_MINUS;                break; }
         case '*': { tk.type = TK_ASTERISK;             break; }
+        case '^': { tk.type = TK_CARET;                break; }
+        case '&': { tk.type = TK_AMPERSAND;            break; }
+        case '!': { tk.type = TK_EXPLANATION_MARK;     break; }
         case '.': { tk.type = TK_DOT;                  break; }
         case '/': { tk.type = TK_FORWARD_SLASH;        break; }
         case '{': { tk.type = TK_OPEN_CURLY_BRACKET;   break; }
@@ -328,14 +331,25 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
     {
         case 2:
         {
-            if(_strncmp(str, "if", 2)) { tk.type = TK_IF; break; }
-            else if(_strncmp(str, "U8", 2)) { tk = { TK_TYPE, { TYPE_U8 } }; break; }
+            switch(str[0])
+            {
+                case 'i': { if(_strncmp(str, "if", 2)) { tk.type = TK_IF; } break; }
+                case 'o': { if(_strncmp(str, "or", 2)) { tk.type = TK_OR; } break; }
+                case 'U': { if(_strncmp(str, "U8", 2)) { tk = { TK_TYPE, { TYPE_U8 } }; } break; }
+                default:  { break; }
+            }
+
             break;
         }
         
         case 3:
         {
-            if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, { TYPE_U32 } }; break; }
+            switch(str[0])
+            {
+                case 'a': { if(_strncmp(str, "and", 3)) { tk.type = TK_AND; } break; }
+                case 'U': { if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, { TYPE_U32 } }; } break; }
+            }
+            
             break;
         }
 
@@ -413,7 +427,7 @@ bool Tokenizer::next_token(Token& tk)
             case '+': case '-': case '*':
             case '=': case '<': case '>': case ';':
             case '(': case ')': case '[': case ']':
-            case '{': case '}':
+            case '{': case '}': case ',':
             {
                 pop();
                 status = process(c, tk) ? STATUS_SUCCESS : STATUS_ERROR;
@@ -426,9 +440,14 @@ bool Tokenizer::next_token(Token& tk)
                 {
                     status = read_literal(tk) ? STATUS_SUCCESS : STATUS_ERROR;
                 }
-                else
+                else if(((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) || (c == '_'))
                 {
                     status = read_token(tk) ? STATUS_SUCCESS : STATUS_ERROR;
+                }
+                else
+                {
+                    printf("Error: Unknown token '%c'\n", c);
+                    status = STATUS_ERROR;
                 }
                 break;
             }

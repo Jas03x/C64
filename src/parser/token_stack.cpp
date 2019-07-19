@@ -17,6 +17,7 @@ Token TokenStack::pop()
     {
         tk = m_stack[m_index++];
     }
+    printf("pop: %hhu\n", tk.type);
     return tk;
 }
 
