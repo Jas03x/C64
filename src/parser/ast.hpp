@@ -87,10 +87,11 @@ struct Expression
 enum
 {
     STMT_INVALID  = 0x0,
-    STMT_EXPR     = 0x1,
-    STMT_DECL_VAR = 0x2,
-    STMT_IF       = 0x3,
-    STMT_RET      = 0x4
+    STMT_BLOCK    = 0x1,
+    STMT_EXPR     = 0x2,
+    STMT_DECL_VAR = 0x3,
+    STMT_IF       = 0x4,
+    STMT_RET      = 0x5
 };
 
 struct Statement

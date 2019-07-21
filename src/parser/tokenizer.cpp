@@ -308,6 +308,7 @@ bool Tokenizer::process(char c, Token& tk)
         case ']': { tk.type = TK_CLOSE_SQUARE_BRACKET; break; }
         case ';': { tk.type = TK_SEMICOLON;            break; }
         case ',': { tk.type = TK_COMMA;                break; }
+        case '%': { tk.type = TK_PERCENT;              break; }
 
         default:
         {

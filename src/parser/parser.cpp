@@ -12,6 +12,9 @@ Parser::Parser(TokenStack* tokens)
     m_func_ptr  = nullptr;
     m_func_tail = nullptr;
     m_stmt_tail = nullptr;
+
+    m_stmt_stack_idx = 0;
+    memset(m_stmt_stack, 0, sizeof(m_stmt_stack));
 }
 
 bool Parser::parse_function(Arg& arg)
@@ -90,10 +93,14 @@ bool Parser::parse_function(Arg& arg)
 
     if(status)
     {
+        Statement* body = new Statement();
+        body->type = STMT_BLOCK;
+
         Function* func = new Function();
         func->ret_type = arg.decl.type;
         func->name = arg.decl.name;
         func->params = params;
+        func->body = body;
 
         status = insert_function(func);
     }
@@ -123,6 +130,8 @@ bool Parser::insert_function(Function* func)
 
         m_func_tail = func;
         m_func_ptr  = func;
+
+        insert_statement(func->body);
     }
 
     return status;
@@ -139,16 +148,28 @@ bool Parser::insert_statement(Statement* stmt)
     }
     else
     {
-        if(m_stmt_tail == nullptr)
-        {
-            m_func_ptr->body = stmt;
-        }
-        else
+        if(m_stmt_tail != nullptr)
         {
             m_stmt_tail->next = stmt;
         }
 
         m_stmt_tail = stmt;
+        m_stmt_stack[m_stmt_stack_idx] = stmt;
+
+        switch (stmt->type)
+        {
+            case STMT_IF:
+            {
+                m_stmt_tail = stmt->if_stmt.body;
+                m_stmt_stack[++m_stmt_stack_idx] = stmt->if_stmt.body;
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+        }
     }
 
     return status;
@@ -284,29 +305,29 @@ bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op
     const static uint8_t TABLE[] =
     {
         PRECEDENCE_LEVEL_INVALID, // EXPR_OP_INVALID
-        PRECEDENCE_LEVEL_9, // EXPR_OP_ADD
-        PRECEDENCE_LEVEL_9, // EXPR_OP_SUB
-        PRECEDENCE_LEVEL_8, // EXPR_OP_MUL
-        PRECEDENCE_LEVEL_8, // EXPR_OP_DIV,
+        PRECEDENCE_LEVEL_4, // EXPR_OP_ADD
+        PRECEDENCE_LEVEL_4, // EXPR_OP_SUB
+        PRECEDENCE_LEVEL_3, // EXPR_OP_MUL
+        PRECEDENCE_LEVEL_3, // EXPR_OP_DIV,
         PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_NOT
         PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_AND
         PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_OR
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_COMPLEMENT
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_XOR
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_AND
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_OR
+        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_COMPLEMENT
+        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_XOR
+        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_AND
+        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_OR
         PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_L_SHIFT
         PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_R_SHIFT
-        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_EQUAL
-        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_NOT_EQUAL
-        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_LESS_THAN
-        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_MORE_THAN
-        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
-        PRECEDENCE_LEVEL_4, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
+        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_EQUAL
+        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_NOT_EQUAL
+        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_LESS_THAN
+        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_MORE_THAN
+        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
+        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
         PRECEDENCE_LEVEL_2, // EXPR_OP_REFERENCE
         PRECEDENCE_LEVEL_2, // EXPR_OP_DEREFERENCE
-        PRECEDENCE_LEVEL_1, // EXPR_OP_ASSIGN
-        PRECEDENCE_LEVEL_3, // EXPR_OP_ARROW
+        PRECEDENCE_LEVEL_7, // EXPR_OP_ASSIGN
+        PRECEDENCE_LEVEL_1, // EXPR_OP_ARROW
     };
 
     bool ret = false;
@@ -322,6 +343,11 @@ bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op
 Expression* Parser::process_expression(ExpressionList::Entry* expression)
 {
     ExpressionList::Entry* head = expression;
+
+    if(head->next == nullptr)
+    {
+        return head->expr;
+    }
 
     for(unsigned int i = PRECEDENCE_LEVEL_1; i < PRECEDENCE_LEVEL_MAX; i++)
     {
@@ -362,7 +388,6 @@ Expression* Parser::process_expression(ExpressionList::Entry* expression)
 
                     m_list.ret_entry(prev);
                 }
-
             }
         }
     }
@@ -457,6 +482,7 @@ Expression* Parser::read_expression()
 {
     bool status = true;
 
+    Expression* expr = nullptr;
     ExpressionList::Entry* list_head = nullptr;
     ExpressionList::Entry* list_tail = nullptr;
 
@@ -488,6 +514,7 @@ Expression* Parser::read_expression()
             case TK_COMMA:
             case TK_SEMICOLON:
             case TK_CLOSE_ROUND_BRACKET:
+            case TK_OPEN_CURLY_BRACKET:
             {
                 reading = false;
                 break;
@@ -542,6 +569,10 @@ Expression* Parser::read_expression()
             case TK_PLUS:
             case TK_MINUS:
             case TK_FORWARD_SLASH:
+            case TK_RIGHT_ARROW_HEAD:
+            case TK_LEFT_ARROW_HEAD:
+            case TK_CARET:
+            case TK_PERCENT:
             {
                 expr = read_operator();
                 break;
@@ -549,7 +580,7 @@ Expression* Parser::read_expression()
 
             default:
             {
-                error("Unexpected token in expression\n");
+                error("Unexpected token %hhu in expression\n", tk.type);
                 status = false;
                 break;
             }
@@ -584,7 +615,11 @@ Expression* Parser::read_expression()
         }
     }
 
-    Expression* expr = process_expression(list_head);
+    if(status)
+    {
+        expr = process_expression(list_head);
+    }
+
     return expr;
 }
 
@@ -710,7 +745,6 @@ bool Parser::handle_end_of_block()
         return false;
     }
 
-    printf("BLOCK end\n");
     bool result = true;
 
     if(m_func_ptr == nullptr)
@@ -720,8 +754,24 @@ bool Parser::handle_end_of_block()
     }
     else
     {
-        m_func_ptr  = nullptr;
-        m_stmt_tail = nullptr;
+        if (m_stmt_stack_idx >= 0)
+        {
+            if(m_stmt_stack_idx > 0)
+            {
+                m_stmt_stack[m_stmt_stack_idx] = nullptr;
+                m_stmt_tail = m_stmt_stack[m_stmt_stack_idx - 1];
+            }
+            else
+            {
+                m_func_ptr = nullptr;
+                m_stmt_tail = nullptr;
+            }
+        }
+        else
+        {
+            error("Unexpected end of block\n");
+            result = false;
+        }
     }
 
     return result;
@@ -778,6 +828,88 @@ bool Parser::parse_statement()
     return result;
 }
 
+bool Parser::parse_if_stmt()
+{
+    bool status = true;
+    Expression* condition = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_IF)
+    {
+        error("Unexpected token\n");
+        status = false;
+    }
+
+    if(status)
+    {
+        if(m_stack->peek(0).type != TK_OPEN_ROUND_BRACKET)
+        {
+            printf("Expected '('\n");
+            status = false;
+        }
+        else
+        {
+            condition = read_expression();
+            status = (condition != nullptr);
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
+        {
+            error("Expected '{'\n");
+            status = false;
+        }
+    }
+
+    if(status)
+    {
+        Statement* body = new Statement();
+        body->type = STMT_BLOCK;
+
+        Statement* stmt = new Statement();
+        stmt->type = STMT_IF;
+        stmt->if_stmt.condition = condition;
+        stmt->if_stmt.body = body;
+
+        status = insert_statement(stmt);
+    }
+
+    return status;
+}
+
+bool Parser::parse_expr_stmt()
+{
+    bool status = true;
+
+    Expression* expr = read_expression();
+    if(expr == nullptr)
+    {
+        status = false;
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_SEMICOLON)
+        {
+            error("Expected semicolon\n");
+            status = false;
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_EXPR;
+        stmt->expr = expr;
+
+        status = insert_statement(stmt);
+    }
+
+    return status;
+}
+
 bool Parser::process()
 {
     STATUS status = STATUS_WORKING;
@@ -795,13 +927,11 @@ bool Parser::process()
                 break;
             }
 
-            /*
             case TK_IF:
             {
-                status = parse_if_stmt();
+                status = parse_if_stmt() ? STATUS_WORKING : STATUS_ERROR;
                 break;
             }
-            */
 
             case TK_EOF:
             {
@@ -817,8 +947,7 @@ bool Parser::process()
 
             default:
             {
-                status = STATUS_ERROR;
-                error("Unknown token %hhu\n", tk.type);
+                status = parse_expr_stmt() ? STATUS_WORKING : STATUS_ERROR;
                 break;
             }
         }
@@ -831,4 +960,3 @@ Root* Parser::get_ast()
 {
     return m_root;
 }
-

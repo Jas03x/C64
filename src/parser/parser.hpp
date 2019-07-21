@@ -16,8 +16,7 @@ enum
     PRECEDENCE_LEVEL_6       = 6,
     PRECEDENCE_LEVEL_7       = 7,
     PRECEDENCE_LEVEL_8       = 8,
-    PRECEDENCE_LEVEL_9       = 9,
-    PRECEDENCE_LEVEL_MAX     = 10
+    PRECEDENCE_LEVEL_MAX     = 9
 };
 
 enum
@@ -49,7 +48,7 @@ private:
     Statement* m_stmt_tail;
 
     Statement*   m_stmt_stack[MAX_STMT_DEPTH];
-    unsigned int m_stmt_stack_idx;
+    int          m_stmt_stack_idx;
 
 private:
     bool parse_decl();
@@ -68,6 +67,8 @@ private:
     bool parse_return();
     bool parse_function(Arg& arg);
     bool parse_variable(Arg& arg);
+    bool parse_if_stmt();
+    bool parse_expr_stmt();
 
     bool handle_end_of_block();
 

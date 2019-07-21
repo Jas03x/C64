@@ -19,13 +19,30 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
         {
             switch(expr->operation.op)
             {
-                case EXPR_OP_ADD:         { printf("+\n");                break; }
-                case EXPR_OP_SUB:         { printf("-\n");                break; }
-                case EXPR_OP_MUL:         { printf("*\n");                break; }
-                case EXPR_OP_DIV:         { printf("/\n");                break; }
-                case EXPR_OP_REFERENCE:   { printf("REF\n");              break; }
-                case EXPR_OP_DEREFERENCE: { printf("DEREF\n");            break; }
-                default:                  { printf("unknown operator\n"); break; }
+                case EXPR_OP_ADD:                    { printf("+\n");   break; }
+                case EXPR_OP_SUB:                    { printf("-\n");   break; }
+                case EXPR_OP_MUL:                    { printf("*\n");   break; }
+                case EXPR_OP_DIV:                    { printf("/\n");   break; }
+                case EXPR_OP_LOGICAL_NOT:            { printf("NOT\n"); break; }
+                case EXPR_OP_LOGICAL_AND:            { printf("AND\n"); break; }
+                case EXPR_OP_LOGICAL_OR:             { printf("OR\n");  break; }
+                case EXPR_OP_BITWISE_COMPLEMENT:     { printf("~\n");   break; }
+                case EXPR_OP_BITWISE_XOR:            { printf("^\n");   break; }
+                case EXPR_OP_BITWISE_AND:            { printf("&\n");   break; }
+                case EXPR_OP_BITWISE_OR:             { printf("|\n");   break; }
+                case EXPR_OP_BITWISE_L_SHIFT:        { printf("<<\n");  break; }
+                case EXPR_OP_BITWISE_R_SHIFT:        { printf(">>\n");  break; }
+                case EXPR_OP_CMP_EQUAL:              { printf("==\n");  break; }
+                case EXPR_OP_CMP_NOT_EQUAL:          { printf("!=\n");  break; }
+                case EXPR_OP_CMP_LESS_THAN:          { printf("<\n");   break; }
+                case EXPR_OP_CMP_MORE_THAN:          { printf(">\n");   break; }
+                case EXPR_OP_CMP_LESS_THAN_OR_EQUAL: { printf("<=\n");  break; }
+                case EXPR_OP_CMP_MORE_THAN_OR_EQUAL: { printf(">=\n");  break; }
+                case EXPR_OP_REFERENCE:              { printf("&\n");   break; }
+                case EXPR_OP_DEREFERENCE:            { printf("*\n");   break; }
+                case EXPR_OP_ASSIGN:                 { printf("=\n");   break; }
+                case EXPR_OP_ARROW:                  { printf("->\n");  break; }
+                default:                             { printf("unknown operator\n"); break; }
             }
 
             debug_print_expr(expr->operation.lhs, level + 1);
@@ -96,6 +113,11 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
 
     switch(stmt->type)
     {
+        case STMT_BLOCK:
+        {
+            printf("BLOCK_START\n");
+            break;
+        }
         case STMT_DECL_VAR:
         {
             printf("VAR\n");
@@ -115,6 +137,31 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
         {
             printf("RETURN\n");
             debug_print_expr(stmt->ret_stmt.expression, level + 1);
+            break;
+        }
+
+        case STMT_EXPR:
+        {
+            printf("EXPR\n");
+            debug_print_expr(stmt->expr, level + 1);
+            break;
+        }
+
+        case STMT_IF:
+        {
+            printf("IF\n");
+            
+            debug_indent(level + 1);
+            printf("COND:\n");
+            debug_print_expr(stmt->if_stmt.condition, level + 2);
+
+            debug_indent(level + 1);
+            printf("BODY:\n");
+            for (Statement* s = stmt->if_stmt.body; s != nullptr; s = s->next)
+            {
+                debug_print_stmt(s, level + 2);
+            }
+
             break;
         }
 
