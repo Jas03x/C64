@@ -38,11 +38,11 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
                 case EXPR_OP_CMP_MORE_THAN:          { printf(">\n");   break; }
                 case EXPR_OP_CMP_LESS_THAN_OR_EQUAL: { printf("<=\n");  break; }
                 case EXPR_OP_CMP_MORE_THAN_OR_EQUAL: { printf(">=\n");  break; }
-                case EXPR_OP_REFERENCE:              { printf("&\n");   break; }
-                case EXPR_OP_DEREFERENCE:            { printf("*\n");   break; }
+                case EXPR_OP_REFERENCE:              { printf("REF\n");   break; }
+                case EXPR_OP_DEREFERENCE:            { printf("DEREF\n");   break; }
                 case EXPR_OP_ASSIGN:                 { printf("=\n");   break; }
                 case EXPR_OP_ARROW:                  { printf("->\n");  break; }
-                default:                             { printf("unknown operator\n"); break; }
+                default:                             { printf("Unknown operator\n"); break; }
             }
 
             debug_print_expr(expr->operation.lhs, level + 1);
@@ -113,6 +113,36 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
 
     switch(stmt->type)
     {
+        case STMT_FUNC:
+        {
+            printf("FUNC:\n");
+
+            debug_print_type(stmt->func.ret_type, level + 1);
+
+            debug_indent(1);
+            printf("NAME: %.*s\n", stmt->func.name.len, stmt->func.name.ptr);
+
+            for(Parameter* p = stmt->func.params; p != nullptr; p = p->next)
+            {
+                debug_indent(level + 1);
+                printf("PARAMETER:\n");
+
+                debug_print_type(p->type, level + 2);
+
+                debug_indent(level + 2);   
+                printf("NAME: %.*s\n", p->name.len, p->name.ptr);
+            }
+
+            debug_indent(level + 1);
+            printf("BODY:\n");
+            for(Statement* s = stmt->func.body; s != nullptr; s = s->next)
+            {
+                debug_print_stmt(s, level + 2);
+            }
+
+            break;
+        }
+
         case STMT_BLOCK:
         {
             printf("BLOCK_START\n");
@@ -173,39 +203,10 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
     }
 }
 
-void debug_print_func(Function* func)
+void debug_print_ast(AST* ast)
 {
-    printf("FUNC:\n");
-
-    debug_print_type(func->ret_type, 1);
-
-    debug_indent(1);
-    printf("NAME: %.*s\n", func->name.len, func->name.ptr);
-
-    for(Parameter* p = func->params; p != nullptr; p = p->next)
+    for(Statement* stmt = ast->statements; stmt != nullptr; stmt = stmt->next)
     {
-        debug_indent(1);
-        printf("PARAMETER:\n");
-
-        debug_print_type(p->type, 2);
-
-        debug_indent(2);   
-        printf("NAME: %.*s\n", p->name.len, p->name.ptr);
-    }
-
-    debug_indent(1);
-    printf("BODY:\n");
-    for(Statement* s = func->body; s != nullptr; s = s->next)
-    {
-        debug_print_stmt(s, 2);
-    }
-    
-}
-
-void debug_print_ast(Root* ast)
-{
-    for(Function* f = ast->functions; f != nullptr; f = f->next)
-    {
-        debug_print_func(f);
+        debug_print_stmt(stmt);
     }
 }

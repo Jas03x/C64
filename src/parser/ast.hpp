@@ -87,11 +87,19 @@ struct Expression
 enum
 {
     STMT_INVALID  = 0x0,
-    STMT_BLOCK    = 0x1,
-    STMT_EXPR     = 0x2,
-    STMT_DECL_VAR = 0x3,
-    STMT_IF       = 0x4,
-    STMT_RET      = 0x5
+    STMT_FUNC     = 0x1,
+    STMT_BLOCK    = 0x2,
+    STMT_EXPR     = 0x3,
+    STMT_DECL_VAR = 0x4,
+    STMT_IF       = 0x5,
+    STMT_RET      = 0x6
+};
+
+struct Parameter
+{
+    uint8_t    type;
+    strptr     name;
+    Parameter* next;
 };
 
 struct Statement
@@ -100,6 +108,19 @@ struct Statement
 
     union
     {
+        struct
+        {
+            uint8_t    ret_type;
+            strptr     name;
+            Parameter* params;
+            Statement* body;
+        } func;
+
+        struct
+        {
+            // no members
+        } block;
+
         Expression* expr;
 
         struct
@@ -124,25 +145,9 @@ struct Statement
     Statement* next;
 };
 
-struct Parameter
+struct AST
 {
-    uint8_t    type;
-    strptr     name;
-    Parameter* next;
-};
-
-struct Function
-{
-    uint8_t    ret_type;
-    strptr     name;
-    Parameter* params;
-    Statement* body;
-    Function*  next;
-};
-
-struct Root
-{
-    Function* functions;
+    Statement* statements;
 };
 
 #endif // AST_HPP

@@ -263,6 +263,11 @@ bool Tokenizer::read_token(Token& tk)
         v |= ((c >= '0') && (c <= '9'));
         v |= ((c >= 'a') && (c <= 'z'));
         v |= ((c >= 'A') && (c <= 'Z'));
+        
+        if(!v) // check for any special characters
+        {
+            v = (c == '_');
+        }
 
         if(v)
         {

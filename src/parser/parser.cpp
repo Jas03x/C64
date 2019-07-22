@@ -7,14 +7,6 @@
 Parser::Parser(TokenStack* tokens)
 {
     m_stack = tokens;
-
-    m_root = new Root();
-    m_func_ptr  = nullptr;
-    m_func_tail = nullptr;
-    m_stmt_tail = nullptr;
-
-    m_stmt_stack_idx = 0;
-    memset(m_stmt_stack, 0, sizeof(m_stmt_stack));
 }
 
 bool Parser::parse_function(Arg& arg)
@@ -96,42 +88,32 @@ bool Parser::parse_function(Arg& arg)
         Statement* body = new Statement();
         body->type = STMT_BLOCK;
 
-        Function* func = new Function();
-        func->ret_type = arg.decl.type;
-        func->name = arg.decl.name;
-        func->params = params;
-        func->body = body;
+        Statement* stmt = new Statement();
+        stmt->type = STMT_FUNC;
+        stmt->func.ret_type = arg.decl.type;
+        stmt->func.name = arg.decl.name;
+        stmt->func.params = params;
+        stmt->func.body = body;
 
-        status = insert_function(func);
+        status = insert_function(stmt);
     }
     
     return status;
 }
 
-bool Parser::insert_function(Function* func)
+bool Parser::insert_function(Statement* stmt)
 {
     bool status = true;
 
-    if(m_func_ptr != nullptr)
+    if(!m_scope.is_global())
     {
         error("Cannot declare function inside function\n");
         status = false;
     }
     else
     {
-        if(m_func_tail == nullptr)
-        {
-            m_root->functions = func;
-        }
-        else
-        {
-            m_func_tail->next = func;   
-        }
-
-        m_func_tail = func;
-        m_func_ptr  = func;
-
-        insert_statement(func->body);
+        m_global_stmt_list.insert(stmt);
+        status = m_scope.insert_function(stmt->func.body);
     }
 
     return status;
@@ -141,27 +123,19 @@ bool Parser::insert_statement(Statement* stmt)
 {
     bool status = true;
 
-    if(m_func_ptr == nullptr)
+    if(m_scope.is_global())
     {
-        error("Cannot put statements outside function\n");
-        status = false;
+        m_global_stmt_list.insert(stmt);
     }
     else
     {
-        if(m_stmt_tail != nullptr)
-        {
-            m_stmt_tail->next = stmt;
-        }
-
-        m_stmt_tail = stmt;
-        m_stmt_stack[m_stmt_stack_idx] = stmt;
+        m_scope.append(stmt);
 
         switch (stmt->type)
         {
             case STMT_IF:
             {
-                m_stmt_tail = stmt->if_stmt.body;
-                m_stmt_stack[++m_stmt_stack_idx] = stmt->if_stmt.body;
+                m_scope.push(stmt->if_stmt.body);
                 break;
             }
 
@@ -573,6 +547,7 @@ Expression* Parser::read_expression()
             case TK_LEFT_ARROW_HEAD:
             case TK_CARET:
             case TK_PERCENT:
+            case TK_EQUAL:
             {
                 expr = read_operator();
                 break;
@@ -747,27 +722,14 @@ bool Parser::handle_end_of_block()
 
     bool result = true;
 
-    if(m_func_ptr == nullptr)
+    if(m_scope.is_global())
     {
         error("Unexpected end of block\n");
         result = false;
     }
     else
     {
-        if (m_stmt_stack_idx >= 0)
-        {
-            if(m_stmt_stack_idx > 0)
-            {
-                m_stmt_stack[m_stmt_stack_idx] = nullptr;
-                m_stmt_tail = m_stmt_stack[m_stmt_stack_idx - 1];
-            }
-            else
-            {
-                m_func_ptr = nullptr;
-                m_stmt_tail = nullptr;
-            }
-        }
-        else
+        if(!m_scope.pop())
         {
             error("Unexpected end of block\n");
             result = false;
@@ -956,7 +918,10 @@ bool Parser::process()
     return (status == STATUS_SUCCESS);
 }
 
-Root* Parser::get_ast()
+AST* Parser::get_ast()
 {
-    return m_root;
+    AST* ast = new AST();
+    ast->statements = m_global_stmt_list.get_head();
+    
+    return ast;
 }

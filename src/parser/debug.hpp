@@ -3,6 +3,6 @@
 
 #include <ast.hpp>
 
-void debug_print_ast(Root* ast);
+void debug_print_ast(AST* ast);
 
 #endif // DEBUG_HPP

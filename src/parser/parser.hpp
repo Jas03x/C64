@@ -4,6 +4,8 @@
 #include <ast.hpp>
 #include <token_stack.hpp>
 #include <expression_list.hpp>
+#include <linked_list.hpp>
+#include <scope.hpp>
 
 enum
 {
@@ -27,8 +29,6 @@ enum
 class Parser
 {
 private:
-    Root* m_root;
-
     union Arg
     {
         struct
@@ -42,13 +42,9 @@ private:
     TokenStack*    m_stack;
     ExpressionList m_list;
 
-    Function* m_func_ptr;
-    Function* m_func_tail;
+    LList<Statement> m_global_stmt_list;
 
-    Statement* m_stmt_tail;
-
-    Statement*   m_stmt_stack[MAX_STMT_DEPTH];
-    int          m_stmt_stack_idx;
+    Scope m_scope;
 
 private:
     bool parse_decl();
@@ -72,7 +68,7 @@ private:
 
     bool handle_end_of_block();
 
-    bool insert_function(Function* func);
+    bool insert_function(Statement* stmt);
     bool insert_statement(Statement* stmt);
 
 public:
@@ -80,7 +76,7 @@ public:
 
     bool process();
 
-    Root* get_ast();
+    AST* get_ast();
 };
 
 #endif // PARSER_HPP
