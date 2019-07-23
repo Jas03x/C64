@@ -37,19 +37,18 @@ private:
     Scope m_scope;
 
 private:
-    Expression* parse_value();
-    Expression* parse_expression();
-    Expression* parse_operator();
-
-	bool parse_declaration();
+    bool parse_value(Expression** expr);
+    bool parse_expression(Expression** expr);
+    bool parse_operator(Expression** expr);
 
     bool parse_parameters(Parameter** params);
 	bool parse_arguments(Argument** args);
     
-	Expression* process_expression(ExpressionList::Entry* expression);
+	bool process_expression(ExpressionList::Entry* list, Expression** expr);
 
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
+    bool parse_declaration();
     bool parse_statement();
     bool parse_return();
     bool parse_if_stmt();

@@ -59,7 +59,7 @@ bool Parser::insert_statement(Statement* stmt)
 
 bool Parser::parse_arguments(Argument** args)
 {
-    bool result = true;
+    bool status = true;
 
     Argument* head = nullptr;
     Argument* tail = nullptr;
@@ -67,7 +67,7 @@ bool Parser::parse_arguments(Argument** args)
     if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
     {
         error("Expected '(' token\n");
-        result = false;
+        status = false;
     }
     else
     {   
@@ -77,59 +77,60 @@ bool Parser::parse_arguments(Argument** args)
         }
         else
         {
-            while(true)
+            while(status)
             {
-                Expression* expr = parse_expression();
+                Expression* expr = nullptr;
 
-                if(expr == nullptr)
+                if(!parse_expression(&expr))
                 {
-                    error("Expected expression\n");
-                    result = false;
-                    break;
-                }
-                
-                Argument* arg = new Argument();
-                arg->value = expr;
-                
-                if(head == nullptr)
-                {
-                    head = arg;
-                    tail = arg;
+                    status = false;
                 }
                 else
                 {
-                    tail->next = arg;
-                    tail = arg;
-                }
+                    Argument* arg = new Argument();
+                    arg->value = expr;
+                    
+                    if(head == nullptr)
+                    {
+                        head = arg;
+                        tail = arg;
+                    }
+                    else
+                    {
+                        tail->next = arg;
+                        tail = arg;
+                    }
 
-                Token tk = m_stack->pop();
-                if(tk.type == TK_CLOSE_ROUND_BRACKET)
-                {
-                    break;
-                }
-                else if(tk.type != TK_COMMA)
-                {
-                    error("Unexpected token\n");
-                    result = false;
-                    break;
+                    Token tk = m_stack->pop();
+                    if(tk.type == TK_CLOSE_ROUND_BRACKET)
+                    {
+                        break;
+                    }
+                    else if(tk.type != TK_COMMA)
+                    {
+                        error("Unexpected token\n");
+                        status = false;
+                    }
                 }
             }
         }
     }
 
-    if(result)
+    if(status)
     {
         *args = head;
     }
 
-    return result;
+    return status;
 }
 
-Expression* Parser::parse_value()
+bool Parser::parse_value(Expression** ptr)
 {
+    bool status = true;
+    
     Expression* expr = nullptr;
-
     Token tk = m_stack->pop();
+    
     switch(tk.type)
     {
         case TK_LITERAL:
@@ -152,6 +153,7 @@ Expression* Parser::parse_value()
                 if(!parse_arguments(&args))
                 {
                     error("Failed to read arguments\n");
+                    status = false;
                 }
                 else
                 {
@@ -174,11 +176,17 @@ Expression* Parser::parse_value()
         default:
         {
             error("Unexpected tokens in expression\n");
+            status = false;
             break;
         }
     }
 
-    return expr;
+    if(status)
+    {
+        *ptr = expr;
+    }
+
+    return status;
 }
 
 bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op)
@@ -222,53 +230,54 @@ bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op
     return ret;
 }
 
-Expression* Parser::process_expression(ExpressionList::Entry* expression)
+bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
 {
-    ExpressionList::Entry* head = expression;
+    bool status = true;
+    ExpressionList::Entry* head = list;
 
-    if(head->next == nullptr)
+    if(head->next != nullptr)
     {
-        return head->expr;
-    }
-
-    for(unsigned int i = PRECEDENCE_LEVEL_1; i < PRECEDENCE_LEVEL_MAX; i++)
-    {
-        for(ExpressionList::Entry* it = head; it != nullptr; it = it->next)
+        for(unsigned int i = PRECEDENCE_LEVEL_1; i < PRECEDENCE_LEVEL_MAX; i++)
         {
-            if((it->expr->type == EXPR_OPERATION) && check_operator_precedence(i, it->expr->operation.op))
+            for(ExpressionList::Entry* it = head; it != nullptr; it = it->next)
             {
-                bool single_operand = (it->expr->operation.op == EXPR_OP_REFERENCE) || (it->expr->operation.op == EXPR_OP_DEREFERENCE);
-
-                ExpressionList::Entry* prev = it->prev;
-                ExpressionList::Entry* next = it->next;
-                Expression* lhs = prev == nullptr ? nullptr : prev->expr;
-                Expression* rhs = next == nullptr ? nullptr : next->expr;
-
-                // TODO: handle these errors properly ...
-                if((next == nullptr) || (rhs == nullptr)) { error("Missing rhs operand\n"); return nullptr; }
-                if(!single_operand && ((prev == nullptr) || (lhs == nullptr))) { error("Missing lhs operand\n"); return nullptr; }
-
-                it->expr->operation.rhs = rhs;
-                if(!single_operand)
+                if((it->expr->type == EXPR_OPERATION) && check_operator_precedence(i, it->expr->operation.op))
                 {
-                    it->expr->operation.lhs = lhs;
-                }
+                    bool single_operand = (it->expr->operation.op == EXPR_OP_REFERENCE) || (it->expr->operation.op == EXPR_OP_DEREFERENCE);
 
-                if(next->next != nullptr) { next->next->prev = it; }
-                it->next = next->next;
-                m_list.ret_entry(next);
+                    ExpressionList::Entry* prev = it->prev;
+                    ExpressionList::Entry* next = it->next;
+                    Expression* lhs = prev == nullptr ? nullptr : prev->expr;
+                    Expression* rhs = next == nullptr ? nullptr : next->expr;
 
-                if(!single_operand)
-                {
-                    if(prev->prev != nullptr) { prev->prev->next = it; }
-                    it->prev = prev->prev;
+                    if((next == nullptr) || (rhs == nullptr))                      { error("Missing rhs operand\n"); status = false; }
+                    if(!single_operand && ((prev == nullptr) || (lhs == nullptr))) { error("Missing lhs operand\n"); status = false; }
 
-                    if(head == prev)
+                    if(status)
                     {
-                        head = it;
-                    }
+                        it->expr->operation.rhs = rhs;
+                        if(!single_operand)
+                        {
+                            it->expr->operation.lhs = lhs;
+                        }
 
-                    m_list.ret_entry(prev);
+                        if(next->next != nullptr) { next->next->prev = it; }
+                        it->next = next->next;
+                        m_list.ret_entry(next);
+
+                        if(!single_operand)
+                        {
+                            if(prev->prev != nullptr) { prev->prev->next = it; }
+                            it->prev = prev->prev;
+
+                            if(head == prev)
+                            {
+                                head = it;
+                            }
+
+                            m_list.ret_entry(prev);
+                        }
+                    }
                 }
             }
         }
@@ -276,13 +285,17 @@ Expression* Parser::process_expression(ExpressionList::Entry* expression)
 
     // debug_print_expression(head->expr);
 
-    return head->expr;
+    if(status)
+    {
+        *expr = head->expr;
+    }
+
+    return status;
 }
 
-Expression* Parser::parse_operator()
+bool Parser::parse_operator(Expression** ptr)
 {
     bool status = true;
-    Expression* expr = nullptr;
 
     Token tk = m_stack->pop();
     
@@ -352,19 +365,20 @@ Expression* Parser::parse_operator()
     
     if(status)
     {
-        expr = new Expression();
+        Expression* expr = new Expression();
         expr->type = EXPR_OPERATION;
         expr->operation.op = op;
+
+        *ptr = expr;
     }
 
-    return expr;
+    return status;
 }
 
-Expression* Parser::parse_expression()
+bool Parser::parse_expression(Expression** ptr)
 {
     bool status = true;
 
-    Expression* expr = nullptr;
     ExpressionList::Entry* list_head = nullptr;
     ExpressionList::Entry* list_tail = nullptr;
 
@@ -380,8 +394,7 @@ Expression* Parser::parse_expression()
             case TK_OPEN_ROUND_BRACKET:
             {
                 m_stack->pop();
-                expr = parse_expression();
-                if(expr == nullptr)
+                if(!parse_expression(&expr))
                 {
                     status = false;
                 }
@@ -405,8 +418,7 @@ Expression* Parser::parse_expression()
             case TK_LITERAL:
             case TK_IDENTIFIER:
             {
-                expr = parse_value();
-                if(expr == nullptr)
+                if(!parse_value(&expr))
                 {
                     status = false;
                 }
@@ -457,7 +469,10 @@ Expression* Parser::parse_expression()
             case TK_PERCENT:
             case TK_EQUAL:
             {
-                expr = parse_operator();
+                if(!parse_operator(&expr))
+                {
+                    status = false;
+                }
                 break;
             }
 
@@ -500,10 +515,10 @@ Expression* Parser::parse_expression()
 
     if(status)
     {
-        expr = process_expression(list_head);
+        status = process_expression(list_head, ptr);
     }
 
-    return expr;
+    return status;
 }
 
 bool Parser::parse_parameters(Parameter** params)
@@ -652,7 +667,7 @@ bool Parser::parse_declaration()
             case TK_EQUAL:
             {
                 m_stack->pop();
-                
+
                 Statement* stmt = new Statement();
                 stmt->type = STMT_DECL_VAR;
                 stmt->decl_var.name = name;
@@ -660,22 +675,28 @@ bool Parser::parse_declaration()
                 
                 if(tk.type == TK_EQUAL)
                 {
-                    Expression* value = parse_expression();
-
-                    if(m_stack->pop().type != TK_SEMICOLON)
+                    Expression* value = nullptr;
+                    if(!parse_expression(&value))
                     {
-                        error("Expected semicolon\n");
                         status = false;
                     }
                     else
                     {
-                        if(value != nullptr)
+                        if(m_stack->pop().type != TK_SEMICOLON)
                         {
-                            stmt->decl_var.value = value;
+                            error("Expected semicolon\n");
+                            status = false;
                         }
                         else
                         {
-                            status = false;
+                            if(value != nullptr)
+                            {
+                                stmt->decl_var.value = value;
+                            }
+                            else
+                            {
+                                status = false;
+                            }
                         }
                     }
                 }
@@ -734,8 +755,8 @@ bool Parser::parse_return()
     }
     else
     {
-        Expression* expr = parse_expression();
-        if(expr == nullptr)
+        Expression* expr = nullptr;
+        if(!parse_expression(&expr))
         {
             result = false;
         }
@@ -795,8 +816,7 @@ bool Parser::parse_if_stmt()
         }
         else
         {
-            condition = parse_expression();
-            status = (condition != nullptr);
+            status = parse_expression(&condition);
         }
     }
 
@@ -829,8 +849,8 @@ bool Parser::parse_expr_stmt()
 {
     bool status = true;
 
-    Expression* expr = parse_expression();
-    if(expr == nullptr)
+    Expression* expr = nullptr;
+    if(!parse_expression(&expr))
     {
         status = false;
     }
