@@ -29,16 +29,6 @@ enum
 class Parser
 {
 private:
-    union Arg
-    {
-        struct
-        {
-            uint8_t type;
-            strptr  name;
-        } decl;
-    };
-
-private:
     TokenStack*    m_stack;
     ExpressionList m_list;
 
@@ -47,22 +37,21 @@ private:
     Scope m_scope;
 
 private:
-    bool parse_decl();
+    Expression* parse_value();
+    Expression* parse_expression();
+    Expression* parse_operator();
 
-    bool read_arguments(Argument** args);
+	bool parse_declaration();
 
-    Expression* read_value();
-    Expression* read_expression();
-    Expression* read_operator();
-
-    Expression* process_expression(ExpressionList::Entry* expression);
+    bool parse_parameters(Parameter** params);
+	bool parse_arguments(Argument** args);
+    
+	Expression* process_expression(ExpressionList::Entry* expression);
 
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
     bool parse_statement();
     bool parse_return();
-    bool parse_function(Arg& arg);
-    bool parse_variable(Arg& arg);
     bool parse_if_stmt();
     bool parse_expr_stmt();
 

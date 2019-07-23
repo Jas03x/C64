@@ -9,98 +9,6 @@ Parser::Parser(TokenStack* tokens)
     m_stack = tokens;
 }
 
-bool Parser::parse_function(Arg& arg)
-{
-    bool status = true;
-
-    Token tk = m_stack->pop();
-    if(tk.type != TK_OPEN_ROUND_BRACKET)
-    {
-        error("Expected open round bracket\n");
-        status = false;
-    }
-
-    Parameter* params = nullptr;
-    if(status)
-    {
-        if(m_stack->peek(0).type == TK_CLOSE_ROUND_BRACKET)
-        {
-            m_stack->pop();
-        }
-        else
-        {
-            Parameter** p_ptr = &params;
-            while(true)
-            {
-                tk = m_stack->pop();
-                if(tk.type == TK_TYPE)
-                {
-                    uint8_t type = tk.subtype;
-                    
-                    tk = m_stack->pop();
-                    if(tk.type == TK_IDENTIFIER)
-                    {
-                        strptr name = tk.identifier.string;
-
-                        Parameter* p = new Parameter();
-                        p->type = type;
-                        p->name = name;
-                        *p_ptr = p;
-                        p_ptr = &p->next;
-
-                        tk = m_stack->pop();
-                        if(tk.type == TK_CLOSE_ROUND_BRACKET)
-                        {
-                            break;
-                        }
-                        else if(tk.type != TK_COMMA)
-                        {
-                            status = false;
-                            error("Unexpected token\n");
-                        }
-                    }
-                    else
-                    {
-                        status = false;
-                        error("Expected parameter name\n");
-                    }
-                }
-                else
-                {
-                    error("Expected parameter type\n");
-                    status = false;
-                }
-            }
-        }
-    }
-
-    if(status)
-    {
-        tk = m_stack->pop();
-        if(tk.type != TK_OPEN_CURLY_BRACKET)
-        {
-            error("Expected block start after function declaration\n");
-        }
-    }
-
-    if(status)
-    {
-        Statement* body = new Statement();
-        body->type = STMT_BLOCK;
-
-        Statement* stmt = new Statement();
-        stmt->type = STMT_FUNC;
-        stmt->func.ret_type = arg.decl.type;
-        stmt->func.name = arg.decl.name;
-        stmt->func.params = params;
-        stmt->func.body = body;
-
-        status = insert_function(stmt);
-    }
-    
-    return status;
-}
-
 bool Parser::insert_function(Statement* stmt)
 {
     bool status = true;
@@ -149,7 +57,7 @@ bool Parser::insert_statement(Statement* stmt)
     return status;
 }
 
-bool Parser::read_arguments(Argument** args)
+bool Parser::parse_arguments(Argument** args)
 {
     bool result = true;
 
@@ -171,7 +79,7 @@ bool Parser::read_arguments(Argument** args)
         {
             while(true)
             {
-                Expression* expr = read_expression();
+                Expression* expr = parse_expression();
 
                 if(expr == nullptr)
                 {
@@ -217,7 +125,7 @@ bool Parser::read_arguments(Argument** args)
     return result;
 }
 
-Expression* Parser::read_value()
+Expression* Parser::parse_value()
 {
     Expression* expr = nullptr;
 
@@ -241,7 +149,7 @@ Expression* Parser::read_value()
             {
                 Argument* args = nullptr;
 
-                if(!read_arguments(&args))
+                if(!parse_arguments(&args))
                 {
                     error("Failed to read arguments\n");
                 }
@@ -371,7 +279,7 @@ Expression* Parser::process_expression(ExpressionList::Entry* expression)
     return head->expr;
 }
 
-Expression* Parser::read_operator()
+Expression* Parser::parse_operator()
 {
     bool status = true;
     Expression* expr = nullptr;
@@ -452,7 +360,7 @@ Expression* Parser::read_operator()
     return expr;
 }
 
-Expression* Parser::read_expression()
+Expression* Parser::parse_expression()
 {
     bool status = true;
 
@@ -472,7 +380,7 @@ Expression* Parser::read_expression()
             case TK_OPEN_ROUND_BRACKET:
             {
                 m_stack->pop();
-                expr = read_expression();
+                expr = parse_expression();
                 if(expr == nullptr)
                 {
                     status = false;
@@ -497,7 +405,7 @@ Expression* Parser::read_expression()
             case TK_LITERAL:
             case TK_IDENTIFIER:
             {
-                expr = read_value();
+                expr = parse_value();
                 if(expr == nullptr)
                 {
                     status = false;
@@ -549,7 +457,7 @@ Expression* Parser::read_expression()
             case TK_PERCENT:
             case TK_EQUAL:
             {
-                expr = read_operator();
+                expr = parse_operator();
                 break;
             }
 
@@ -598,64 +506,81 @@ Expression* Parser::read_expression()
     return expr;
 }
 
-bool Parser::parse_variable(Arg& arg)
+bool Parser::parse_parameters(Parameter** params)
 {
     bool status = true;
-
-    Expression* value = nullptr;
-
     Token tk = m_stack->pop();
-    if(tk.type == TK_EQUAL)
-    {
-        value = read_expression();
 
-        if(value == nullptr)
+    *params = nullptr;
+
+    if(tk.type != TK_OPEN_ROUND_BRACKET)
+    {
+        error("Expected '('\n");
+        status = false;
+    }
+    else
+    {
+        if(m_stack->peek(0).type == TK_CLOSE_ROUND_BRACKET)
         {
-            error("Expected value\n");
-            status = false;
+            m_stack->pop();
         }
         else
         {
-            tk = m_stack->pop();
-            if(tk.type != TK_SEMICOLON)
+            Parameter** p_ptr = params;
+
+            while (true)
             {
-                if(tk.type == TK_COMMA)
+                tk = m_stack->pop();
+                if (tk.type == TK_TYPE)
                 {
-                    error("TODO: HANDLE MULTI DECLARATIONS\n");
+                    uint8_t type = tk.subtype;
+
+                    tk = m_stack->pop();
+                    if (tk.type == TK_IDENTIFIER)
+                    {
+                        strptr name = tk.identifier.string;
+
+                        Parameter* p = new Parameter();
+                        p->type = type;
+                        p->name = name;
+                        *p_ptr = p;
+                        p_ptr = &p->next;
+
+                        tk = m_stack->pop();
+                        if (tk.type == TK_CLOSE_ROUND_BRACKET)
+                        {
+                            break;
+                        }
+                        else if (tk.type != TK_COMMA)
+                        {
+                            status = false;
+                            error("Unexpected token\n");
+                        }
+                    }
+                    else
+                    {
+                        status = false;
+                        error("Expected parameter name\n");
+                    }
                 }
                 else
                 {
-                    error("Expected semicolon\n");
+                    error("Expected parameter type\n");
                     status = false;
                 }
             }
         }
     }
-    else if(tk.type != TK_SEMICOLON)
-    {
-        status = false;
-        error("Unexpected token\n");
-    }
-
-    if(status)
-    {
-        Statement* stmt = new Statement();
-        stmt->type = STMT_DECL_VAR;
-        stmt->decl_var.name  = arg.decl.name;
-        stmt->decl_var.type  = arg.decl.type;
-        stmt->decl_var.value = value;
-
-        status = insert_statement(stmt);
-    }
 
     return status;
 }
 
-bool Parser::parse_decl()
+bool Parser::parse_declaration()
 {
     bool status = true;
 
-    Arg arg = {};
+	uint8_t type = TYPE_INVALID;
+	strptr  name = {};
     
     Token tk = m_stack->pop();
     if((tk.type != TK_TYPE) || (tk.subtype == TYPE_INVALID))
@@ -665,7 +590,7 @@ bool Parser::parse_decl()
     }
     else
     {
-        arg.decl.type = tk.subtype;
+        type = tk.subtype;
     }
     
     if(status)
@@ -678,25 +603,84 @@ bool Parser::parse_decl()
         }
         else
         {
-            arg.decl.name = tk.identifier.string;
+            name = tk.identifier.string;
         }
     }
 
     if(status)
     {
         tk = m_stack->peek(0);
+
         switch(tk.type)
         {
             case TK_OPEN_ROUND_BRACKET:
             {
-                status = parse_function(arg);
+                Parameter* params = nullptr;
+
+                if(!parse_parameters(&params))
+                {
+                    status = false;
+                }
+                else
+                {
+                    if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
+                    {
+                        error("Expected block start after function declaration\n");
+                        status = false;
+                    }
+                }
+
+                if(status)
+                {
+                    Statement* body = new Statement();
+                    body->type = STMT_BLOCK;
+
+                    Statement* stmt = new Statement();
+                    stmt->type = STMT_FUNC;
+                    stmt->func.ret_type = type;
+                    stmt->func.name = name;
+                    stmt->func.params = params;
+                    stmt->func.body = body;
+
+                    status = insert_function(stmt);
+                }
+
                 break;
             }
 
+			case TK_SEMICOLON:
             case TK_EQUAL:
-            case TK_SEMICOLON:
             {
-                status = parse_variable(arg);
+                m_stack->pop();
+                
+                Statement* stmt = new Statement();
+                stmt->type = STMT_DECL_VAR;
+                stmt->decl_var.name = name;
+                stmt->decl_var.type = type;
+                
+                if(tk.type == TK_EQUAL)
+                {
+                    Expression* value = parse_expression();
+
+                    if(m_stack->pop().type != TK_SEMICOLON)
+                    {
+                        error("Expected semicolon\n");
+                        status = false;
+                    }
+                    else
+                    {
+                        if(value != nullptr)
+                        {
+                            stmt->decl_var.value = value;
+                        }
+                        else
+                        {
+                            status = false;
+                        }
+                    }
+                }
+
+                status = insert_statement(stmt);
                 break;
             }
 
@@ -750,7 +734,7 @@ bool Parser::parse_return()
     }
     else
     {
-        Expression* expr = read_expression();
+        Expression* expr = parse_expression();
         if(expr == nullptr)
         {
             result = false;
@@ -783,8 +767,8 @@ bool Parser::parse_statement()
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
-        case TK_TYPE:   { result = parse_decl();   break; }
-        case TK_RETURN: { result = parse_return(); break; }
+        case TK_TYPE:   { result = parse_declaration(); break; }
+        case TK_RETURN: { result = parse_return();      break; }
     }
 
     return result;
@@ -811,7 +795,7 @@ bool Parser::parse_if_stmt()
         }
         else
         {
-            condition = read_expression();
+            condition = parse_expression();
             status = (condition != nullptr);
         }
     }
@@ -845,7 +829,7 @@ bool Parser::parse_expr_stmt()
 {
     bool status = true;
 
-    Expression* expr = read_expression();
+    Expression* expr = parse_expression();
     if(expr == nullptr)
     {
         status = false;
