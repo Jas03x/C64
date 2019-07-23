@@ -20,11 +20,10 @@ public:
 
     bool is_global();
     
-    bool insert_function(Statement* stmt);
-    
-    bool append(Statement* stmt);
-    bool push(Statement* stmt);
+    bool push();
     bool pop();
+
+    bool append(Statement* stmt);
 };
 
 #endif // SCOPE_HPP

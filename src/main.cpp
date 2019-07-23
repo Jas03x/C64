@@ -21,11 +21,11 @@ bool process(const char* path)
         
         if(tokenizer.tokenize())
         {
-            Parser parser = Parser(&tokenizer.get_tokens());
-            if(parser.process())
+            AST* ast = Parser::Parse(&tokenizer.get_tokens());
+            if(ast != nullptr)
             {
                 printf("Successfully parsed!\n");
-                debug_print_ast(parser.get_ast());
+                debug_print_ast(ast);
             }
         }
     }

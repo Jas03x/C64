@@ -143,9 +143,9 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
             break;
         }
 
-        case STMT_BLOCK:
+        case STMT_ROOT:
         {
-            printf("BLOCK_START\n");
+            printf("ROOT\n");
             break;
         }
         case STMT_DECL_VAR:

@@ -14,63 +14,41 @@ bool Scope::is_global()
     return (m_index == 0);
 }
 
-bool Scope::insert_function(Statement* stmt)
+bool Scope::append(Statement* stmt)
 {
-    bool status = true;
-
-    if(!is_global())
+    if(m_stack[m_index] != nullptr)
     {
-        status = false;
+        m_stack[m_index]->next = stmt;
     }
-    else
+
+    m_stack[m_index] = stmt;
+    return true;
+}
+
+bool Scope::push()
+{
+    bool status = false;
+
+    if(m_index < MAX_STMT_DEPTH)
     {
-        m_stack[++m_index] = stmt;
+        m_index ++;
+        status = true;
     }
 
     return status;
 }
 
-bool Scope::append(Statement* stmt)
-{
-    bool status = true;
-
-    if(m_stack[m_index] == nullptr)
-    {
-        status = false;
-    }
-    else
-    {
-        m_stack[m_index]->next = stmt;
-        m_stack[m_index] = stmt;
-    }
-
-    return true;
-}
-
-bool Scope::push(Statement* stmt)
-{
-    m_stack[++m_index] = stmt;
-
-    return true;
-}
-
 bool Scope::pop()
 {
-    bool status = true;
+    bool status = false;
 
-    if(m_stack[m_index] != nullptr)
+    if((m_index > 0) && (m_stack[m_index] != nullptr))
     {
         m_stack[m_index] = nullptr;
+        m_index --;
+        
+        status = true;
+    }
 
-        if(m_index > 0)
-        {
-            m_index --;
-        }
-    }
-    else
-    {
-        status = false;
-    }
-    
     return status;
 }

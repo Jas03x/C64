@@ -243,6 +243,8 @@ bool Tokenizer::read_string(Token& tk)
         tk.literal.type = LITERAL_STRING;
         tk.literal.string.ptr = strdup(ptr);
         tk.literal.string.len = len;
+
+        printf("%.*s => %hhu\n", tk.literal.string.len, tk.literal.string.ptr, tk.type);
     }
 
     return ret;

@@ -4,24 +4,110 @@
 
 #define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
 
-Parser::Parser(TokenStack* tokens)
+Parser::Parser(TokenStack* stack)
 {
-    m_stack = tokens;
+    m_stack = stack;
+
+    Statement* root = new Statement();
+    root->type = STMT_ROOT;
+
+    m_scope.append(root);
+
+    m_ast = new AST();
+    m_ast->statements = root;
 }
 
-bool Parser::insert_function(Statement* stmt)
+Parser::~Parser()
+{
+}
+
+AST* Parser::Parse(TokenStack* stack)
+{
+    AST* ast = nullptr;
+
+    Parser parser(stack);
+    if(parser.process())
+    {
+        ast = parser.m_ast;
+    }
+    
+    return ast;
+}
+
+bool Parser::process()
+{
+    STATUS status = STATUS_WORKING;
+
+    while(status == STATUS_WORKING)
+    {
+        Token tk = m_stack->peek(0);
+
+        switch(tk.type)
+        {
+            case TK_IF:
+            {
+                status = parse_if_stmt() ? STATUS_WORKING : STATUS_ERROR;
+                break;
+            }
+
+            case TK_EOF:
+            {
+                status = STATUS_SUCCESS;
+                break;
+            }
+
+            case TK_CLOSE_CURLY_BRACKET:
+            {
+                status = process_end_of_block() ? STATUS_WORKING : STATUS_ERROR;
+                break;
+            }
+
+            case TK_RETURN:
+            case TK_TYPE:
+            default:
+            {
+                status = parse_statement() ? STATUS_WORKING : STATUS_ERROR;
+                break;
+            }
+        }
+    }
+
+    return (status == STATUS_SUCCESS);
+}
+
+bool Parser::parse_statement()
 {
     bool status = true;
 
-    if(!m_scope.is_global())
+    Token tk = m_stack->peek(0);
+    switch(tk.type)
     {
-        error("Cannot declare function inside function\n");
-        status = false;
-    }
-    else
-    {
-        m_global_stmt_list.insert(stmt);
-        status = m_scope.insert_function(stmt->func.body);
+        case TK_TYPE:   { status = parse_declaration(); break; }
+        case TK_RETURN: { status = parse_return();      break; }
+        default:
+        {
+            Expression* expr = nullptr;
+            if(!parse_expression(&expr))
+            {
+                status = false;
+            }
+            else
+            {
+                if(m_stack->pop().type != TK_SEMICOLON)
+                {
+                    error("Expected semicolon\n");
+                    status = false;
+                }
+                else
+                {
+                    Statement* stmt = new Statement();
+                    stmt->type = STMT_EXPR;
+                    stmt->expr = expr;
+
+                    status = insert_statement(stmt);
+                }
+            }
+        }
     }
 
     return status;
@@ -31,159 +117,246 @@ bool Parser::insert_statement(Statement* stmt)
 {
     bool status = true;
 
-    if(m_scope.is_global())
-    {
-        m_global_stmt_list.insert(stmt);
-    }
-    else
-    {
-        m_scope.append(stmt);
+    Statement* body = nullptr;
 
-        switch (stmt->type)
+    switch(stmt->type)
+    {
+        case STMT_FUNC:
         {
-            case STMT_IF:
+            if(m_scope.is_global())
             {
-                m_scope.push(stmt->if_stmt.body);
+                body = stmt->func.body;
+                goto DEFAULT;
+            }
+            else
+            {
+                status = false;
+                error("Cannot place function inside function\n");
+            }
+
+            break;
+        }
+
+        case STMT_IF:
+        {
+            m_scope.append(stmt);
+            body = stmt->if_stmt.body;
+            goto DEFAULT;
+        }
+
+        DEFAULT: default:
+        {
+            status = m_scope.append(stmt);
+            break;
+        }
+    }
+
+    if(status)
+    {
+        if(body != nullptr)
+        {
+            status = m_scope.push();
+            
+            if(status)
+            {
+                status = m_scope.append(body);
+            }
+        }
+    }
+
+    return status;
+}
+
+bool Parser::parse_if_stmt()
+{
+    bool status = true;
+    Expression* condition = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_IF)
+    {
+        error("Unexpected token\n");
+        status = false;
+    }
+
+    if(status)
+    {
+        if(m_stack->peek(0).type != TK_OPEN_ROUND_BRACKET)
+        {
+            printf("Expected '('\n");
+            status = false;
+        }
+        else
+        {
+            status = parse_expression(&condition);
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
+        {
+            error("Expected '{'\n");
+            status = false;
+        }
+    }
+
+    if(status)
+    {
+        Statement* body = new Statement();
+        body->type = STMT_ROOT;
+
+        Statement* stmt = new Statement();
+        stmt->type = STMT_IF;
+        stmt->if_stmt.condition = condition;
+        stmt->if_stmt.body = body;
+
+        status = insert_statement(stmt);
+    }
+
+    return status;
+}
+
+bool Parser::parse_expression(Expression** ptr)
+{
+    bool status = true;
+
+    ExpressionList::Entry* list_head = nullptr;
+    ExpressionList::Entry* list_tail = nullptr;
+
+    bool reading = true;
+    while(status && reading)
+    {
+        Token tk = m_stack->peek(0);
+
+        Expression* expr = nullptr;
+
+        switch(tk.type)
+        {
+            case TK_OPEN_ROUND_BRACKET:
+            {
+                m_stack->pop();
+                if(!parse_expression(&expr))
+                {
+                    status = false;
+                }
+                else if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+                {
+                    error("Invalid expression, expected close bracket\n");
+                    status = false;
+                }
+                break;
+            }
+
+            case TK_COMMA:
+            case TK_SEMICOLON:
+            case TK_CLOSE_ROUND_BRACKET:
+            case TK_OPEN_CURLY_BRACKET:
+            {
+                reading = false;
+                break;
+            }
+
+            case TK_LITERAL:
+            case TK_IDENTIFIER:
+            {
+                if(!parse_value(&expr))
+                {
+                    status = false;
+                }
+                break;
+            }
+
+            case TK_ASTERISK:
+            case TK_AMPERSAND:
+            {
+                bool is_ptr_operator = false;
+                if(list_tail == nullptr)
+                {
+                    is_ptr_operator = true;
+                }
+                else
+                {
+                    is_ptr_operator = list_tail->expr->type == EXPR_OPERATION;
+                }
+
+                if(!is_ptr_operator)
+                {
+                    goto OPERATOR;
+                }
+                else
+                {
+                    m_stack->pop();
+                }
+                
+
+                uint8_t op = 0;
+                if(tk.type == TK_ASTERISK)       { op = EXPR_OP_DEREFERENCE; }
+                else if(tk.type == TK_AMPERSAND) { op = EXPR_OP_REFERENCE;   }
+
+                expr = new Expression();
+                expr->type = EXPR_OPERATION;
+                expr->operation.op = op;
+                
+                break;
+            }
+
+            OPERATOR:
+            case TK_PLUS:
+            case TK_MINUS:
+            case TK_FORWARD_SLASH:
+            case TK_RIGHT_ARROW_HEAD:
+            case TK_LEFT_ARROW_HEAD:
+            case TK_CARET:
+            case TK_PERCENT:
+            case TK_EQUAL:
+            {
+                if(!parse_operator(&expr))
+                {
+                    status = false;
+                }
                 break;
             }
 
             default:
             {
+                error("Unexpected token %hhu in expression\n", tk.type);
+                status = false;
                 break;
             }
         }
-    }
 
-    return status;
-}
-
-bool Parser::parse_arguments(Argument** args)
-{
-    bool status = true;
-
-    Argument* head = nullptr;
-    Argument* tail = nullptr;
-
-    if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
-    {
-        error("Expected '(' token\n");
-        status = false;
-    }
-    else
-    {   
-        if(m_stack->peek(0).type == TK_CLOSE_ROUND_BRACKET)
+        if(status && reading)
         {
-            m_stack->pop();
-        }
-        else
-        {
-            while(status)
+            if(expr == nullptr)
             {
-                Expression* expr = nullptr;
-
-                if(!parse_expression(&expr))
-                {
-                    status = false;
-                }
-                else
-                {
-                    Argument* arg = new Argument();
-                    arg->value = expr;
-                    
-                    if(head == nullptr)
-                    {
-                        head = arg;
-                        tail = arg;
-                    }
-                    else
-                    {
-                        tail->next = arg;
-                        tail = arg;
-                    }
-
-                    Token tk = m_stack->pop();
-                    if(tk.type == TK_CLOSE_ROUND_BRACKET)
-                    {
-                        break;
-                    }
-                    else if(tk.type != TK_COMMA)
-                    {
-                        error("Unexpected token\n");
-                        status = false;
-                    }
-                }
-            }
-        }
-    }
-
-    if(status)
-    {
-        *args = head;
-    }
-
-    return status;
-}
-
-bool Parser::parse_value(Expression** ptr)
-{
-    bool status = true;
-    
-    Expression* expr = nullptr;
-    Token tk = m_stack->pop();
-    
-    switch(tk.type)
-    {
-        case TK_LITERAL:
-        {
-            expr = new Expression();
-            expr->type = EXPR_LITERAL;
-            expr->literal = tk.literal;
-            break;
-        }
-
-        case TK_IDENTIFIER:
-        {
-            strptr name = tk.identifier.string;
-
-            tk = m_stack->peek(0);
-            if(tk.type == TK_OPEN_ROUND_BRACKET)
-            {
-                Argument* args = nullptr;
-
-                if(!parse_arguments(&args))
-                {
-                    error("Failed to read arguments\n");
-                    status = false;
-                }
-                else
-                {
-                    expr = new Expression();
-                    expr->type = EXPR_CALL;
-                    expr->call.func_name = name;
-                    expr->call.arguments = args;
-                }
+                status = false;
             }
             else
             {
-                expr = new Expression();
-                expr->type = EXPR_IDENTIFIER;
-                expr->identifier.name = name;
+                ExpressionList::Entry* entry = m_list.get_entry();
+                entry->expr = expr;
+                entry->next = nullptr;
+
+                if(list_head == nullptr)
+                {
+                    list_head = entry;
+                    list_tail = entry;
+                }
+                else
+                {
+                    list_tail->next = entry;
+                    entry->prev = list_tail;
+                    list_tail = entry;
+                }
             }
-
-            break;
-        }
-
-        default:
-        {
-            error("Unexpected tokens in expression\n");
-            status = false;
-            break;
+            
         }
     }
 
     if(status)
     {
-        *ptr = expr;
+        status = process_expression(list_head, ptr);
     }
 
     return status;
@@ -375,147 +548,68 @@ bool Parser::parse_operator(Expression** ptr)
     return status;
 }
 
-bool Parser::parse_expression(Expression** ptr)
+bool Parser::parse_arguments(Argument** args)
 {
     bool status = true;
 
-    ExpressionList::Entry* list_head = nullptr;
-    ExpressionList::Entry* list_tail = nullptr;
+    Argument* head = nullptr;
+    Argument* tail = nullptr;
 
-    bool reading = true;
-    while(status && reading)
+    if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
     {
-        Token tk = m_stack->peek(0);
-
-        Expression* expr = nullptr;
-
-        switch(tk.type)
+        error("Expected '(' token\n");
+        status = false;
+    }
+    else
+    {   
+        if(m_stack->peek(0).type == TK_CLOSE_ROUND_BRACKET)
         {
-            case TK_OPEN_ROUND_BRACKET:
+            m_stack->pop();
+        }
+        else
+        {
+            while(status)
             {
-                m_stack->pop();
+                Expression* expr = nullptr;
+
                 if(!parse_expression(&expr))
                 {
                     status = false;
                 }
-                else if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
-                {
-                    error("Invalid expression, expected close bracket\n");
-                    status = false;
-                }
-                break;
-            }
-
-            case TK_COMMA:
-            case TK_SEMICOLON:
-            case TK_CLOSE_ROUND_BRACKET:
-            case TK_OPEN_CURLY_BRACKET:
-            {
-                reading = false;
-                break;
-            }
-
-            case TK_LITERAL:
-            case TK_IDENTIFIER:
-            {
-                if(!parse_value(&expr))
-                {
-                    status = false;
-                }
-                break;
-            }
-
-            case TK_ASTERISK:
-            case TK_AMPERSAND:
-            {
-                bool is_ptr_operator = false;
-                if(list_tail == nullptr)
-                {
-                    is_ptr_operator = true;
-                }
                 else
                 {
-                    is_ptr_operator = list_tail->expr->type == EXPR_OPERATION;
-                }
+                    Argument* arg = new Argument();
+                    arg->value = expr;
+                    
+                    if(head == nullptr)
+                    {
+                        head = arg;
+                        tail = arg;
+                    }
+                    else
+                    {
+                        tail->next = arg;
+                        tail = arg;
+                    }
 
-                if(!is_ptr_operator)
-                {
-                    goto OPERATOR;
-                }
-                else
-                {
-                    m_stack->pop();
-                }
-                
-
-                uint8_t op = 0;
-                if(tk.type == TK_ASTERISK)       { op = EXPR_OP_DEREFERENCE; }
-                else if(tk.type == TK_AMPERSAND) { op = EXPR_OP_REFERENCE;   }
-
-                expr = new Expression();
-                expr->type = EXPR_OPERATION;
-                expr->operation.op = op;
-                
-                break;
-            }
-
-            OPERATOR:
-            case TK_PLUS:
-            case TK_MINUS:
-            case TK_FORWARD_SLASH:
-            case TK_RIGHT_ARROW_HEAD:
-            case TK_LEFT_ARROW_HEAD:
-            case TK_CARET:
-            case TK_PERCENT:
-            case TK_EQUAL:
-            {
-                if(!parse_operator(&expr))
-                {
-                    status = false;
-                }
-                break;
-            }
-
-            default:
-            {
-                error("Unexpected token %hhu in expression\n", tk.type);
-                status = false;
-                break;
-            }
-        }
-
-        if(status && reading)
-        {
-            if(expr == nullptr)
-            {
-                error("Error reading expression\n");
-                status = false;
-            }
-            else
-            {
-                ExpressionList::Entry* entry = m_list.get_entry();
-                entry->expr = expr;
-                entry->next = nullptr;
-
-                if(list_head == nullptr)
-                {
-                    list_head = entry;
-                    list_tail = entry;
-                }
-                else
-                {
-                    list_tail->next = entry;
-                    entry->prev = list_tail;
-                    list_tail = entry;
+                    Token tk = m_stack->pop();
+                    if(tk.type == TK_CLOSE_ROUND_BRACKET)
+                    {
+                        break;
+                    }
+                    else if(tk.type != TK_COMMA)
+                    {
+                        error("Unexpected token\n");
+                        status = false;
+                    }
                 }
             }
-            
         }
     }
 
     if(status)
     {
-        status = process_expression(list_head, ptr);
+        *args = head;
     }
 
     return status;
@@ -648,7 +742,7 @@ bool Parser::parse_declaration()
                 if(status)
                 {
                     Statement* body = new Statement();
-                    body->type = STMT_BLOCK;
+                    body->type = STMT_ROOT;
 
                     Statement* stmt = new Statement();
                     stmt->type = STMT_FUNC;
@@ -657,7 +751,7 @@ bool Parser::parse_declaration()
                     stmt->func.params = params;
                     stmt->func.body = body;
 
-                    status = insert_function(stmt);
+                    status = insert_statement(stmt);
                 }
 
                 break;
@@ -716,32 +810,69 @@ bool Parser::parse_declaration()
     return status;
 }
 
-bool Parser::handle_end_of_block()
+bool Parser::parse_value(Expression** ptr)
 {
+    bool status = true;
+    
+    Expression* expr = nullptr;
     Token tk = m_stack->pop();
-    if(tk.type != TK_CLOSE_CURLY_BRACKET)
+    
+    switch(tk.type)
     {
-        error("Expected '}'\n");
-        return false;
-    }
-
-    bool result = true;
-
-    if(m_scope.is_global())
-    {
-        error("Unexpected end of block\n");
-        result = false;
-    }
-    else
-    {
-        if(!m_scope.pop())
+        case TK_LITERAL:
         {
-            error("Unexpected end of block\n");
-            result = false;
+            expr = new Expression();
+            expr->type = EXPR_LITERAL;
+            expr->literal = tk.literal;
+            break;
+        }
+
+        case TK_IDENTIFIER:
+        {
+            strptr name = tk.identifier.string;
+
+            tk = m_stack->peek(0);
+            if(tk.type == TK_OPEN_ROUND_BRACKET)
+            {
+                Argument* args = nullptr;
+
+                if(!parse_arguments(&args))
+                {
+                    error("Failed to read arguments\n");
+                    status = false;
+                }
+                else
+                {
+                    expr = new Expression();
+                    expr->type = EXPR_CALL;
+                    expr->call.func_name = name;
+                    expr->call.arguments = args;
+                }
+            }
+            else
+            {
+                expr = new Expression();
+                expr->type = EXPR_IDENTIFIER;
+                expr->identifier.name = name;
+            }
+
+            break;
+        }
+
+        default:
+        {
+            error("Unexpected tokens in expression\n");
+            status = false;
+            break;
         }
     }
 
-    return result;
+    if(status)
+    {
+        *ptr = expr;
+    }
+
+    return status;
 }
 
 bool Parser::parse_return()
@@ -781,151 +912,23 @@ bool Parser::parse_return()
     return result;
 }
 
-bool Parser::parse_statement()
+bool Parser::process_end_of_block()
 {
+    Token tk = m_stack->pop();
+    if(tk.type != TK_CLOSE_CURLY_BRACKET)
+    {
+        error("Expected '}'\n");
+        return false;
+    }
+
     bool result = true;
 
-    Token tk = m_stack->peek(0);
-    switch(tk.type)
+    if(!m_scope.pop())
     {
-        case TK_TYPE:   { result = parse_declaration(); break; }
-        case TK_RETURN: { result = parse_return();      break; }
+        error("Unexpected end of block\n");
+        result = false;
     }
 
     return result;
 }
 
-bool Parser::parse_if_stmt()
-{
-    bool status = true;
-    Expression* condition = nullptr;
-
-    Token tk = m_stack->pop();
-    if(tk.type != TK_IF)
-    {
-        error("Unexpected token\n");
-        status = false;
-    }
-
-    if(status)
-    {
-        if(m_stack->peek(0).type != TK_OPEN_ROUND_BRACKET)
-        {
-            printf("Expected '('\n");
-            status = false;
-        }
-        else
-        {
-            status = parse_expression(&condition);
-        }
-    }
-
-    if(status)
-    {
-        if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
-        {
-            error("Expected '{'\n");
-            status = false;
-        }
-    }
-
-    if(status)
-    {
-        Statement* body = new Statement();
-        body->type = STMT_BLOCK;
-
-        Statement* stmt = new Statement();
-        stmt->type = STMT_IF;
-        stmt->if_stmt.condition = condition;
-        stmt->if_stmt.body = body;
-
-        status = insert_statement(stmt);
-    }
-
-    return status;
-}
-
-bool Parser::parse_expr_stmt()
-{
-    bool status = true;
-
-    Expression* expr = nullptr;
-    if(!parse_expression(&expr))
-    {
-        status = false;
-    }
-
-    if(status)
-    {
-        if(m_stack->pop().type != TK_SEMICOLON)
-        {
-            error("Expected semicolon\n");
-            status = false;
-        }
-    }
-
-    if(status)
-    {
-        Statement* stmt = new Statement();
-        stmt->type = STMT_EXPR;
-        stmt->expr = expr;
-
-        status = insert_statement(stmt);
-    }
-
-    return status;
-}
-
-bool Parser::process()
-{
-    STATUS status = STATUS_WORKING;
-
-    while(status == STATUS_WORKING)
-    {
-        Token tk = m_stack->peek(0);
-
-        switch(tk.type)
-        {
-            case TK_RETURN:
-            case TK_TYPE:
-            {
-                status = parse_statement() ? STATUS_WORKING : STATUS_ERROR;
-                break;
-            }
-
-            case TK_IF:
-            {
-                status = parse_if_stmt() ? STATUS_WORKING : STATUS_ERROR;
-                break;
-            }
-
-            case TK_EOF:
-            {
-                status = STATUS_SUCCESS;
-                break;
-            }
-
-            case TK_CLOSE_CURLY_BRACKET:
-            {
-                status = handle_end_of_block() ? STATUS_WORKING : STATUS_ERROR;
-                break;
-            }
-
-            default:
-            {
-                status = parse_expr_stmt() ? STATUS_WORKING : STATUS_ERROR;
-                break;
-            }
-        }
-    }
-
-    return (status == STATUS_SUCCESS);
-}
-
-AST* Parser::get_ast()
-{
-    AST* ast = new AST();
-    ast->statements = m_global_stmt_list.get_head();
-    
-    return ast;
-}
