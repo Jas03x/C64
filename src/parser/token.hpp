@@ -11,6 +11,7 @@ enum TOKEN
 {
     TK_INVALID,
     TK_CONST,
+    TK_EXTERN,
     TK_RETURN,
     TK_IF,
     TK_TYPE,

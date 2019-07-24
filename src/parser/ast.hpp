@@ -104,6 +104,7 @@ union VariableModifiers
         unsigned int is_constant         : 1;
         unsigned int is_pointer          : 1;
         unsigned int is_fixed_size_array : 1;
+        unsigned int is_external_symbol  : 1;
     };
 
     uint8_t value;

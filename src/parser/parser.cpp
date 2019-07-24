@@ -82,8 +82,9 @@ bool Parser::parse_statement()
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
-        case TK_CONST:
         case TK_TYPE:
+        case TK_CONST:
+        case TK_EXTERN:
         {
             status = parse_declaration();
             break;
@@ -715,9 +716,23 @@ bool Parser::parse_modifiers(VariableModifiers& var_mod, FunctionModifiers& func
             {
                 m_stack->pop();
 
-                if(var_mod.is_constant != 1) {
-                    var_mod.is_constant = 1;
-                } else {
+                if(var_mod.is_constant != 1) { var_mod.is_constant = 1; }
+                else
+                {
+                    error("Duplicated 'const' modifier\n");
+                    status = false;
+                }
+
+                break;
+            }
+
+            case TK_EXTERN:
+            {
+                m_stack->pop();
+
+                if(var_mod.is_external_symbol != 1) { var_mod.is_external_symbol = 1; }
+                else
+                {
                     error("Duplicated 'const' modifier\n");
                     status = false;
                 }
@@ -891,12 +906,22 @@ bool Parser::parse_declaration()
             {
                 m_stack->pop();
 
-                Statement* stmt = new Statement();
-                stmt->type = STMT_VARIABLE;
-                stmt->variable.name = name;
-                stmt->variable.type = type;
+                if(func_mod.value != 0)
+                {
+                    error("Function modifiers on variable\n");
+                    status = false;
+                }
+
+                Statement* stmt = nullptr;
+                if(status)
+                {
+                    stmt = new Statement();
+                    stmt->type = STMT_VARIABLE;
+                    stmt->variable.name = name;
+                    stmt->variable.type = type;
+                }
                 
-                if(tk.type == TK_EQUAL)
+                if(status && (tk.type == TK_EQUAL))
                 {
                     Expression* value = nullptr;
                     if(!parse_expression(&value))
@@ -924,7 +949,11 @@ bool Parser::parse_declaration()
                     }
                 }
 
-                status = insert_statement(stmt);
+                if(status)
+                {
+                    status = insert_statement(stmt);
+                }
+
                 break;
             }
 

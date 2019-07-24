@@ -100,7 +100,8 @@ void debug_print_type(DataType type, unsigned int level = 0)
 
     printf("TYPE: ");
 
-    if(type.flags.is_constant) printf("CONST ");
+    if(type.flags.is_external_symbol) printf("EXTERN ");
+    if(type.flags.is_constant)        printf("CONST ");
 
     switch(type.type)
     {

@@ -375,7 +375,8 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 
         case 6:
         {
-            if(_strncmp(str, "return", 6)) { tk.type = TK_RETURN; break; }
+            if(_strncmp(str, "return", 6))      { tk.type = TK_RETURN; break; }
+            else if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; break; }
             break;
         }
     }

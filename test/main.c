@@ -1,4 +1,6 @@
 
+extern const U8*[2] counter;
+
 void sprintf(U8* buffer, const U8* format, const U8* param);
 void printf(const U8* buffer);
 
