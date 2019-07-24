@@ -94,17 +94,26 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
     }
 }
 
-void debug_print_type(uint8_t type, unsigned int level = 0)
+void debug_print_type(DataType type, unsigned int level = 0)
 {
     debug_indent(level);
 
     printf("TYPE: ");
-    switch(type)
+
+    if(type.flags.is_constant) printf("CONST ");
+
+    switch(type.type)
     {
-        case TYPE_U8:  { printf("U8\n");         break; }
-        case TYPE_U32: { printf("U32\n");        break; }
-        default:       { printf("%hhu\n", type); break; }
+        case TYPE_VOID: { printf("void");            break; }
+        case TYPE_U8:   { printf("U8");              break; }
+        case TYPE_U32:  { printf("U32");             break; }
+        default:        { printf("%hhu", type.type); break; }
     }
+
+    if(type.flags.is_pointer)          printf("* ");
+    if(type.flags.is_fixed_size_array) printf("[%u]", type.array_size);
+
+    printf("\n");
 }
 
 void debug_print_stmt(Statement* stmt, unsigned int level = 0)
@@ -113,16 +122,17 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
 
     switch(stmt->type)
     {
-        case STMT_FUNC:
+        case STMT_FUNCTION_DEF:
+        case STMT_FUNCTION_DECL:
         {
-            printf("FUNC:\n");
+            printf("%s\n", stmt->type == STMT_FUNCTION_DEF ? "FUNCTION DEFINITION" : "FUNCTION DECLARATION");
 
-            debug_print_type(stmt->func.ret_type, level + 1);
+            debug_print_type(stmt->function.ret_type, level + 1);
 
             debug_indent(1);
-            printf("NAME: %.*s\n", stmt->func.name.len, stmt->func.name.ptr);
+            printf("NAME: %.*s\n", stmt->function.name.len, stmt->function.name.ptr);
 
-            for(Parameter* p = stmt->func.params; p != nullptr; p = p->next)
+            for(Parameter* p = stmt->function.params; p != nullptr; p = p->next)
             {
                 debug_indent(level + 1);
                 printf("PARAMETER:\n");
@@ -133,11 +143,14 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
                 printf("NAME: %.*s\n", p->name.len, p->name.ptr);
             }
 
-            debug_indent(level + 1);
-            printf("BODY:\n");
-            for(Statement* s = stmt->func.body; s != nullptr; s = s->next)
+            if(stmt->type == STMT_FUNCTION_DEF)
             {
-                debug_print_stmt(s, level + 2);
+                debug_indent(level + 1);
+                printf("BODY:\n");
+                for(Statement* s = stmt->function.body; s != nullptr; s = s->next)
+                {
+                    debug_print_stmt(s, level + 2);
+                }
             }
 
             break;
@@ -148,17 +161,18 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
             printf("ROOT\n");
             break;
         }
-        case STMT_DECL_VAR:
+
+        case STMT_VARIABLE:
         {
             printf("VAR\n");
-            debug_print_type(stmt->decl_var.type, level + 1);
+            debug_print_type(stmt->variable.type, level + 1);
             
             debug_indent(level + 1);
-            printf("NAME: %.*s\n", stmt->decl_var.name.len, stmt->decl_var.name.ptr);
+            printf("NAME: %.*s\n", stmt->variable.name.len, stmt->variable.name.ptr);
             
             debug_indent(level + 1);
             printf("EXPR:\n");
-            debug_print_expr(stmt->decl_var.value, level + 2);
+            debug_print_expr(stmt->variable.value, level + 2);
 
             break;
         }

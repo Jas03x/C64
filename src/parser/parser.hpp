@@ -45,9 +45,11 @@ private:
     bool parse_operator(Expression** ptr);
     bool parse_expression(Expression** ptr);
 
+    bool parse_modifiers(VariableModifiers& var_mod, FunctionModifiers& func_mod);
     bool parse_arguments(Argument** args);
     bool parse_parameters(Parameter** params);
 
+    bool parse_type(DataType& type);
     bool parse_if_stmt();
     bool parse_return();
     bool parse_declaration();

@@ -1,28 +1,18 @@
 
-U32 foo(U32 val)
-{
-    return val + 1;
-}
-
-U32 fub(U32 v0, U32 v1)
-{
-    return v1 + 1 - v0 + 1;
-}
-
-U32 global_integer = 3;
+void sprintf(U8* buffer, const U8* format, const U8* param);
+void printf(const U8* buffer);
 
 U32 main()
 {
-    U32 a = 1 * 2 + 3 * 4 * 5;
-    U32 b = 4 + 1;
-    U32 c = a * a + b + b;
+    U8* [8] unused;
 
-    if(100 < a * b + c)
-    {
-        print("HELLO WORLD\n");
-    }
+    const U8* format = "Hi my name is %s\n";
+    const U8* name   = "Jas";
 
-    *(a + (2 + 2)) = b + 1;
+    U8[256] buffer;
+    sprintf(buffer, format, name);
 
-    return fub(foo(a) * *(b + c), b + foo(c));
+    printf(buffer);
+
+    return 0;
 }

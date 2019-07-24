@@ -82,7 +82,13 @@ bool Parser::parse_statement()
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
-        case TK_TYPE:   { status = parse_declaration(); break; }
+        case TK_CONST:
+        case TK_TYPE:
+        {
+            status = parse_declaration();
+            break;
+        }
+
         case TK_RETURN: { status = parse_return();      break; }
         default:
         {
@@ -121,11 +127,11 @@ bool Parser::insert_statement(Statement* stmt)
 
     switch(stmt->type)
     {
-        case STMT_FUNC:
+        case STMT_FUNCTION_DEF:
         {
             if(m_scope.is_global())
             {
-                body = stmt->func.body;
+                body = stmt->function.body;
                 goto DEFAULT;
             }
             else
@@ -637,13 +643,28 @@ bool Parser::parse_parameters(Parameter** params)
         {
             Parameter** p_ptr = params;
 
-            while (true)
+            while (status)
             {
-                tk = m_stack->pop();
-                if (tk.type == TK_TYPE)
-                {
-                    uint8_t type = tk.subtype;
+                DataType          type           = {};
+                FunctionModifiers func_modifiers = {};
 
+                status = parse_modifiers(type.flags, func_modifiers);
+                
+                if(!status) { break; }
+                else if(func_modifiers.value != 0)
+                {
+                    status = false;
+                    error("Function modifiers in parameter declaration\n");
+                    break;
+                }
+
+                if(status)
+                {
+                    status = parse_type(type);
+                }
+
+                if(status)
+                {
                     tk = m_stack->pop();
                     if (tk.type == TK_IDENTIFIER)
                     {
@@ -672,12 +693,92 @@ bool Parser::parse_parameters(Parameter** params)
                         error("Expected parameter name\n");
                     }
                 }
-                else
-                {
-                    error("Expected parameter type\n");
+            }
+        }
+    }
+
+    return status;
+}
+
+bool Parser::parse_modifiers(VariableModifiers& var_mod, FunctionModifiers& func_mod)
+{
+    bool status = true;
+    bool running = true;
+
+    while(status && running)
+    {
+        Token tk = m_stack->peek(0);
+
+        switch(tk.type)
+        {
+            case TK_CONST:
+            {
+                m_stack->pop();
+
+                if(var_mod.is_constant != 1) {
+                    var_mod.is_constant = 1;
+                } else {
+                    error("Duplicated 'const' modifier\n");
                     status = false;
                 }
+
+                break;
             }
+
+            default:
+            {
+                running = false;
+                break;
+            }
+        }
+    }
+
+    return status;
+}
+
+bool Parser::parse_type(DataType& type)
+{
+    bool status = true;
+
+    Token tk = m_stack->pop();
+    if((tk.type != TK_TYPE) || (tk.subtype == TYPE_INVALID))
+    {
+        error("Expected type\n");
+        status = false;
+    }
+    else
+    {
+        type.type = tk.subtype;
+    }
+
+    tk = m_stack->peek(0);
+    if(tk.type == TK_ASTERISK)
+    {
+        m_stack->pop();
+        type.flags.is_pointer = 1;
+    }
+
+    tk = m_stack->peek(0);
+    if(tk.type == TK_OPEN_SQUARE_BRACKET)
+    {
+        m_stack->pop();
+        type.flags.is_fixed_size_array = 1;
+
+        tk = m_stack->pop();
+        // TODO: support constant expressions
+        if((tk.type == TK_LITERAL) && (tk.literal.type == LITERAL_INTEGER))
+        {
+            type.array_size = tk.literal.integer.value;
+        }
+        else
+        {
+            error("Expected a constant array size\n");
+            status = false;
+        }
+
+        if(status)
+        {
+            m_stack->pop(); // pop the remaining ']'
         }
     }
 
@@ -688,18 +789,18 @@ bool Parser::parse_declaration()
 {
     bool status = true;
 
-	uint8_t type = TYPE_INVALID;
-	strptr  name = {};
-    
-    Token tk = m_stack->pop();
-    if((tk.type != TK_TYPE) || (tk.subtype == TYPE_INVALID))
+    Token tk = {};
+
+    strptr   name = {};
+	DataType type = {};
+
+    FunctionModifiers func_mod = {};
+
+    status = parse_modifiers(type.flags, func_mod);
+
+    if(status)
     {
-        error("Expected type\n");
-        status = false;
-    }
-    else
-    {
-        type = tk.subtype;
+        status = parse_type(type);
     }
     
     if(status)
@@ -732,26 +833,35 @@ bool Parser::parse_declaration()
                 }
                 else
                 {
-                    if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
+                    uint8_t stmt_type = 0;
+                    
+                    tk = m_stack->pop();
+                    switch(tk.type)
                     {
-                        error("Expected block start after function declaration\n");
-                        status = false;
+                        case TK_OPEN_CURLY_BRACKET: { stmt_type = STMT_FUNCTION_DEF;  break; }
+                        case TK_SEMICOLON:          { stmt_type = STMT_FUNCTION_DECL; break; }
+                        default:
+                        {
+                            error("Expected '{' or ';' after function\n");
+                            status = false;
+                            break;
+                        }
                     }
-                }
 
-                if(status)
-                {
-                    Statement* body = new Statement();
-                    body->type = STMT_ROOT;
+                    if(status)
+                    {
+                        Statement* body = new Statement();
+                        body->type = STMT_ROOT;
 
-                    Statement* stmt = new Statement();
-                    stmt->type = STMT_FUNC;
-                    stmt->func.ret_type = type;
-                    stmt->func.name = name;
-                    stmt->func.params = params;
-                    stmt->func.body = body;
+                        Statement* stmt = new Statement();
+                        stmt->type = stmt_type;
+                        stmt->function.ret_type = type;
+                        stmt->function.name = name;
+                        stmt->function.params = params;
+                        stmt->function.body = body;
 
-                    status = insert_statement(stmt);
+                        status = insert_statement(stmt);
+                    }
                 }
 
                 break;
@@ -763,9 +873,9 @@ bool Parser::parse_declaration()
                 m_stack->pop();
 
                 Statement* stmt = new Statement();
-                stmt->type = STMT_DECL_VAR;
-                stmt->decl_var.name = name;
-                stmt->decl_var.type = type;
+                stmt->type = STMT_VARIABLE;
+                stmt->variable.name = name;
+                stmt->variable.type = type;
                 
                 if(tk.type == TK_EQUAL)
                 {
@@ -785,7 +895,7 @@ bool Parser::parse_declaration()
                         {
                             if(value != nullptr)
                             {
-                                stmt->decl_var.value = value;
+                                stmt->variable.value = value;
                             }
                             else
                             {
@@ -931,4 +1041,3 @@ bool Parser::process_end_of_block()
 
     return result;
 }
-

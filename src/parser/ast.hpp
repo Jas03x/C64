@@ -86,19 +86,53 @@ struct Expression
 
 enum
 {
-    STMT_INVALID  = 0x0,
-    STMT_ROOT     = 0x1,
-    STMT_FUNC     = 0x2,
-    STMT_BLOCK    = 0x3,
-    STMT_EXPR     = 0x4,
-    STMT_DECL_VAR = 0x5,
-    STMT_IF       = 0x6,
-    STMT_RET      = 0x7
+    STMT_INVALID       = 0x0,
+    STMT_ROOT          = 0x1,
+    STMT_FUNCTION_DECL = 0x2,
+    STMT_FUNCTION_DEF  = 0x3,
+    STMT_BLOCK         = 0x4,
+    STMT_EXPR          = 0x5,
+    STMT_VARIABLE      = 0x6,
+    STMT_IF            = 0x7,
+    STMT_RET           = 0x8
+};
+
+union VariableModifiers
+{
+    struct
+    {
+        unsigned int is_constant         : 1;
+        unsigned int is_pointer          : 1;
+        unsigned int is_fixed_size_array : 1;
+    };
+
+    uint8_t value;
+};
+
+union FunctionModifiers
+{
+    struct
+    {
+    };
+
+    uint8_t value;
+};
+
+struct DataType
+{
+    uint8_t type;
+    
+    VariableModifiers flags;
+
+    union
+    {
+        uint32_t array_size; // used if flags.is_fixed_size_array = 1
+    };
 };
 
 struct Parameter
 {
-    uint8_t    type;
+    DataType   type;
     strptr     name;
     Parameter* next;
 };
@@ -111,14 +145,6 @@ struct Statement
     {
         struct
         {
-            uint8_t    ret_type;
-            strptr     name;
-            Parameter* params;
-            Statement* body;
-        } func;
-
-        struct
-        {
             // no members
         } block;
 
@@ -126,10 +152,20 @@ struct Statement
 
         struct
         {
-            uint8_t     type;
+            strptr     name;
+            DataType   ret_type;
+            Parameter* params;
+            Statement* body;
+
+            FunctionModifiers flags;
+        } function;
+
+        struct
+        {
             strptr      name;
+            DataType    type;
             Expression* value;
-        } decl_var;
+        } variable;
 
         struct
         {

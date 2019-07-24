@@ -361,6 +361,12 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             break;
         }
 
+        case 4:
+        {
+            if(_strncmp(str, "void", 4)) { tk = { TK_TYPE, { TYPE_VOID } }; break; }
+            break;
+        }
+
         case 5:
         {
             if(_strncmp(str, "const", 5)) { tk.type = TK_CONST; break; }
