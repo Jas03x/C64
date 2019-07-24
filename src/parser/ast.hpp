@@ -118,6 +118,13 @@ union FunctionModifiers
     uint8_t value;
 };
 
+struct FixedSizeArray
+{
+    uint32_t size;
+
+    FixedSizeArray* next;
+};
+
 struct DataType
 {
     uint8_t type;
@@ -126,7 +133,7 @@ struct DataType
 
     union
     {
-        uint32_t array_size; // used if flags.is_fixed_size_array = 1
+        FixedSizeArray* fixed_size_array; // used if flags.is_fixed_size_array = 1
     };
 };
 

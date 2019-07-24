@@ -757,18 +757,27 @@ bool Parser::parse_type(DataType& type)
         m_stack->pop();
         type.flags.is_pointer = 1;
     }
+    
+    FixedSizeArray *head = nullptr, *tail = nullptr;
 
-    tk = m_stack->peek(0);
-    if(tk.type == TK_OPEN_SQUARE_BRACKET)
+    while(true)
     {
+        tk = m_stack->peek(0);
+        if(tk.type != TK_OPEN_SQUARE_BRACKET)
+        {
+            break;
+        }
+
         m_stack->pop();
         type.flags.is_fixed_size_array = 1;
+
+        FixedSizeArray* array = new FixedSizeArray();
 
         tk = m_stack->pop();
         // TODO: support constant expressions
         if((tk.type == TK_LITERAL) && (tk.literal.type == LITERAL_INTEGER))
         {
-            type.array_size = tk.literal.integer.value;
+            array->size = tk.literal.integer.value;
         }
         else
         {
@@ -779,7 +788,17 @@ bool Parser::parse_type(DataType& type)
         if(status)
         {
             m_stack->pop(); // pop the remaining ']'
+
+            if(head == nullptr) { head = array;       }
+            else                { tail->next = array; }
+
+            tail = array;
         }
+    }
+
+    if(status && (head != nullptr))
+    {
+        type.fixed_size_array = head;
     }
 
     return status;

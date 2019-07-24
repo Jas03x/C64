@@ -111,7 +111,13 @@ void debug_print_type(DataType type, unsigned int level = 0)
     }
 
     if(type.flags.is_pointer)          printf("* ");
-    if(type.flags.is_fixed_size_array) printf("[%u]", type.array_size);
+    if(type.flags.is_fixed_size_array)
+    {
+        for(FixedSizeArray* it = type.fixed_size_array; it != nullptr; it = it->next)
+        {
+            printf("[%u]", it->size);
+        }
+    }
 
     printf("\n");
 }

@@ -4,7 +4,7 @@ void printf(const U8* buffer);
 
 U32 main()
 {
-    U8* [8] unused;
+    U8* [8][16][24][32] unused;
 
     const U8* format = "Hi my name is %s\n";
     const U8* name   = "Jas";
