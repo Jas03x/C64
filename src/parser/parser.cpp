@@ -733,7 +733,7 @@ bool Parser::parse_modifiers(VariableModifiers& var_mod, FunctionModifiers& func
                 if(var_mod.is_external_symbol != 1) { var_mod.is_external_symbol = 1; }
                 else
                 {
-                    error("Duplicated 'const' modifier\n");
+                    error("Duplicated 'extern' modifier\n");
                     status = false;
                 }
 
@@ -909,6 +909,11 @@ bool Parser::parse_declaration()
                 if(func_mod.value != 0)
                 {
                     error("Function modifiers on variable\n");
+                    status = false;
+                }
+                else if(type.flags.is_external_symbol && (tk.type == TK_EQUAL))
+                {
+                    error("Cannot initialize an external symbol\n");
                     status = false;
                 }
 
