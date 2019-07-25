@@ -1,7 +1,6 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include <scope.hpp>
 #include <token_stack.hpp>
 #include <expression_list.hpp>
 
@@ -23,24 +22,20 @@ private:
     };
 
 private:
-    AST*             m_ast;
-    
     TokenStack*      m_stack;
     ExpressionList   m_list;
-    Scope            m_scope;
 
 private:
     Parser(TokenStack* stack);
     ~Parser();
 
-    bool insert_statement(Statement* stmt);
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
-    bool process();
-    bool process_end_of_block();
+    AST* parse();
+
     bool process_expression(ExpressionList::Entry* list, Expression** expr);
 
-    bool parse_statement();
+    bool parse_statement(Statement** ptr);
     bool parse_value(Expression** ptr);
     bool parse_operator(Expression** ptr);
     bool parse_expression(Expression** ptr);
@@ -49,10 +44,11 @@ private:
     bool parse_arguments(Argument** args);
     bool parse_parameters(Parameter** params);
 
+    bool parse_body(Statement** stmt);
     bool parse_type(DataType& type);
-    bool parse_if_stmt();
-    bool parse_return();
-    bool parse_declaration();
+    bool parse_if_stmt(Statement** stmt);
+    bool parse_return(Statement** stmt);
+    bool parse_declaration(Statement** stmt);
 
 public:
     static AST* Parse(TokenStack* stack);

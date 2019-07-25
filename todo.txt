@@ -1,0 +1,8 @@
+
+- Create a structure for easier management of the statement head/tail linked lists
+    - Then remove all the duplicated code...
+- Clean-up/simplify the parser file's functions
+- Improve the conversions
+    - If statements and functions pop the '{' off the stack before calling the read body function, we
+      should pop that later in the read body function
+    - Similar procedure for other compound statements

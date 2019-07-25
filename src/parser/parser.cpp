@@ -7,14 +7,6 @@
 Parser::Parser(TokenStack* stack)
 {
     m_stack = stack;
-
-    Statement* root = new Statement();
-    root->type = STMT_ROOT;
-
-    m_scope.append(root);
-
-    m_ast = new AST();
-    m_ast->statements = root;
 }
 
 Parser::~Parser()
@@ -23,61 +15,109 @@ Parser::~Parser()
 
 AST* Parser::Parse(TokenStack* stack)
 {
-    AST* ast = nullptr;
-
     Parser parser(stack);
-    if(parser.process())
-    {
-        ast = parser.m_ast;
-    }
-    
+
+    AST* ast = parser.parse();
     return ast;
 }
 
-bool Parser::process()
+AST* Parser::parse()
 {
     STATUS status = STATUS_WORKING;
+    Statement *head = nullptr, *tail = nullptr;
 
     while(status == STATUS_WORKING)
     {
         Token tk = m_stack->peek(0);
-
-        switch(tk.type)
+        
+        if(tk.type == TK_EOF)
         {
-            case TK_IF:
-            {
-                status = parse_if_stmt() ? STATUS_WORKING : STATUS_ERROR;
-                break;
-            }
+            m_stack->pop();
 
-            case TK_EOF:
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            Statement* stmt = nullptr;
+            
+            if(parse_statement(&stmt))
             {
-                status = STATUS_SUCCESS;
-                break;
+                if((stmt->type == STMT_VARIABLE)     ||
+                   (stmt->type == STMT_FUNCTION_DEF) ||
+                   (stmt->type == STMT_FUNCTION_DECL))
+                {
+                    if(tail == nullptr) { head = stmt;       }
+                    else                { tail->next = stmt; }
+                    tail = stmt;
+                }
+                else
+                {
+                    error("invalid global statement\n");
+                    status = STATUS_ERROR;
+                }
             }
-
-            case TK_CLOSE_CURLY_BRACKET:
+            else
             {
-                status = process_end_of_block() ? STATUS_WORKING : STATUS_ERROR;
-                break;
-            }
-
-            case TK_RETURN:
-            case TK_TYPE:
-            default:
-            {
-                status = parse_statement() ? STATUS_WORKING : STATUS_ERROR;
-                break;
+                status = STATUS_ERROR;
             }
         }
+    }
+
+    AST* ast = nullptr;
+    if(status == STATUS_SUCCESS)
+    {
+        ast = new AST();
+        ast->statements = head;
+    }
+
+    return ast;
+}
+
+bool Parser::parse_body(Statement** ptr)
+{
+    STATUS status = STATUS_WORKING;
+    Statement *head = nullptr, *tail = nullptr;
+
+    while(status == STATUS_WORKING)
+    {
+        Token tk = m_stack->peek(0);
+        
+        if(tk.type == TK_CLOSE_CURLY_BRACKET)
+        {
+            m_stack->pop();
+
+            status = STATUS_SUCCESS;
+        }
+        else
+        {
+            Statement* stmt = nullptr;
+            
+            if(parse_statement(&stmt))
+            {
+                if(tail == nullptr) { head = stmt; }
+                else                { tail->next = stmt; }
+                tail = stmt;
+            }
+            else
+            {
+                status = STATUS_ERROR;
+            }
+        }
+    }
+
+    if(status)
+    {
+        *ptr = head;
     }
 
     return (status == STATUS_SUCCESS);
 }
 
-bool Parser::parse_statement()
+bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
+
+    Statement* stmt = nullptr;
 
     Token tk = m_stack->peek(0);
     switch(tk.type)
@@ -86,11 +126,22 @@ bool Parser::parse_statement()
         case TK_CONST:
         case TK_EXTERN:
         {
-            status = parse_declaration();
+            status = parse_declaration(&stmt);
             break;
         }
 
-        case TK_RETURN: { status = parse_return();      break; }
+        case TK_IF:
+        {
+            status = parse_if_stmt(&stmt);
+            break;
+        }
+
+        case TK_RETURN:
+        {
+            status = parse_return(&stmt);
+            break;
+        }
+
         default:
         {
             Expression* expr = nullptr;
@@ -107,74 +158,23 @@ bool Parser::parse_statement()
                 }
                 else
                 {
-                    Statement* stmt = new Statement();
+                    stmt = new Statement();
                     stmt->type = STMT_EXPR;
                     stmt->expr = expr;
-
-                    status = insert_statement(stmt);
                 }
             }
         }
     }
 
-    return status;
-}
-
-bool Parser::insert_statement(Statement* stmt)
-{
-    bool status = true;
-
-    Statement* body = nullptr;
-
-    switch(stmt->type)
-    {
-        case STMT_FUNCTION_DEF:
-        {
-            if(m_scope.is_global())
-            {
-                body = stmt->function.body;
-                goto DEFAULT;
-            }
-            else
-            {
-                status = false;
-                error("Cannot place function inside function\n");
-            }
-
-            break;
-        }
-
-        case STMT_IF:
-        {
-            m_scope.append(stmt);
-            body = stmt->if_stmt.body;
-            goto DEFAULT;
-        }
-
-        DEFAULT: default:
-        {
-            status = m_scope.append(stmt);
-            break;
-        }
-    }
-
     if(status)
     {
-        if(body != nullptr)
-        {
-            status = m_scope.push();
-            
-            if(status)
-            {
-                status = m_scope.append(body);
-            }
-        }
+        *ptr = stmt;
     }
 
     return status;
 }
 
-bool Parser::parse_if_stmt()
+bool Parser::parse_if_stmt(Statement** ptr)
 {
     bool status = true;
     Expression* condition = nullptr;
@@ -210,15 +210,14 @@ bool Parser::parse_if_stmt()
 
     if(status)
     {
-        Statement* body = new Statement();
-        body->type = STMT_ROOT;
-
         Statement* stmt = new Statement();
         stmt->type = STMT_IF;
         stmt->if_stmt.condition = condition;
-        stmt->if_stmt.body = body;
 
-        status = insert_statement(stmt);
+        if(parse_body(&stmt->if_stmt.body))
+        {
+            *ptr = stmt;
+        }
     }
 
     return status;
@@ -819,7 +818,7 @@ bool Parser::parse_type(DataType& type)
     return status;
 }
 
-bool Parser::parse_declaration()
+bool Parser::parse_declaration(Statement** ptr)
 {
     bool status = true;
 
@@ -884,17 +883,22 @@ bool Parser::parse_declaration()
 
                     if(status)
                     {
-                        Statement* body = new Statement();
-                        body->type = STMT_ROOT;
-
                         Statement* stmt = new Statement();
-                        stmt->type = stmt_type;
-                        stmt->function.ret_type = type;
-                        stmt->function.name = name;
-                        stmt->function.params = params;
-                        stmt->function.body = body;
 
-                        status = insert_statement(stmt);
+                        stmt->type              = stmt_type;
+                        stmt->function.ret_type = type;
+                        stmt->function.name     = name;
+                        stmt->function.params   = params;
+                        stmt->function.body     = nullptr;
+
+                        if((stmt->type == STMT_FUNCTION_DEF) && !parse_body(&stmt->function.body))
+                        {
+                            status = false;
+                        }
+                        else
+                        {
+                            *ptr = stmt;
+                        }
                     }
                 }
 
@@ -956,7 +960,7 @@ bool Parser::parse_declaration()
 
                 if(status)
                 {
-                    status = insert_statement(stmt);
+                    *ptr = stmt;
                 }
 
                 break;
@@ -1038,7 +1042,7 @@ bool Parser::parse_value(Expression** ptr)
     return status;
 }
 
-bool Parser::parse_return()
+bool Parser::parse_return(Statement** ptr)
 {
     bool result = true;
 
@@ -1067,29 +1071,9 @@ bool Parser::parse_return()
                 stmt->type = STMT_RET;
                 stmt->ret_stmt.expression = expr;
 
-                result = insert_statement(stmt);
+                *ptr = stmt;
             }
         }
-    }
-
-    return result;
-}
-
-bool Parser::process_end_of_block()
-{
-    Token tk = m_stack->pop();
-    if(tk.type != TK_CLOSE_CURLY_BRACKET)
-    {
-        error("Expected '}'\n");
-        return false;
-    }
-
-    bool result = true;
-
-    if(!m_scope.pop())
-    {
-        error("Unexpected end of block\n");
-        result = false;
     }
 
     return result;
