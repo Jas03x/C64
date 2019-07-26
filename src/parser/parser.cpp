@@ -42,9 +42,10 @@ AST* Parser::parse()
             
             if(parse_statement(&stmt))
             {
-                if((stmt->type == STMT_VARIABLE)     ||
-                   (stmt->type == STMT_FUNCTION_DEF) ||
-                   (stmt->type == STMT_FUNCTION_DECL))
+                if((stmt->type == STMT_VARIABLE)      ||
+                   (stmt->type == STMT_FUNCTION_DEF)  ||
+                   (stmt->type == STMT_FUNCTION_DECL) ||
+                   (stmt->type == STMT_STRUCT))
                 {
                     if(tail == nullptr) { head = stmt;       }
                     else                { tail->next = stmt; }
@@ -113,6 +114,97 @@ bool Parser::parse_body(Statement** ptr)
     return (status == STATUS_SUCCESS);
 }
 
+bool Parser::parse_struct_declaration(Statement** ptr)
+{
+    bool status = true;
+
+    strptr name = {};
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_STRUCT)
+    {
+        error("Expected struct\n");
+        status = false;
+    }
+    
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type == TK_IDENTIFIER)
+        {
+            name = tk.identifier.string;
+        }
+        else
+        {
+            error("Expected identifier\n");
+            status = false;
+        }
+    }
+
+    Statement *head = nullptr, *tail = nullptr;
+
+    if(status)
+    {
+        tk = m_stack->pop();
+
+        if(tk.type == TK_OPEN_CURLY_BRACKET)
+        {
+            while(status)
+            {
+                if(m_stack->peek(0).type == TK_CLOSE_CURLY_BRACKET)
+                {
+                    m_stack->pop();
+                    break;
+                }
+
+                Statement* stmt = nullptr;
+                if(parse_statement(&stmt))
+                {
+                    if((stmt->type == STMT_VARIABLE)     ||
+                       (stmt->type == STMT_FUNCTION_DEF) ||
+                       (stmt->type == STMT_FUNCTION_DECL))
+                    {
+                        if(tail == nullptr) { head = stmt;       }
+                        else                { tail->next = stmt; }
+                        tail = stmt;
+                    }
+                    else
+                    {
+                        error("invalid struct member\n");
+                        status = STATUS_ERROR;
+                    }
+                }
+                else
+                {
+                    status = false;
+                }
+            }
+        }
+        else if(tk.type == TK_SEMICOLON)
+        {
+            error("TODO: PARSE STRUCT PROTOTYPES\n");
+            status = false;
+        }
+        else
+        {
+            error("Unexpected token %hhu\n", tk.type);
+            status = false;
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_STRUCT;
+        stmt->struct_def.name = name;
+        stmt->struct_def.members = head;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
@@ -122,6 +214,12 @@ bool Parser::parse_statement(Statement** ptr)
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
+        case TK_STRUCT:
+        {
+            status = parse_struct_declaration(&stmt);
+            break;
+        }
+
         case TK_TYPE:
         case TK_CONST:
         case TK_EXTERN:

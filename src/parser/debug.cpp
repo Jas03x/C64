@@ -56,7 +56,7 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
             {
                 case LITERAL_INTEGER: { printf("%llu\n", expr->literal.integer.value); break; }
                 case LITERAL_DECIMAL: { printf("%f\n",   expr->literal.decimal.value); break; }
-                case LITERAL_STRING:  { printf("%.*s\n", expr->literal.string.len, expr->literal.string.ptr); break; }
+                case LITERAL_STRING:  { printf("\"%.*s\"\n", expr->literal.string.len, expr->literal.string.ptr); break; }
                 default:              { printf("Unknown token\n"); break; }
             }
             break;
@@ -136,7 +136,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
 
             debug_print_type(stmt->function.ret_type, level + 1);
 
-            debug_indent(1);
+            debug_indent(level + 1);
             printf("NAME: %.*s\n", stmt->function.name.len, stmt->function.name.ptr);
 
             for(Parameter* p = stmt->function.params; p != nullptr; p = p->next)
@@ -158,6 +158,24 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
                 {
                     debug_print_stmt(s, level + 2);
                 }
+            }
+
+            break;
+        }
+
+        case STMT_STRUCT:
+        {
+            printf("STRUCT\n");
+
+            debug_indent(level + 1);
+            printf("NAME: %.*s\n", stmt->struct_def.name.len, stmt->struct_def.name.ptr);
+
+            debug_indent(level + 1);
+            printf("MEMBERS\n");
+
+            for(Statement* s = stmt->struct_def.members; s != nullptr; s = s->next)
+            {
+                debug_print_stmt(s, level + 2);
             }
 
             break;

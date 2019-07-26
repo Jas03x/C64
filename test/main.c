@@ -1,11 +1,14 @@
 
-/*
 struct Person
 {
     const U8* name;
     U32       age;
+
+    void init()
+    {
+        printf("test");
+    }
 }
-*/
 
 extern const U8*[2] counter;
 

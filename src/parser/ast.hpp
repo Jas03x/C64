@@ -94,7 +94,8 @@ enum
     STMT_EXPR          = 0x5,
     STMT_VARIABLE      = 0x6,
     STMT_IF            = 0x7,
-    STMT_RET           = 0x8
+    STMT_RET           = 0x8,
+    STMT_STRUCT        = 0x9
 };
 
 union VariableModifiers
@@ -185,6 +186,12 @@ struct Statement
         {
             Expression* expression;
         } ret_stmt;
+
+        struct
+        {
+            strptr     name;
+            Statement* members;
+        } struct_def;
     };
 
     Statement* next;
