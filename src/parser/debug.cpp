@@ -181,12 +181,6 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
             break;
         }
 
-        case STMT_ROOT:
-        {
-            printf("ROOT\n");
-            break;
-        }
-
         case STMT_VARIABLE:
         {
             printf("VAR\n");

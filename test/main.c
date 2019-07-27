@@ -4,6 +4,8 @@ struct Person
     const U8* name;
     U32       age;
 
+    void dong();
+
     void init()
     {
         printf("test");

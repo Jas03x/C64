@@ -380,6 +380,12 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             else if(_strncmp(str, "struct", 6)) { tk.type = TK_STRUCT; break; }
             break;
         }
+
+        case 9:
+        {
+            if(_strncmp(str, "namespace", 9) == 0) { tk.type = TK_NAMESPACE; break; }
+            break;
+        }
     }
 
     if(tk.type == TK_INVALID)

@@ -11,6 +11,7 @@ Parser::Parser(TokenStack* stack)
 
 Parser::~Parser()
 {
+
 }
 
 AST* Parser::Parse(TokenStack* stack)
@@ -79,6 +80,13 @@ bool Parser::parse_body(Statement** ptr)
     STATUS status = STATUS_WORKING;
     Statement *head = nullptr, *tail = nullptr;
 
+    Token tk = m_stack->pop();
+    if(tk.type != TK_OPEN_CURLY_BRACKET)
+    {
+        error("expected '{'\n");
+        status = STATUS_ERROR;
+    }
+
     while(status == STATUS_WORKING)
     {
         Token tk = m_stack->peek(0);
@@ -106,7 +114,7 @@ bool Parser::parse_body(Statement** ptr)
         }
     }
 
-    if(status)
+    if(status == STATUS_SUCCESS)
     {
         *ptr = head;
     }
@@ -294,15 +302,6 @@ bool Parser::parse_if_stmt(Statement** ptr)
         else
         {
             status = parse_expression(&condition);
-        }
-    }
-
-    if(status)
-    {
-        if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
-        {
-            error("Expected '{'\n");
-            status = false;
         }
     }
 
@@ -966,11 +965,22 @@ bool Parser::parse_declaration(Statement** ptr)
                 {
                     uint8_t stmt_type = 0;
                     
-                    tk = m_stack->pop();
+                    tk = m_stack->peek(0);
                     switch(tk.type)
                     {
-                        case TK_OPEN_CURLY_BRACKET: { stmt_type = STMT_FUNCTION_DEF;  break; }
-                        case TK_SEMICOLON:          { stmt_type = STMT_FUNCTION_DECL; break; }
+                        case TK_OPEN_CURLY_BRACKET:
+                        {
+                            stmt_type = STMT_FUNCTION_DEF;
+                            break;
+                        }
+                        
+                        case TK_SEMICOLON:
+                        {
+                            m_stack->pop();
+                            stmt_type = STMT_FUNCTION_DECL;
+                            break;
+                        }
+
                         default:
                         {
                             error("Expected '{' or ';' after function\n");

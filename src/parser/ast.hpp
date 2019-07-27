@@ -87,15 +87,13 @@ struct Expression
 enum
 {
     STMT_INVALID       = 0x0,
-    STMT_ROOT          = 0x1,
-    STMT_FUNCTION_DECL = 0x2,
-    STMT_FUNCTION_DEF  = 0x3,
-    STMT_BLOCK         = 0x4,
-    STMT_EXPR          = 0x5,
-    STMT_VARIABLE      = 0x6,
-    STMT_IF            = 0x7,
-    STMT_RET           = 0x8,
-    STMT_STRUCT        = 0x9
+    STMT_FUNCTION_DECL = 0x1,
+    STMT_FUNCTION_DEF  = 0x2,
+    STMT_EXPR          = 0x3,
+    STMT_VARIABLE      = 0x4,
+    STMT_IF            = 0x5,
+    STMT_RET           = 0x6,
+    STMT_STRUCT        = 0x7
 };
 
 union VariableModifiers
@@ -152,11 +150,6 @@ struct Statement
 
     union
     {
-        struct
-        {
-            // no members
-        } block;
-
         Expression* expr;
 
         struct
