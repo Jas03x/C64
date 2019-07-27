@@ -47,7 +47,8 @@ enum
     EXPR_OP_REFERENCE              = 0x14,
     EXPR_OP_DEREFERENCE            = 0x15,
     EXPR_OP_ASSIGN                 = 0x16,
-    EXPR_OP_ARROW                  = 0x17
+    EXPR_OP_ACCESS_FIELD           = 0x17,
+    EXPR_OP_ARROW                  = 0x18
 };
 
 struct Expression

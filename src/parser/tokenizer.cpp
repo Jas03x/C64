@@ -449,7 +449,7 @@ bool Tokenizer::next_token(Token& tk)
             case '+': case '-': case '*':
             case '=': case '<': case '>': case ';':
             case '(': case ')': case '[': case ']':
-            case '{': case '}': case ',':
+            case '{': case '}': case ',': case '.':
             {
                 pop();
                 status = process(c, tk) ? STATUS_SUCCESS : STATUS_ERROR;

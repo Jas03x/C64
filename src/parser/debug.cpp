@@ -38,10 +38,11 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
                 case EXPR_OP_CMP_MORE_THAN:          { printf(">\n");   break; }
                 case EXPR_OP_CMP_LESS_THAN_OR_EQUAL: { printf("<=\n");  break; }
                 case EXPR_OP_CMP_MORE_THAN_OR_EQUAL: { printf(">=\n");  break; }
-                case EXPR_OP_REFERENCE:              { printf("REF\n");   break; }
-                case EXPR_OP_DEREFERENCE:            { printf("DEREF\n");   break; }
-                case EXPR_OP_ASSIGN:                 { printf("=\n");   break; }
-                case EXPR_OP_ARROW:                  { printf("->\n");  break; }
+                case EXPR_OP_REFERENCE:              { printf("REF\n");    break; }
+                case EXPR_OP_DEREFERENCE:            { printf("DEREF\n");  break; }
+                case EXPR_OP_ASSIGN:                 { printf("=\n");      break; }
+                case EXPR_OP_ACCESS_FIELD:           { printf("ACCESS\n"); break; }
+                case EXPR_OP_ARROW:                  { printf("->\n");     break; }
                 default:                             { printf("Unknown operator\n"); break; }
             }
 
@@ -241,5 +242,6 @@ void debug_print_ast(AST* ast)
     for(Statement* stmt = ast->statements; stmt != nullptr; stmt = stmt->next)
     {
         debug_print_stmt(stmt);
+        printf("\n");
     }
 }

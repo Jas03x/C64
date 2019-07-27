@@ -405,14 +405,10 @@ bool Parser::parse_expression(Expression** ptr)
             }
 
             OPERATOR:
-            case TK_PLUS:
-            case TK_MINUS:
-            case TK_FORWARD_SLASH:
-            case TK_RIGHT_ARROW_HEAD:
-            case TK_LEFT_ARROW_HEAD:
-            case TK_CARET:
-            case TK_PERCENT:
-            case TK_EQUAL:
+            case TK_PLUS: case TK_MINUS: case TK_PERCENT:
+            case TK_FORWARD_SLASH: case TK_CARET:
+            case TK_RIGHT_ARROW_HEAD: case TK_LEFT_ARROW_HEAD:
+            case TK_EQUAL: case TK_DOT:
             {
                 if(!parse_operator(&expr))
                 {
@@ -493,7 +489,8 @@ bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op
         PRECEDENCE_LEVEL_2, // EXPR_OP_REFERENCE
         PRECEDENCE_LEVEL_2, // EXPR_OP_DEREFERENCE
         PRECEDENCE_LEVEL_7, // EXPR_OP_ASSIGN
-        PRECEDENCE_LEVEL_1, // EXPR_OP_ARROW
+        PRECEDENCE_LEVEL_1, // EXPR_OP_ACCESS_FIELD
+        PRECEDENCE_LEVEL_1  // EXPR_OP_ARROW
     };
 
     bool ret = false;
@@ -578,12 +575,13 @@ bool Parser::parse_operator(Expression** ptr)
     uint8_t op = EXPR_OP_INVALID;
     switch(tk.type)
     {
-        case TK_PLUS:          { op = EXPR_OP_ADD;         break; }
-        case TK_ASTERISK:      { op = EXPR_OP_MUL;         break; }
-        case TK_FORWARD_SLASH: { op = EXPR_OP_DIV;         break; }
-        case TK_AND:           { op = EXPR_OP_LOGICAL_AND; break; }
-        case TK_OR:            { op = EXPR_OP_LOGICAL_OR;  break; }
-        case TK_CARET:         { op = EXPR_OP_BITWISE_XOR; break; }
+        case TK_PLUS:          { op = EXPR_OP_ADD;          break; }
+        case TK_ASTERISK:      { op = EXPR_OP_MUL;          break; }
+        case TK_FORWARD_SLASH: { op = EXPR_OP_DIV;          break; }
+        case TK_AND:           { op = EXPR_OP_LOGICAL_AND;  break; }
+        case TK_OR:            { op = EXPR_OP_LOGICAL_OR;   break; }
+        case TK_CARET:         { op = EXPR_OP_BITWISE_XOR;  break; }
+        case TK_DOT:           { op = EXPR_OP_ACCESS_FIELD; break; }
         case TK_MINUS:
         {
             op = EXPR_OP_SUB;
