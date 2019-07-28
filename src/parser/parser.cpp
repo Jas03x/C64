@@ -557,11 +557,16 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
                     {
                         case EXPR_OP_ACCESS_FIELD:
                         {
-                            if(rhs->type != EXPR_IDENTIFIER)
+                            bool valid = false;
+                            valid |= rhs->type == EXPR_IDENTIFIER;
+                            valid |= rhs->type == EXPR_CALL;
+
+                            if(!valid)
                             {
                                 error("RHS of accessor must be identifier\n");
                                 status = false;
                             }
+                            
                             break;
                         }
 

@@ -19,6 +19,7 @@ U32 main()
     jas.age  = 21;
     
     (jas.print_hi + 1)();
+    jas.print_hi();
 
     return 0;
 }
