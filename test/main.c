@@ -17,8 +17,8 @@ U32 main()
     Person jas;
     jas.name = "Jas";
     jas.age  = 21;
-
-    jas.print_hi();
+    
+    (jas.print_hi + 1)();
 
     return 0;
 }

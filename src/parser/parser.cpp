@@ -338,16 +338,48 @@ bool Parser::parse_expression(Expression** ptr)
         {
             case TK_OPEN_ROUND_BRACKET:
             {
-                m_stack->pop();
-                if(!parse_expression(&expr))
+                bool is_func_call = false;
+                if(list_tail != nullptr) { is_func_call = list_tail->expr->type != EXPR_OPERATION; }
+
+                if(!is_func_call)
                 {
-                    status = false;
+                    m_stack->pop();
+
+                    Expression* sub_expr = nullptr;
+                    status = parse_expression(&sub_expr);
+
+                    if(status)
+                    {
+                        if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+                        {
+                            error("Invalid expression, expected close bracket\n");
+                            status = false;
+                        }
+                        else
+                        {
+                            expr = new Expression();
+                            expr->type = EXPR_SUB_EXPR;
+                            expr->sub_expr = sub_expr;
+                        }
+                    }
                 }
-                else if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+                else
                 {
-                    error("Invalid expression, expected close bracket\n");
-                    status = false;
+                    Argument* args = nullptr;
+                    status = parse_arguments(&args);
+
+                    if(status)
+                    {
+                        expr = new Expression();
+                        expr->type = EXPR_CALL;
+                        expr->call.function = list_tail->expr;
+                        expr->call.arguments = args;
+
+                        list_tail->expr = expr;
+                        expr = nullptr; // we will not add this expression node to the list
+                    }
                 }
+                
                 break;
             }
 
@@ -374,14 +406,8 @@ bool Parser::parse_expression(Expression** ptr)
             case TK_AMPERSAND:
             {
                 bool is_ptr_operator = false;
-                if(list_tail == nullptr)
-                {
-                    is_ptr_operator = true;
-                }
-                else
-                {
-                    is_ptr_operator = list_tail->expr->type == EXPR_OPERATION;
-                }
+                if(list_tail == nullptr) { is_ptr_operator = true;                                    }
+                else                     { is_ptr_operator = list_tail->expr->type == EXPR_OPERATION; }
 
                 if(!is_ptr_operator)
                 {
@@ -427,11 +453,7 @@ bool Parser::parse_expression(Expression** ptr)
 
         if(status && reading)
         {
-            if(expr == nullptr)
-            {
-                status = false;
-            }
-            else
+            if(expr != nullptr)
             {
                 ExpressionList::Entry* entry = m_list.get_entry();
                 entry->expr = expr;
@@ -440,17 +462,22 @@ bool Parser::parse_expression(Expression** ptr)
                 if(list_head == nullptr)
                 {
                     list_head = entry;
-                    list_tail = entry;
                 }
                 else
                 {
                     list_tail->next = entry;
                     entry->prev = list_tail;
-                    list_tail = entry;
                 }
+
+                list_tail = entry;
             }
-            
         }
+    }
+
+    if(list_head == nullptr)
+    {
+        error("A fatal error occured while parsing\n");
+        status = false;
     }
 
     if(status)
@@ -525,6 +552,21 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
 
                     if((next == nullptr) || (rhs == nullptr))                      { error("Missing rhs operand\n"); status = false; }
                     if(!single_operand && ((prev == nullptr) || (lhs == nullptr))) { error("Missing lhs operand\n"); status = false; }
+
+                    switch(it->expr->operation.op)
+                    {
+                        case EXPR_OP_ACCESS_FIELD:
+                        {
+                            if(rhs->type != EXPR_IDENTIFIER)
+                            {
+                                error("RHS of accessor must be identifier\n");
+                                status = false;
+                            }
+                            break;
+                        }
+
+                        default: break;
+                    }
 
                     if(status)
                     {
@@ -1116,9 +1158,13 @@ bool Parser::parse_value(Expression** ptr)
                 }
                 else
                 {
+                    Expression* func_name = new Expression();
+                    func_name->type = EXPR_IDENTIFIER;
+                    func_name->identifier.name = name;
+
                     expr = new Expression();
                     expr->type = EXPR_CALL;
-                    expr->call.func_name = name;
+                    expr->call.function = func_name;
                     expr->call.arguments = args;
                 }
             }

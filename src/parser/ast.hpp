@@ -15,11 +15,12 @@ struct Argument
 enum
 {
     EXPR_INVALID    = 0x0,
-    EXPR_LITERAL    = 0x1,
-    EXPR_IDENTIFIER = 0x2,
-    EXPR_ASSIGN     = 0x3,
-    EXPR_OPERATION  = 0x4,
-    EXPR_CALL       = 0x5
+    EXPR_SUB_EXPR   = 0x1,
+    EXPR_LITERAL    = 0x2,
+    EXPR_IDENTIFIER = 0x3,
+    EXPR_ASSIGN     = 0x4,
+    EXPR_OPERATION  = 0x5,
+    EXPR_CALL       = 0x6
 };
 
 enum
@@ -59,6 +60,8 @@ struct Expression
     {
         Literal literal;
 
+        Expression* sub_expr;
+
         struct
         {
             strptr name;
@@ -79,8 +82,8 @@ struct Expression
 
         struct
         {
-            strptr    func_name;
-            Argument* arguments;
+            Expression* function;
+            Argument*   arguments;
         } call;
     };
 };

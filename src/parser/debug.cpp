@@ -15,6 +15,13 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
 
     switch(expr->type)
     {
+        case EXPR_SUB_EXPR:
+        {
+            printf("SUB_EXPR:\n");
+            debug_print_expr(expr->sub_expr, level + 1);
+            break;
+        }
+
         case EXPR_OPERATION:
         {
             switch(expr->operation.op)
@@ -74,7 +81,9 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
             printf("CALL:\n");
 
             debug_indent(level + 1);
-            printf("FUNC_NAME: %.*s\n", expr->call.func_name.len, expr->call.func_name.ptr);
+            printf("FUNCTION:\n");
+
+            debug_print_expr(expr->call.function, level + 2);
 
             for(Argument* a = expr->call.arguments; a != nullptr; a = a->next)
             {
