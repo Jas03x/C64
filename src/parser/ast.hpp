@@ -94,57 +94,110 @@ enum
     STMT_FUNCTION_DECL = 0x1,
     STMT_FUNCTION_DEF  = 0x2,
     STMT_EXPR          = 0x3,
-    STMT_VARIABLE      = 0x4,
+    STMT_VARIABLE_DECL = 0x4,
     STMT_IF            = 0x5,
     STMT_RET           = 0x6,
-    STMT_STRUCT        = 0x7
+    STMT_STRUCT_DEF    = 0x7
 };
 
-union VariableModifiers
+enum TYPE
+{
+    TYPE_INVALID = 0x0,
+    TYPE_VOID    = 0x1,
+    TYPE_U8      = 0x2,
+    TYPE_U16     = 0x3,
+    TYPE_U32     = 0x4,
+    TYPE_U64     = 0x5,
+    TYPE_I8      = 0x6,
+    TYPE_I16     = 0x7,
+    TYPE_I32     = 0x8,
+    TYPE_I64     = 0x9,
+    TYPE_F32     = 0xA,
+    TYPE_F64     = 0xB,
+    TYPE_PTR     = 0xC,
+    TYPE_ARRAY   = 0xD,
+    TYPE_STRUCT  = 0xE
+};
+
+enum SYMBOL
+{
+    SYMBOL_INVALID  = 0x0,
+    SYMBOL_TYPE     = 0x1,
+    SYMBOL_STRUCT   = 0x2,
+    SYMBOL_VARIABLE = 0x3,
+    SYMBOL_FUNCTION = 0x4
+};
+
+struct Type;
+struct Statement;
+
+struct Symbol
+{
+    uint8_t type;
+
+    union
+    {
+        Type*      type;
+        Statement* variable;
+        Statement* function;
+    } value;
+};
+
+struct Variable;
+
+struct Structure
+{
+    struct Member
+    {
+        Variable* variable;
+        Member*   next;
+    };
+
+    Member* members;
+};
+
+union VariableFlags
 {
     struct
     {
         unsigned int is_constant         : 1;
-        unsigned int is_pointer          : 1;
-        unsigned int is_fixed_size_array : 1;
         unsigned int is_external_symbol  : 1;
     };
 
     uint8_t value;
 };
 
-union FunctionModifiers
+struct Variable
 {
-    struct
-    {
-    };
-
-    uint8_t value;
-};
-
-struct FixedSizeArray
-{
-    uint32_t size;
-
-    FixedSizeArray* next;
-};
-
-struct DataType
-{
-    uint8_t type;
-    
-    VariableModifiers flags;
+    const Type*   type;
+    VariableFlags flags;
 
     union
     {
-        FixedSizeArray* fixed_size_array; // used if flags.is_fixed_size_array = 1
+        struct
+        {
+            uint32_t        size;
+            const Variable* elements;
+        } array;
+
+        const Variable* ptr;
+    };
+};
+
+struct Type
+{
+    uint8_t type;
+
+    union
+    {
+        Structure structure;
     };
 };
 
 struct Parameter
 {
-    DataType   type;
     strptr     name;
+    Variable*  type;
     Parameter* next;
 };
 
@@ -159,17 +212,15 @@ struct Statement
         struct
         {
             strptr     name;
-            DataType   ret_type;
+            Variable*  ret_type;
             Parameter* params;
             Statement* body;
-
-            FunctionModifiers flags;
         } function;
 
         struct
         {
             strptr      name;
-            DataType    type;
+            Variable*   type;
             Expression* value;
         } variable;
 

@@ -341,9 +341,10 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
         {
             switch(str[0])
             {
-                case 'i': { if(_strncmp(str, "if", 2)) { tk.type = TK_IF; } break; }
-                case 'o': { if(_strncmp(str, "or", 2)) { tk.type = TK_OR; } break; }
-                case 'U': { if(_strncmp(str, "U8", 2)) { tk = { TK_TYPE, { TYPE_U8 } }; } break; }
+                case 'i': { if(_strncmp(str, "if", 2)) { tk.type = TK_IF;                  } break; }
+                case 'o': { if(_strncmp(str, "or", 2)) { tk.type = TK_OR;                  } break; }
+                case 'I': { if(_strncmp(str, "I8", 2)) { tk = { TK_TYPE, { TK_TYPE_I8 } }; } break; }
+                case 'U': { if(_strncmp(str, "U8", 2)) { tk = { TK_TYPE, { TK_TYPE_U8 } }; } break; }
                 default:  { break; }
             }
 
@@ -355,7 +356,26 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             switch(str[0])
             {
                 case 'a': { if(_strncmp(str, "and", 3)) { tk.type = TK_AND; } break; }
-                case 'U': { if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, { TYPE_U32 } }; } break; }
+                case 'F':
+                {
+                    if(_strncmp(str, "F32", 3))      { tk = { TK_TYPE, { TK_TYPE_F32 } }; }
+                    else if(_strncmp(str, "F64", 3)) { tk = { TK_TYPE, { TK_TYPE_F64 } }; }
+                    break;
+                }
+                case 'I':
+                {
+                    if(_strncmp(str, "I16", 3))      { tk = { TK_TYPE, { TK_TYPE_I16 } }; }
+                    else if(_strncmp(str, "I32", 3)) { tk = { TK_TYPE, { TK_TYPE_I32 } }; }
+                    else if(_strncmp(str, "I64", 3)) { tk = { TK_TYPE, { TK_TYPE_I64 } }; }
+                    break;
+                }
+                case 'U':
+                {
+                    if(_strncmp(str, "U16", 3))      { tk = { TK_TYPE, { TK_TYPE_U16 } }; }
+                    else if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, { TK_TYPE_U32 } }; }
+                    else if(_strncmp(str, "U64", 3)) { tk = { TK_TYPE, { TK_TYPE_U64 } }; }
+                    break;
+                }
             }
             
             break;
@@ -363,7 +383,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 
         case 4:
         {
-            if(_strncmp(str, "void", 4)) { tk = { TK_TYPE, { TYPE_VOID } }; break; }
+            if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; }
             break;
         }
 

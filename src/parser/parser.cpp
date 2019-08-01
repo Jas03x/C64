@@ -4,6 +4,25 @@
 
 #define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
 
+static const Type __BUILT_IN_TYPES[] =
+{
+    { TYPE_INVALID },
+    { TYPE_VOID    },
+    { TYPE_U8      },
+    { TYPE_U16     },
+    { TYPE_U32     },
+    { TYPE_U64     },
+    { TYPE_I8      },
+    { TYPE_I16     },
+    { TYPE_I32     },
+    { TYPE_I64     },
+    { TYPE_F32     },
+    { TYPE_F64     },
+    { TYPE_PTR     },
+    { TYPE_ARRAY   },
+    { TYPE_STRUCT  }
+};
+
 Parser::Parser(TokenStack* stack)
 {
     m_stack = stack;
@@ -11,7 +30,6 @@ Parser::Parser(TokenStack* stack)
 
 Parser::~Parser()
 {
-
 }
 
 AST* Parser::Parse(TokenStack* stack)
@@ -43,10 +61,10 @@ AST* Parser::parse()
             
             if(parse_statement(&stmt))
             {
-                if((stmt->type == STMT_VARIABLE)      ||
+                if((stmt->type == STMT_VARIABLE_DECL) ||
                    (stmt->type == STMT_FUNCTION_DEF)  ||
                    (stmt->type == STMT_FUNCTION_DECL) ||
-                   (stmt->type == STMT_STRUCT))
+                   (stmt->type == STMT_STRUCT_DEF))
                 {
                     if(tail == nullptr) { head = stmt;       }
                     else                { tail->next = stmt; }
@@ -168,17 +186,22 @@ bool Parser::parse_struct_declaration(Statement** ptr)
                 Statement* stmt = nullptr;
                 if(parse_statement(&stmt))
                 {
-                    if((stmt->type == STMT_VARIABLE)     ||
-                       (stmt->type == STMT_FUNCTION_DEF) ||
-                       (stmt->type == STMT_FUNCTION_DECL))
+                    if((stmt->type == STMT_VARIABLE_DECL) ||
+                       (stmt->type == STMT_FUNCTION_DEF)  ||
+                       (stmt->type == STMT_FUNCTION_DECL) ||
+                       (stmt->type == STMT_STRUCT_DEF))
                     {
+                        if((stmt->type == STMT_STRUCT_DEF))
+                        {
+                            printf("test\n");
+                        }
                         if(tail == nullptr) { head = stmt;       }
                         else                { tail->next = stmt; }
                         tail = stmt;
                     }
                     else
                     {
-                        error("invalid struct member\n");
+                        error("Invalid struct member\n");
                         status = STATUS_ERROR;
                     }
                 }
@@ -203,14 +226,62 @@ bool Parser::parse_struct_declaration(Statement** ptr)
     if(status)
     {
         Statement* stmt = new Statement();
-        stmt->type = STMT_STRUCT;
+        stmt->type = STMT_STRUCT_DEF;
         stmt->struct_def.name = name;
         stmt->struct_def.members = head;
 
-        *ptr = stmt;
+        Symbol* sym = nullptr;
+        status = process_symbol(stmt, &sym);
+        
+        if(status)
+        {
+            *ptr = stmt;
+            status = insert_symbol(name, sym);
+        }
     }
 
     return status;
+}
+
+bool Parser::process_symbol(Statement* stmt, Symbol** type)
+{
+    // TODO:
+    return true;
+    // return false;
+}
+
+bool Parser::insert_symbol(strptr id, Symbol* sym)
+{
+    bool status = true;
+
+    std::string key = std::string(id.ptr, id.len);
+    SymbolMap::const_iterator it = m_symbols.find(key);
+
+    if(it != m_symbols.end())
+    {
+        error("Duplicate definition of %.*s\n", id.len, id.ptr);
+        status = false;
+    }
+    else
+    {
+        m_symbols[key] = sym;
+    }
+
+    return status;
+}
+
+Symbol* Parser::find_symbol(strptr id)
+{
+    Symbol* ret = nullptr;
+
+    std::string key = std::string(id.ptr, id.len);
+    SymbolMap::const_iterator it = m_symbols.find(key);
+    if(it != m_symbols.end())
+    {
+        ret = it->second;
+    }
+
+    return ret;
 }
 
 bool Parser::parse_statement(Statement** ptr)
@@ -228,6 +299,7 @@ bool Parser::parse_statement(Statement** ptr)
             break;
         }
 
+        DECLARATION:
         case TK_TYPE:
         case TK_CONST:
         case TK_EXTERN:
@@ -248,7 +320,18 @@ bool Parser::parse_statement(Statement** ptr)
             break;
         }
 
-        default:
+        case TK_IDENTIFIER:
+        {
+            Symbol* sym = find_symbol(tk.identifier.string);
+            if((sym != nullptr) && ((sym->type == SYMBOL_TYPE) || (sym->type == SYMBOL_STRUCT)))
+            {
+                goto DECLARATION;
+            } 
+
+            goto DEFAULT;
+        }
+
+        DEFAULT: default:
         {
             Expression* expr = nullptr;
             if(!parse_expression(&expr))
@@ -603,6 +686,17 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
         }
     }
 
+    // once the expression has been fully simplified, we should only have one expression left
+    if(head->next != nullptr)
+    {
+        error("Invalid expression\n");
+        status = false;
+    }
+    else
+    {
+        m_list.ret_entry(head);
+    }
+
     // debug_print_expression(head->expr);
 
     if(status)
@@ -787,23 +881,17 @@ bool Parser::parse_parameters(Parameter** params)
 
             while (status)
             {
-                DataType          type           = {};
-                FunctionModifiers func_modifiers = {};
+                Variable* var = nullptr;
 
-                status = parse_modifiers(type.flags, func_modifiers);
-                
-                if(!status) { break; }
+                status = parse_variable(&var);
+                /*
                 else if(func_modifiers.value != 0)
                 {
                     status = false;
                     error("Function modifiers in parameter declaration\n");
                     break;
                 }
-
-                if(status)
-                {
-                    status = parse_type(type);
-                }
+                */
 
                 if(status)
                 {
@@ -813,7 +901,7 @@ bool Parser::parse_parameters(Parameter** params)
                         strptr name = tk.identifier.string;
 
                         Parameter* p = new Parameter();
-                        p->type = type;
+                        p->type = var;
                         p->name = name;
                         *p_ptr = p;
                         p_ptr = &p->next;
@@ -842,7 +930,7 @@ bool Parser::parse_parameters(Parameter** params)
     return status;
 }
 
-bool Parser::parse_modifiers(VariableModifiers& var_mod, FunctionModifiers& func_mod)
+bool Parser::parse_modifiers(VariableFlags& flags)
 {
     bool status = true;
     bool running = true;
@@ -857,7 +945,7 @@ bool Parser::parse_modifiers(VariableModifiers& var_mod, FunctionModifiers& func
             {
                 m_stack->pop();
 
-                if(var_mod.is_constant != 1) { var_mod.is_constant = 1; }
+                if(flags.is_constant != 1) { flags.is_constant = 1; }
                 else
                 {
                     error("Duplicated 'const' modifier\n");
@@ -871,7 +959,7 @@ bool Parser::parse_modifiers(VariableModifiers& var_mod, FunctionModifiers& func
             {
                 m_stack->pop();
 
-                if(var_mod.is_external_symbol != 1) { var_mod.is_external_symbol = 1; }
+                if(flags.is_external_symbol != 1) { flags.is_external_symbol = 1; }
                 else
                 {
                     error("Duplicated 'extern' modifier\n");
@@ -892,69 +980,108 @@ bool Parser::parse_modifiers(VariableModifiers& var_mod, FunctionModifiers& func
     return status;
 }
 
-bool Parser::parse_type(DataType& type)
+bool Parser::parse_variable(Variable** ptr)
 {
     bool status = true;
 
-    Token tk = m_stack->pop();
-    if((tk.type != TK_TYPE) || (tk.subtype == TYPE_INVALID))
+    Token tk = {};
+    Variable* head = new Variable();
+
+    status = parse_modifiers(head->flags);
+
+    if(status)
     {
-        error("Expected type\n");
-        status = false;
-    }
-    else
-    {
-        type.type = tk.subtype;
-    }
-
-    tk = m_stack->peek(0);
-    if(tk.type == TK_ASTERISK)
-    {
-        m_stack->pop();
-        type.flags.is_pointer = 1;
-    }
-    
-    FixedSizeArray *head = nullptr, *tail = nullptr;
-
-    while(true)
-    {
-        tk = m_stack->peek(0);
-        if(tk.type != TK_OPEN_SQUARE_BRACKET)
-        {
-            break;
-        }
-
-        m_stack->pop();
-        type.flags.is_fixed_size_array = 1;
-
-        FixedSizeArray* array = new FixedSizeArray();
-
         tk = m_stack->pop();
-        // TODO: support constant expressions
-        if((tk.type == TK_LITERAL) && (tk.literal.type == LITERAL_INTEGER))
+        if(tk.type == TK_TYPE)
         {
-            array->size = tk.literal.integer.value;
+            switch(tk.subtype)
+            {
+                case TK_TYPE_U8:   { head->type = &__BUILT_IN_TYPES[TYPE_U8];   break; }
+                case TK_TYPE_I8:   { head->type = &__BUILT_IN_TYPES[TYPE_I8];   break; }
+                case TK_TYPE_U16:  { head->type = &__BUILT_IN_TYPES[TYPE_U16];  break; }
+                case TK_TYPE_I16:  { head->type = &__BUILT_IN_TYPES[TYPE_I16];  break; }
+                case TK_TYPE_U32:  { head->type = &__BUILT_IN_TYPES[TYPE_U32];  break; }
+                case TK_TYPE_I32:  { head->type = &__BUILT_IN_TYPES[TYPE_I32];  break; }
+                case TK_TYPE_U64:  { head->type = &__BUILT_IN_TYPES[TYPE_U64];  break; }
+                case TK_TYPE_I64:  { head->type = &__BUILT_IN_TYPES[TYPE_I64];  break; }
+                case TK_TYPE_VOID: { head->type = &__BUILT_IN_TYPES[TYPE_VOID]; break; }
+                default:
+                {
+                    status = false;
+                    error("Invalid type\n");
+                    break;
+                }
+            }
+        }
+        else if(tk.type == TK_IDENTIFIER)
+        {
+            Symbol* sym = find_symbol(tk.identifier.string);
         }
         else
         {
-            error("Expected a constant array size\n");
+            error("Expected type or identifier\n");
             status = false;
-        }
-
-        if(status)
-        {
-            m_stack->pop(); // pop the remaining ']'
-
-            if(head == nullptr) { head = array;       }
-            else                { tail->next = array; }
-
-            tail = array;
         }
     }
 
-    if(status && (head != nullptr))
+    if(status)
     {
-        type.fixed_size_array = head;
+        while(m_stack->peek(0).type == TK_ASTERISK)
+        {
+            m_stack->pop();
+
+            Variable* var = new Variable();
+            var->type = &__BUILT_IN_TYPES[TYPE_PTR];
+            var->flags.value = head->flags.value;
+            var->ptr = head;
+            
+            head = var;
+        }
+    }
+    
+    if(status)
+    {
+        while(status && (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET))
+        {
+            m_stack->pop();
+
+            unsigned int size = 0;
+
+            // TODO: support constant expressions
+            tk = m_stack->pop();
+            if((tk.type == TK_LITERAL) && (tk.literal.type == LITERAL_INTEGER))
+            {
+                size = tk.literal.integer.value;
+
+                Variable* var = new Variable();
+                var->type = &__BUILT_IN_TYPES[TYPE_ARRAY];
+                var->flags.value = head->flags.value;
+                var->array.size = size;
+                var->array.elements = head;
+
+                head = var;
+            }
+            else
+            {
+                error("Expected a constant array size\n");
+                status = false;
+            }
+
+            if(status)
+            {
+                // pop the remaining ']'
+                if(m_stack->pop().type != TK_CLOSE_SQUARE_BRACKET)
+                {
+                    error("Expected ']'\n");
+                    status = false;
+                }
+            }
+        }
+    }
+
+    if(status)
+    {
+        *ptr = head;
     }
 
     return status;
@@ -964,19 +1091,11 @@ bool Parser::parse_declaration(Statement** ptr)
 {
     bool status = true;
 
-    Token tk = {};
+    Token     tk    = {};
+    strptr    name = {};
+    Variable* var = new Variable();
 
-    strptr   name = {};
-	DataType type = {};
-
-    FunctionModifiers func_mod = {};
-
-    status = parse_modifiers(type.flags, func_mod);
-
-    if(status)
-    {
-        status = parse_type(type);
-    }
+    status = parse_variable(&var);
     
     if(status)
     {
@@ -1039,7 +1158,7 @@ bool Parser::parse_declaration(Statement** ptr)
                         Statement* stmt = new Statement();
 
                         stmt->type              = stmt_type;
-                        stmt->function.ret_type = type;
+                        stmt->function.ret_type = var;
                         stmt->function.name     = name;
                         stmt->function.params   = params;
                         stmt->function.body     = nullptr;
@@ -1063,12 +1182,13 @@ bool Parser::parse_declaration(Statement** ptr)
             {
                 m_stack->pop();
 
+                /*
                 if(func_mod.value != 0)
                 {
                     error("Function modifiers on variable\n");
                     status = false;
                 }
-                else if(type.flags.is_external_symbol && (tk.type == TK_EQUAL))
+                else */ if(var->flags.is_external_symbol && (tk.type == TK_EQUAL))
                 {
                     error("Cannot initialize an external symbol\n");
                     status = false;
@@ -1078,9 +1198,9 @@ bool Parser::parse_declaration(Statement** ptr)
                 if(status)
                 {
                     stmt = new Statement();
-                    stmt->type = STMT_VARIABLE;
+                    stmt->type = STMT_VARIABLE_DECL;
                     stmt->variable.name = name;
-                    stmt->variable.type = type;
+                    stmt->variable.type = var;
                 }
                 
                 if(status && (tk.type == TK_EQUAL))
@@ -1124,6 +1244,17 @@ bool Parser::parse_declaration(Statement** ptr)
                 error("Unexpected token\n");
                 status = false;
             }
+        }
+    }
+
+    if(status)
+    {
+        Symbol* sym = nullptr;
+        status = process_symbol(*ptr, &sym);
+
+        if(status)
+        {
+            status = insert_symbol(name, sym);
         }
     }
 
