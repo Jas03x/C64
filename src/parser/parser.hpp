@@ -38,12 +38,19 @@ private:
 
     Symbol* find_symbol(strptr id);
     bool    insert_symbol(strptr id, Symbol* type);
+    bool    process_symbol(Statement* stmt, Symbol** sym_ptr);
 
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
     AST* parse();
 
     bool process_expression(ExpressionList::Entry* list, Expression** expr);
+
+    // checks if the identifier exists and its type
+    // -1: error
+    //  0: false
+    //  1: true
+    int is_type(strptr str);
 
     bool parse_statement(Statement** ptr);
     bool parse_value(Expression** ptr);
@@ -54,7 +61,6 @@ private:
     bool parse_arguments(Argument** args);
     bool parse_parameters(Parameter** params);
 
-    bool process_symbol(Statement* stmt, Symbol** type);
     bool parse_body(Statement** stmt);
     bool parse_variable(Variable** ptr);
     bool parse_if_stmt(Statement** stmt);

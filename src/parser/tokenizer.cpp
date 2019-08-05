@@ -241,7 +241,7 @@ bool Tokenizer::read_string(Token& tk)
     {
         tk.type = TK_LITERAL;
         tk.literal.type = LITERAL_STRING;
-        tk.literal.string.ptr = strdup(ptr);
+        tk.literal.string.ptr = ptr;
         tk.literal.string.len = len;
 
         printf("%.*s => %hhu\n", tk.literal.string.len, tk.literal.string.ptr, tk.type);
@@ -411,7 +411,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
     if(tk.type == TK_INVALID)
     {
         tk.type = TK_IDENTIFIER;
-        tk.identifier.string.ptr = strdup(str);
+        tk.identifier.string.ptr = str;
         tk.identifier.string.len = len;
     }
 

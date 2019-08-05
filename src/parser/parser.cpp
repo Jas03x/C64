@@ -4,6 +4,7 @@
 
 #define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
 
+/*
 static const Type __BUILT_IN_TYPES[] =
 {
     { TYPE_INVALID },
@@ -22,6 +23,7 @@ static const Type __BUILT_IN_TYPES[] =
     { TYPE_ARRAY   },
     { TYPE_STRUCT  }
 };
+*/
 
 Parser::Parser(TokenStack* stack)
 {
@@ -167,7 +169,7 @@ bool Parser::parse_struct_declaration(Statement** ptr)
         }
     }
 
-    Statement *head = nullptr, *tail = nullptr;
+    Structure::Member *head = nullptr, *tail = nullptr;
 
     if(status)
     {
@@ -186,23 +188,47 @@ bool Parser::parse_struct_declaration(Statement** ptr)
                 Statement* stmt = nullptr;
                 if(parse_statement(&stmt))
                 {
-                    if((stmt->type == STMT_VARIABLE_DECL) ||
-                       (stmt->type == STMT_FUNCTION_DEF)  ||
-                       (stmt->type == STMT_FUNCTION_DECL) ||
-                       (stmt->type == STMT_STRUCT_DEF))
+                    Structure::Member* member = new Structure::Member();
+
+                    switch(stmt->type)
                     {
-                        if((stmt->type == STMT_STRUCT_DEF))
+                        case STMT_VARIABLE_DECL:
                         {
-                            printf("test\n");
+                            member->name = stmt->variable.name;
+                            member->variable = stmt->variable.type;
+                            break;
                         }
-                        if(tail == nullptr) { head = stmt;       }
-                        else                { tail->next = stmt; }
-                        tail = stmt;
+
+                        case STMT_FUNCTION_DEF:
+                        {
+                            delete stmt;
+                            status = false;
+                            error("TODO: support struct functions\n");
+                            break;
+                        }
+
+                        case STMT_STRUCT_DEF:
+                        {
+                            delete stmt;
+                            status = false;
+                            error("TODO: support nested structs\n");
+                            break;
+                        }
+
+                        default:
+                        {
+                            delete stmt;
+                            status = false;
+                            error("Invalid struct member\n");
+                            break;
+                        }
                     }
-                    else
+
+                    if(status)
                     {
-                        error("Invalid struct member\n");
-                        status = STATUS_ERROR;
+                        if(tail == nullptr) { head = member; }
+                        else                { tail->next = member; }
+                        tail = member;
                     }
                 }
                 else
@@ -225,10 +251,14 @@ bool Parser::parse_struct_declaration(Statement** ptr)
 
     if(status)
     {
+        Structure* structure = new Structure();
+        structure->name = name;
+        structure->members = head;
+
         Statement* stmt = new Statement();
         stmt->type = STMT_STRUCT_DEF;
         stmt->struct_def.name = name;
-        stmt->struct_def.members = head;
+        stmt->struct_def.structure = structure;
 
         Symbol* sym = nullptr;
         status = process_symbol(stmt, &sym);
@@ -243,11 +273,50 @@ bool Parser::parse_struct_declaration(Statement** ptr)
     return status;
 }
 
-bool Parser::process_symbol(Statement* stmt, Symbol** type)
+bool Parser::process_symbol(Statement* stmt, Symbol** sym_ptr)
 {
-    // TODO:
-    return true;
-    // return false;
+    bool status = true;
+    Symbol sym = {};
+
+    switch(stmt->type)
+    {
+        case STMT_FUNCTION_DEF:
+        case STMT_FUNCTION_DECL:
+        {
+            sym.type = SYMBOL_FUNCTION;
+            sym.value.function = stmt->function.ptr;
+            break;
+        }
+
+        case STMT_VARIABLE_DECL:
+        {
+            sym.type = SYMBOL_VARIABLE;
+            sym.value.variable = stmt->variable.type;
+            break;
+        }
+
+        case STMT_STRUCT_DEF:
+        {
+            sym.type = SYMBOL_STRUCT;
+            sym.value.structure = stmt->struct_def.structure;
+            break;
+        }
+
+        default:
+        {
+            status = false;
+            error("Invalid statement for symbol information\n");
+            break;
+        }
+    }
+
+    if(status)
+    {
+        *sym_ptr = new Symbol();
+        **sym_ptr = sym;
+    }
+
+    return status;
 }
 
 bool Parser::insert_symbol(strptr id, Symbol* sym)
@@ -279,6 +348,24 @@ Symbol* Parser::find_symbol(strptr id)
     if(it != m_symbols.end())
     {
         ret = it->second;
+    }
+
+    return ret;
+}
+
+int Parser::is_type(strptr str)
+{
+    int ret = 0;
+    Symbol* sym = find_symbol(str);
+
+    if(sym == nullptr)
+    {
+        error("Unknown identifier \"%.*s\"\n", str.len, str.ptr);
+        ret = -1;
+    }
+    else if((sym->type == SYMBOL_TYPE) || (sym->type == SYMBOL_STRUCT))
+    {
+        ret = 1;
     }
 
     return ret;
@@ -322,16 +409,17 @@ bool Parser::parse_statement(Statement** ptr)
 
         case TK_IDENTIFIER:
         {
-            Symbol* sym = find_symbol(tk.identifier.string);
-            if((sym != nullptr) && ((sym->type == SYMBOL_TYPE) || (sym->type == SYMBOL_STRUCT)))
+            switch(is_type(tk.identifier.string))
             {
-                goto DECLARATION;
-            } 
-
-            goto DEFAULT;
+                case -1: { status = false; break; }
+                case  1: { goto DECLARATION; }
+                default: { goto EXPRESSION; }
+            }
+            
+            break;
         }
 
-        DEFAULT: default:
+        EXPRESSION: default:
         {
             Expression* expr = nullptr;
             if(!parse_expression(&expr))
@@ -996,15 +1084,15 @@ bool Parser::parse_variable(Variable** ptr)
         {
             switch(tk.subtype)
             {
-                case TK_TYPE_U8:   { head->type = &__BUILT_IN_TYPES[TYPE_U8];   break; }
-                case TK_TYPE_I8:   { head->type = &__BUILT_IN_TYPES[TYPE_I8];   break; }
-                case TK_TYPE_U16:  { head->type = &__BUILT_IN_TYPES[TYPE_U16];  break; }
-                case TK_TYPE_I16:  { head->type = &__BUILT_IN_TYPES[TYPE_I16];  break; }
-                case TK_TYPE_U32:  { head->type = &__BUILT_IN_TYPES[TYPE_U32];  break; }
-                case TK_TYPE_I32:  { head->type = &__BUILT_IN_TYPES[TYPE_I32];  break; }
-                case TK_TYPE_U64:  { head->type = &__BUILT_IN_TYPES[TYPE_U64];  break; }
-                case TK_TYPE_I64:  { head->type = &__BUILT_IN_TYPES[TYPE_I64];  break; }
-                case TK_TYPE_VOID: { head->type = &__BUILT_IN_TYPES[TYPE_VOID]; break; }
+                case TK_TYPE_U8:   { head->type = TYPE_U8;   break; }
+                case TK_TYPE_I8:   { head->type = TYPE_I8;   break; }
+                case TK_TYPE_U16:  { head->type = TYPE_U16;  break; }
+                case TK_TYPE_I16:  { head->type = TYPE_I16;  break; }
+                case TK_TYPE_U32:  { head->type = TYPE_U32;  break; }
+                case TK_TYPE_I32:  { head->type = TYPE_I32;  break; }
+                case TK_TYPE_U64:  { head->type = TYPE_U64;  break; }
+                case TK_TYPE_I64:  { head->type = TYPE_I64;  break; }
+                case TK_TYPE_VOID: { head->type = TYPE_VOID; break; }
                 default:
                 {
                     status = false;
@@ -1016,6 +1104,37 @@ bool Parser::parse_variable(Variable** ptr)
         else if(tk.type == TK_IDENTIFIER)
         {
             Symbol* sym = find_symbol(tk.identifier.string);
+            if(sym == nullptr)
+            {
+                status = false;
+                error("Undefined token \"%.*s\"\n", tk.identifier.string.len, tk.identifier.string.ptr);
+            }
+            else
+            {
+                switch(sym->type)
+                {
+                    case SYMBOL_STRUCT:
+                    {
+                        head->type = TYPE_STRUCT;
+                        head->structure = sym->value.structure;
+                        break;
+                    }
+
+                    case SYMBOL_TYPE:
+                    {
+                        status = false;
+                        error("TODO - handle aliases\n");
+                        break;
+                    }
+
+                    default:
+                    {
+                        status = false;
+                        error("Invalid type identifier \"%.*s\"\n", tk.identifier.string.len, tk.identifier.string.ptr);
+                        break;
+                    }
+                }
+            }
         }
         else
         {
@@ -1031,9 +1150,9 @@ bool Parser::parse_variable(Variable** ptr)
             m_stack->pop();
 
             Variable* var = new Variable();
-            var->type = &__BUILT_IN_TYPES[TYPE_PTR];
+            var->type = TYPE_PTR;
             var->flags.value = head->flags.value;
-            var->ptr = head;
+            var->pointer = head;
             
             head = var;
         }
@@ -1054,7 +1173,7 @@ bool Parser::parse_variable(Variable** ptr)
                 size = tk.literal.integer.value;
 
                 Variable* var = new Variable();
-                var->type = &__BUILT_IN_TYPES[TYPE_ARRAY];
+                var->type = TYPE_ARRAY;
                 var->flags.value = head->flags.value;
                 var->array.size = size;
                 var->array.elements = head;
@@ -1155,15 +1274,17 @@ bool Parser::parse_declaration(Statement** ptr)
 
                     if(status)
                     {
+                        Function* function = new Function();
+                        function->body = nullptr;
+                        function->params = params;
+                        function->ret_type = var;
+
                         Statement* stmt = new Statement();
+                        stmt->type           = stmt_type;
+                        stmt->function.name  = name;
+                        stmt->function.ptr   = function;
 
-                        stmt->type              = stmt_type;
-                        stmt->function.ret_type = var;
-                        stmt->function.name     = name;
-                        stmt->function.params   = params;
-                        stmt->function.body     = nullptr;
-
-                        if((stmt->type == STMT_FUNCTION_DEF) && !parse_body(&stmt->function.body))
+                        if((stmt->type == STMT_FUNCTION_DEF) && !parse_body(&function->body))
                         {
                             status = false;
                         }

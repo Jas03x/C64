@@ -128,8 +128,11 @@ enum SYMBOL
     SYMBOL_FUNCTION = 0x4
 };
 
-struct Type;
+// struct Type;
 struct Statement;
+struct Structure;
+struct Variable;
+struct Function;
 
 struct Symbol
 {
@@ -137,19 +140,21 @@ struct Symbol
 
     union
     {
-        Type*      type;
-        Statement* variable;
-        Statement* function;
+        Structure* structure;
+        Variable*  variable;
+        Function*  function;
     } value;
 };
 
-struct Variable;
-
 struct Structure
 {
+    strptr name;
+    
     struct Member
     {
+        strptr    name;
         Variable* variable;
+
         Member*   next;
     };
 
@@ -169,7 +174,8 @@ union VariableFlags
 
 struct Variable
 {
-    const Type*   type;
+    uint8_t type;
+
     VariableFlags flags;
 
     union
@@ -180,10 +186,13 @@ struct Variable
             const Variable* elements;
         } array;
 
-        const Variable* ptr;
+        Structure* structure;
+
+        const Variable* pointer;
     };
 };
 
+/*
 struct Type
 {
     uint8_t type;
@@ -193,12 +202,20 @@ struct Type
         Structure structure;
     };
 };
+*/
 
 struct Parameter
 {
     strptr     name;
     Variable*  type;
     Parameter* next;
+};
+
+struct Function
+{
+    Variable*  ret_type;
+    Parameter* params;
+    Statement* body;
 };
 
 struct Statement
@@ -211,10 +228,8 @@ struct Statement
 
         struct
         {
-            strptr     name;
-            Variable*  ret_type;
-            Parameter* params;
-            Statement* body;
+            strptr    name;
+            Function* ptr;
         } function;
 
         struct
@@ -238,7 +253,7 @@ struct Statement
         struct
         {
             strptr     name;
-            Statement* members;
+            Structure* structure;
         } struct_def;
     };
 

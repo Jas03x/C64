@@ -18,18 +18,13 @@ U32 main()
     // Pattern: The declaration works backwards! Simply flip the declaration order, then you have the correct order!
     //          For example: [2][2][2] U16, or *** U16
 
-    // TODO:
-    U8[2] persons;
-    //Person[2] persons;
+    Person[2] persons;
 
-    U8 bob;
-    // Person bob;
+    Person bob;
 
-    U8 jas;
-    //Person jas;
+    Person jas;
     jas.name = "Jas";
     jas.age  = 21;
 
     return 0;
 }
-

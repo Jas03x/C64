@@ -7,7 +7,7 @@ void debug_indent(unsigned int level)
     for(unsigned int i = 0; i < level * 4; i++) printf(" ");
 }
 
-void debug_print_expr(Expression* expr, unsigned int level = 0)
+void debug_print_expr(Expression* expr, unsigned int level)
 {
     if(expr == nullptr) return;
 
@@ -104,8 +104,21 @@ void debug_print_expr(Expression* expr, unsigned int level = 0)
     }
 }
 
-void debug_print_variable(const Variable* var, unsigned int level = 0)
+void debug_print_struct(const Structure* structure, unsigned level)
 {
+    debug_indent(level);
+    printf("STRUCT %.*s:\n", structure->name.len, structure->name.ptr);
+
+    for(Structure::Member* m = structure->members; m != nullptr; m = m->next)
+    {
+        debug_indent(level + 1);
+        printf("VARIABLE %.*s:\n", m->name.len, m->name.ptr);
+        debug_print_variable(m->variable, level + 2);
+    }
+}
+
+void debug_print_variable(const Variable* var, unsigned int level)
+{   
     debug_indent(level);
     
     if(var->flags.value != 0)
@@ -121,59 +134,75 @@ void debug_print_variable(const Variable* var, unsigned int level = 0)
         }
     }
 
-    const char* type_str = "UNKNOWN";
-    switch(var->type->type)
+    if(var->type == TYPE_STRUCT)
     {
-        case TYPE_U8:     { type_str = "U8";     break; }
-        case TYPE_U16:    { type_str = "U16";    break; }
-        case TYPE_U32:    { type_str = "U32";    break; }
-        case TYPE_U64:    { type_str = "U64";    break; }
-        case TYPE_I8:     { type_str = "I8";     break; }
-        case TYPE_I16:    { type_str = "I16";    break; }
-        case TYPE_I32:    { type_str = "I32";    break; }
-        case TYPE_I64:    { type_str = "I64";    break; }
-        case TYPE_F32:    { type_str = "I64";    break; }
-        case TYPE_F64:    { type_str = "I64";    break; }
-        case TYPE_VOID:   { type_str = "VOID";   break; }
-        case TYPE_PTR:    { type_str = "PTR";    break; }
-        case TYPE_ARRAY:  { type_str = "ARRAY";  break; }
-        case TYPE_STRUCT: { type_str = "STRUCT"; break; }
-        default:       { break; }
+        printf("STRUCT:\n");
+        debug_print_struct(var->structure, level + 1);
     }
-
-    printf("%s\n", type_str);
-
-    switch(var->type->type)
+    else
     {
-        case TYPE_PTR:
+        const char* type_str = "UNKNOWN";
+        switch(var->type)
         {
-            debug_print_variable(var->ptr, level + 1);
-            break;
+            case TYPE_U8:     { type_str = "U8";     break; }
+            case TYPE_U16:    { type_str = "U16";    break; }
+            case TYPE_U32:    { type_str = "U32";    break; }
+            case TYPE_U64:    { type_str = "U64";    break; }
+            case TYPE_I8:     { type_str = "I8";     break; }
+            case TYPE_I16:    { type_str = "I16";    break; }
+            case TYPE_I32:    { type_str = "I32";    break; }
+            case TYPE_I64:    { type_str = "I64";    break; }
+            case TYPE_F32:    { type_str = "I64";    break; }
+            case TYPE_F64:    { type_str = "I64";    break; }
+            case TYPE_VOID:   { type_str = "VOID";   break; }
+            case TYPE_PTR:    { type_str = "PTR";    break; }
+            case TYPE_ARRAY:  { type_str = "ARRAY";  break; }
+            case TYPE_STRUCT: { type_str = "STRUCT"; break; }
+            default:          { break; }
         }
 
-        case TYPE_ARRAY:
-        {
-            debug_indent(level + 1);
-            printf("SIZE: %u\n", var->array.size);
-            
-            debug_indent(level + 1);
-            printf("ELEMENTS:\n");
-            debug_print_variable(var->array.elements, level + 2);
-            break;
-        }
+        printf("%s\n", type_str);
 
-        case TYPE_STRUCT:
+        switch(var->type)
         {
-            for(Structure::Member* it = var->type->structure.members; it != nullptr; it = it->next)
+            case TYPE_PTR:
             {
-                debug_print_variable(it->variable, level + 1);
+                debug_print_variable(var->pointer, level + 1);
+                break;
             }
-            break;
+
+            case TYPE_ARRAY:
+            {
+                debug_indent(level + 1);
+                printf("SIZE: %u\n", var->array.size);
+                
+                debug_indent(level + 1);
+                printf("ELEMENTS:\n");
+                debug_print_variable(var->array.elements, level + 2);
+                break;
+            }
+
+            case TYPE_STRUCT:
+            {
+                for(Structure::Member* it = var->structure->members; it != nullptr; it = it->next)
+                {
+                    debug_print_variable(it->variable, level + 1);
+                }
+                break;
+            }
         }
     }
 }
 
-void debug_print_stmt(Statement* stmt, unsigned int level = 0)
+void debug_print_struct_member(Structure::Member* member, unsigned int level)
+{
+    debug_indent(level);
+    printf("MEMBER: %.*s\n", member->name.len, member->name.ptr);
+
+    debug_print_variable(member->variable, level + 1);
+}
+
+void debug_print_stmt(Statement* stmt, unsigned int level)
 {
     debug_indent(level);
 
@@ -184,12 +213,12 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
         {
             printf("%s\n", stmt->type == STMT_FUNCTION_DEF ? "FUNCTION DEFINITION" : "FUNCTION DECLARATION");
 
-            debug_print_variable(stmt->function.ret_type, level + 1);
+            debug_print_variable(stmt->function.ptr->ret_type, level + 1);
 
             debug_indent(level + 1);
             printf("NAME: %.*s\n", stmt->function.name.len, stmt->function.name.ptr);
 
-            for(Parameter* p = stmt->function.params; p != nullptr; p = p->next)
+            for(Parameter* p = stmt->function.ptr->params; p != nullptr; p = p->next)
             {
                 debug_indent(level + 1);
                 printf("PARAMETER:\n");
@@ -204,7 +233,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
             {
                 debug_indent(level + 1);
                 printf("BODY:\n");
-                for(Statement* s = stmt->function.body; s != nullptr; s = s->next)
+                for(Statement* s = stmt->function.ptr->body; s != nullptr; s = s->next)
                 {
                     debug_print_stmt(s, level + 2);
                 }
@@ -223,9 +252,9 @@ void debug_print_stmt(Statement* stmt, unsigned int level = 0)
             debug_indent(level + 1);
             printf("MEMBERS\n");
 
-            for(Statement* s = stmt->struct_def.members; s != nullptr; s = s->next)
+            for(Structure::Member* m = stmt->struct_def.structure->members; m != nullptr; m = m->next)
             {
-                debug_print_stmt(s, level + 2);
+                debug_print_struct_member(m, level + 2);
             }
 
             break;
