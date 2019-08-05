@@ -1,18 +1,18 @@
-PATH = /mnt/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/bin/Hostx64/x64
+PATH = /mnt/c/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/bin/Hostx64/x64
 
 CC   = "$(PATH)/cl.exe"
 LINK = "$(PATH)/link.exe"
 
 DBG = "/mnt/c/Program Files (x86)/Windows Kits/10/Debuggers/x64/windbg.exe"
 
-INC_PATH  = /I "C:/Program Files (x86)/Windows Kits/10/Include/10.0.17763.0/ucrt"
-INC_PATH += /I "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/include"
+INC_PATH  = /I "C:/Program Files (x86)/Windows Kits/10/Include/10.0.18362.0/ucrt"
+INC_PATH += /I "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/include"
 INC_PATH += /I ./src/misc/
 INC_PATH += /I ./src/parser/
 
-LIB_PATH  = /LIBPATH:"C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.21.27702/lib/x64"
-LIB_PATH += /LIBPATH:"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/um/x64"
-LIB_PATH += /LIBPATH:"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.17763.0/ucrt/x64"
+LIB_PATH  = /LIBPATH:"C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Tools/MSVC/14.22.27905/lib/x64"
+LIB_PATH += /LIBPATH:"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.18362.0/um/x64"
+LIB_PATH += /LIBPATH:"C:/Program Files (x86)/Windows Kits/10/Lib/10.0.18362.0/ucrt/x64"
 
 BIN = ./bin
 SRC = ./src
