@@ -4,27 +4,6 @@
 
 #define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
 
-/*
-static const Type __BUILT_IN_TYPES[] =
-{
-    { TYPE_INVALID },
-    { TYPE_VOID    },
-    { TYPE_U8      },
-    { TYPE_U16     },
-    { TYPE_U32     },
-    { TYPE_U64     },
-    { TYPE_I8      },
-    { TYPE_I16     },
-    { TYPE_I32     },
-    { TYPE_I64     },
-    { TYPE_F32     },
-    { TYPE_F64     },
-    { TYPE_PTR     },
-    { TYPE_ARRAY   },
-    { TYPE_STRUCT  }
-};
-*/
-
 Parser::Parser(TokenStack* stack)
 {
     m_stack = stack;

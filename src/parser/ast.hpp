@@ -129,7 +129,6 @@ enum SYMBOL
     SYMBOL_FUNCTION = 0x4
 };
 
-// struct Type;
 struct Statement;
 struct Structure;
 struct Variable;
@@ -192,18 +191,6 @@ struct Variable
         const Variable* pointer;
     };
 };
-
-/*
-struct Type
-{
-    uint8_t type;
-
-    union
-    {
-        Structure structure;
-    };
-};
-*/
 
 struct Parameter
 {

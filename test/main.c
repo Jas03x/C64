@@ -9,8 +9,9 @@ struct Person
 
 U32 main()
 {
-    // U16*** array;
     U16[2][2][2] array;
+
+    U64**[4][4] array2;
 
     // array[x]       -> U16[2][2]
     // array[x][y]    -> U16[2]
