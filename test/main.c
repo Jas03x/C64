@@ -26,5 +26,8 @@ U32 main()
     jas.name = "Jas";
     jas.age  = 21;
 
+    persons[0] = jas;
+    persons[1] = bob;
+
     return 0;
 }

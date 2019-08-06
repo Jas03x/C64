@@ -557,6 +557,7 @@ bool Parser::parse_expression(Expression** ptr)
             case TK_COMMA:
             case TK_SEMICOLON:
             case TK_CLOSE_ROUND_BRACKET:
+            case TK_CLOSE_SQUARE_BRACKET:
             case TK_OPEN_CURLY_BRACKET:
             {
                 reading = false;
@@ -598,6 +599,33 @@ bool Parser::parse_expression(Expression** ptr)
                 expr->type = EXPR_OPERATION;
                 expr->operation.op = op;
                 
+                break;
+            }
+
+            case TK_OPEN_SQUARE_BRACKET:
+            {
+                m_stack->pop();
+                Expression* index = nullptr;
+                if(parse_expression(&index))
+                {
+                    if(m_stack->pop().type == TK_CLOSE_SQUARE_BRACKET)
+                    {
+                        expr = new Expression();
+                        expr->type = EXPR_OPERATION;
+                        expr->operation.op = EXPR_OP_INDEX;
+                        expr->operation.rhs = index;
+                    }
+                    else
+                    {
+                        status = false;
+                        error("Expected ']'\n");
+                    }
+                }
+                else
+                {
+                    status = false;
+                }
+
                 break;
             }
 
@@ -665,30 +693,31 @@ bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op
     const static uint8_t TABLE[] =
     {
         PRECEDENCE_LEVEL_INVALID, // EXPR_OP_INVALID
-        PRECEDENCE_LEVEL_4, // EXPR_OP_ADD
-        PRECEDENCE_LEVEL_4, // EXPR_OP_SUB
-        PRECEDENCE_LEVEL_3, // EXPR_OP_MUL
-        PRECEDENCE_LEVEL_3, // EXPR_OP_DIV,
-        PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_NOT
-        PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_AND
-        PRECEDENCE_LEVEL_7, // EXPR_OP_LOGICAL_OR
-        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_COMPLEMENT
-        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_XOR
-        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_AND
-        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_OR
-        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_L_SHIFT
-        PRECEDENCE_LEVEL_5, // EXPR_OP_BITWISE_R_SHIFT
-        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_EQUAL
-        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_NOT_EQUAL
-        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_LESS_THAN
-        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_MORE_THAN
-        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
-        PRECEDENCE_LEVEL_6, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
-        PRECEDENCE_LEVEL_2, // EXPR_OP_REFERENCE
-        PRECEDENCE_LEVEL_2, // EXPR_OP_DEREFERENCE
-        PRECEDENCE_LEVEL_7, // EXPR_OP_ASSIGN
+        PRECEDENCE_LEVEL_5, // EXPR_OP_ADD
+        PRECEDENCE_LEVEL_5, // EXPR_OP_SUB
+        PRECEDENCE_LEVEL_4, // EXPR_OP_MUL
+        PRECEDENCE_LEVEL_4, // EXPR_OP_DIV,
+        PRECEDENCE_LEVEL_8, // EXPR_OP_LOGICAL_NOT
+        PRECEDENCE_LEVEL_8, // EXPR_OP_LOGICAL_AND
+        PRECEDENCE_LEVEL_8, // EXPR_OP_LOGICAL_OR
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_COMPLEMENT
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_XOR
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_AND
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_OR
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_L_SHIFT
+        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_R_SHIFT
+        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_EQUAL
+        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_NOT_EQUAL
+        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_LESS_THAN
+        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_MORE_THAN
+        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
+        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
+        PRECEDENCE_LEVEL_3, // EXPR_OP_REFERENCE
+        PRECEDENCE_LEVEL_3, // EXPR_OP_DEREFERENCE
+        PRECEDENCE_LEVEL_8, // EXPR_OP_ASSIGN
         PRECEDENCE_LEVEL_1, // EXPR_OP_ACCESS_FIELD
-        PRECEDENCE_LEVEL_1  // EXPR_OP_ARROW
+        PRECEDENCE_LEVEL_1, // EXPR_OP_ARROW
+        PRECEDENCE_LEVEL_2  // EXPR_OP_INDEX
     };
 
     bool ret = false;
@@ -714,49 +743,111 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
             {
                 if((it->expr->type == EXPR_OPERATION) && check_operator_precedence(i, it->expr->operation.op))
                 {
-                    bool single_operand = (it->expr->operation.op == EXPR_OP_REFERENCE) || (it->expr->operation.op == EXPR_OP_DEREFERENCE);
-
+                    /*
                     ExpressionList::Entry* prev = it->prev;
                     ExpressionList::Entry* next = it->next;
                     Expression* lhs = prev == nullptr ? nullptr : prev->expr;
                     Expression* rhs = next == nullptr ? nullptr : next->expr;
+                    */
 
-                    if((next == nullptr) || (rhs == nullptr))                      { error("Missing rhs operand\n"); status = false; }
-                    if(!single_operand && ((prev == nullptr) || (lhs == nullptr))) { error("Missing lhs operand\n"); status = false; }
+                    ExpressionList::Entry* prev = nullptr;
+                    ExpressionList::Entry* next = nullptr;
+                    uint8_t op = it->expr->operation.op;
 
-                    switch(it->expr->operation.op)
+                    switch(op)
                     {
-                        case EXPR_OP_ACCESS_FIELD:
+                        case EXPR_OP_REFERENCE:
+                        case EXPR_OP_DEREFERENCE:
                         {
-                            bool valid = false;
-                            valid |= rhs->type == EXPR_IDENTIFIER;
-                            valid |= rhs->type == EXPR_CALL;
+                            next = it->next;
+                            Expression* rhs = next == nullptr ? nullptr : next->expr;
 
-                            if(!valid)
+                            if(rhs == nullptr)
                             {
-                                error("RHS of accessor must be identifier\n");
                                 status = false;
+                                error("No RHS for pointer operation\n");
+                            }
+                            else
+                            {
+                                it->expr->operation.rhs = rhs;
+                            }
+
+                            break;
+                        }
+
+                        case EXPR_OP_INDEX:
+                        {
+                            prev = it->prev;
+                            Expression* lhs = prev == nullptr ? nullptr : prev->expr;
+
+                            if(lhs == nullptr)
+                            {
+                                status = false;
+                                error("No LHS for index operation\n");
+                            }
+                            else
+                            {
+                                it->expr->operation.lhs = lhs;
                             }
                             
                             break;
                         }
 
-                        default: break;
+                        default:
+                        {
+                            next = it->next;
+                            prev = it->prev;
+                            Expression* rhs = next == nullptr ? nullptr : next->expr;
+                            Expression* lhs = prev == nullptr ? nullptr : prev->expr;
+
+                            if((rhs == nullptr) || (lhs == nullptr))
+                            {
+                                status = false;
+                                error("RHS or LHS null in operation\n");
+                            }
+                            else
+                            {
+                                switch(op)
+                                {
+                                    case EXPR_OP_ACCESS_FIELD:
+                                    {
+                                        bool valid = false;
+                                        valid |= rhs->type == EXPR_IDENTIFIER;
+                                        valid |= rhs->type == EXPR_CALL;
+
+                                        if(!valid)
+                                        {
+                                            error("RHS of accessor must be an identifier\n");
+                                            status = false;
+                                        }
+                                        
+                                        break;
+                                    }
+
+                                    default: { break; }
+                                }
+
+                                if(status)
+                                {
+                                    it->expr->operation.rhs = rhs;
+                                    it->expr->operation.lhs = lhs;
+                                }
+                            }
+
+                            break;
+                        }
                     }
 
                     if(status)
                     {
-                        it->expr->operation.rhs = rhs;
-                        if(!single_operand)
+                        if(next != nullptr)
                         {
-                            it->expr->operation.lhs = lhs;
+                            if(next->next != nullptr) { next->next->prev = it; }
+                            it->next = next->next;
+                            m_list.ret_entry(next);
                         }
 
-                        if(next->next != nullptr) { next->next->prev = it; }
-                        it->next = next->next;
-                        m_list.ret_entry(next);
-
-                        if(!single_operand)
+                        if(prev != nullptr)
                         {
                             if(prev->prev != nullptr) { prev->prev->next = it; }
                             it->prev = prev->prev;
@@ -769,6 +860,7 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
                             m_list.ret_entry(prev);
                         }
                     }
+
                 }
             }
         }

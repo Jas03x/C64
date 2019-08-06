@@ -14,21 +14,22 @@ class Parser
 private:
     enum
     {
-        PRECEDENCE_LEVEL_INVALID = 0,
-        PRECEDENCE_LEVEL_1       = 1,
-        PRECEDENCE_LEVEL_2       = 2,
-        PRECEDENCE_LEVEL_3       = 3,
-        PRECEDENCE_LEVEL_4       = 4,
-        PRECEDENCE_LEVEL_5       = 5,
-        PRECEDENCE_LEVEL_6       = 6,
-        PRECEDENCE_LEVEL_7       = 7,
-        PRECEDENCE_LEVEL_8       = 8,
-        PRECEDENCE_LEVEL_MAX     = 9
+        PRECEDENCE_LEVEL_INVALID =  0,
+        PRECEDENCE_LEVEL_1       =  1,
+        PRECEDENCE_LEVEL_2       =  2,
+        PRECEDENCE_LEVEL_3       =  3,
+        PRECEDENCE_LEVEL_4       =  4,
+        PRECEDENCE_LEVEL_5       =  5,
+        PRECEDENCE_LEVEL_6       =  6,
+        PRECEDENCE_LEVEL_7       =  7,
+        PRECEDENCE_LEVEL_8       =  8,
+        PRECEDENCE_LEVEL_9       =  9,
+        PRECEDENCE_LEVEL_MAX     = 10
     };
 
 private:
-    TokenStack*      m_stack;
-    ExpressionList   m_list;
+    TokenStack*    m_stack;
+    ExpressionList m_list;
 
     SymbolMap m_symbols;
 
