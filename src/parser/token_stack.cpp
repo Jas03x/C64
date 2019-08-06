@@ -1,5 +1,7 @@
 #include <token_stack.hpp>
 
+#include <debug.hpp>
+
 TokenStack::TokenStack()
 {
     m_index = 0;
@@ -17,7 +19,10 @@ Token TokenStack::pop()
     {
         tk = m_stack[m_index++];
     }
-    printf("pop: %hhu\n", tk.type);
+    
+    printf("pop: ");
+    debug_print_token(tk);
+
     return tk;
 }
 

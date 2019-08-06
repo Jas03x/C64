@@ -176,7 +176,8 @@ void debug_print_variable(const Variable* var, unsigned int level)
             case TYPE_ARRAY:
             {
                 debug_indent(level + 1);
-                printf("SIZE: %u\n", var->array.size);
+                printf("SIZE:\n");
+                debug_print_expr(var->array.size, level + 2);
                 
                 debug_indent(level + 1);
                 printf("ELEMENTS:\n");
@@ -323,5 +324,114 @@ void debug_print_ast(AST* ast)
     {
         debug_print_stmt(stmt);
         printf("\n");
+    }
+}
+
+void debug_print_token(const Token& tk)
+{
+    const char* str = "UNKNOWN";
+    switch(tk.type)
+    {
+        case TK_INVALID: { str = "TK_INVALID"; break; }
+        case TK_CONST: { str = "TK_CONST"; break; }
+        case TK_EXTERN: { str = "TK_EXTERN"; break; }
+        case TK_STRUCT: { str = "TK_STRUCT"; break; }
+        case TK_RETURN: { str = "TK_RETURN"; break; }
+        case TK_IF: { str = "TK_IF"; break; }
+        case TK_EQUAL: { str = "TK_EQUAL"; break; }
+        case TK_LEFT_ARROW_HEAD: { str = "TK_LEFT_ARROW_HEAD"; break; }
+        case TK_RIGHT_ARROW_HEAD: { str = "TK_RIGHT_ARROW_HEAD"; break; }
+        case TK_PLUS: { str = "TK_PLUS"; break; }
+        case TK_MINUS: { str = "TK_MINUS"; break; }
+        case TK_DOT: { str = "TK_DOT"; break; }
+        case TK_ASTERISK: { str = "TK_ASTERISK"; break; }
+        case TK_FORWARD_SLASH: { str = "TK_FORWARD_SLASH"; break; }
+        case TK_OPEN_CURLY_BRACKET: { str = "TK_OPEN_CURLY_BRACKET"; break; }
+        case TK_CLOSE_CURLY_BRACKET: { str = "TK_CLOSE_CURLY_BRACKET"; break; }
+        case TK_OPEN_ROUND_BRACKET: { str = "TK_OPEN_ROUND_BRACKET"; break; }
+        case TK_CLOSE_ROUND_BRACKET: { str = "TK_CLOSE_ROUND_BRACKET"; break; }
+        case TK_OPEN_SQUARE_BRACKET: { str = "TK_OPEN_SQUARE_BRACKET"; break; }
+        case TK_CLOSE_SQUARE_BRACKET: { str = "TK_CLOSE_SQUARE_BRACKET"; break; }
+        case TK_SEMICOLON: { str = "TK_SEMICOLON"; break; }
+        case TK_LITERAL: { str = "TK_LITERAL"; break; }
+        case TK_IDENTIFIER: { str = "TK_IDENTIFIER"; break; }
+        case TK_COMMA: { str = "TK_COMMA"; break; }
+        case TK_OR: { str = "TK_OR"; break; }
+        case TK_AND: { str = "TK_AND"; break; }
+        case TK_CARET: { str = "TK_CARET"; break; }
+        case TK_EXPLANATION_MARK: { str = "TK_EXPLANATION_MARK"; break; }
+        case TK_AMPERSAND: { str = "TK_AMPERSAND"; break; }
+        case TK_PERCENT: { str = "TK_PERCENT"; break; }
+        case TK_NAMESPACE: { str = "TK_NAMESPACE"; break; }
+        case TK_TYPE: { str = "TK_TYPE"; break; }
+        case TK_EOF: { str = "TK_EOF"; break; }
+        default: break;
+    }
+
+    printf("%s ", str);
+
+    switch(tk.type)
+    {
+        case TK_IDENTIFIER:
+        {
+            printf("- %.*s\n", tk.identifier.string.len, tk.identifier.string.ptr);
+            break;
+        }
+
+        case TK_TYPE:
+        {
+            switch(tk.subtype)
+            {
+                case TK_TYPE_INVALID: { printf("INVALID\n"); break; }
+                case TK_TYPE_VOID: { printf("VOID\n"); break; }
+                case TK_TYPE_U8: { printf("U8\n"); break; }
+                case TK_TYPE_U16: { printf("U16\n"); break; }
+                case TK_TYPE_U32: { printf("U32\n"); break; }
+                case TK_TYPE_U64: { printf("U64\n"); break; }
+                case TK_TYPE_I8: { printf("I8\n"); break; }
+                case TK_TYPE_I16: { printf("I16\n"); break; }
+                case TK_TYPE_I32: { printf("I32\n"); break; }
+                case TK_TYPE_I64: { printf("I64\n"); break; }
+                case TK_TYPE_F32: { printf("F32\n"); break; }
+                case TK_TYPE_F64: { printf("F64\n"); break; }
+                default: break;
+            }
+
+            break;
+        }
+
+        case TK_LITERAL:
+        {
+            switch(tk.literal.type)
+            {
+                case LITERAL_DECIMAL:
+                {
+                    printf("- decimal (%f)\n", tk.literal.decimal.value);
+                    break;
+                }
+
+                case LITERAL_INTEGER:
+                {
+                    printf("- integer (%llu)\n", tk.literal.integer.value);
+                    break;
+                }
+
+                case LITERAL_STRING:
+                {
+                    printf("- string (\"%.*\")\n", tk.literal.string.len, tk.literal.string.ptr);
+                    break;
+                }
+
+                default: break;
+            }
+
+            break;
+        }
+
+        default:
+        {
+            printf("\n");
+            break;
+        }
     }
 }

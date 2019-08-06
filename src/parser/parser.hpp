@@ -68,6 +68,8 @@ private:
     bool parse_return(Statement** stmt);
     bool parse_declaration(Statement** stmt);
     bool parse_struct_declaration(Statement** ptr);
+    bool parse_function_decl(Variable* var, strptr name, Statement** ptr);
+    bool parse_variable_decl(Variable* var, strptr name, Statement** ptr);
 
 public:
     static AST* Parse(TokenStack* stack);

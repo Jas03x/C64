@@ -1228,46 +1228,6 @@ bool Parser::parse_variable(Variable** ptr)
             head = var;
         }
     }
-    
-    if(status)
-    {
-        while(status && (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET))
-        {
-            m_stack->pop();
-
-            unsigned int size = 0;
-
-            // TODO: support constant expressions
-            tk = m_stack->pop();
-            if((tk.type == TK_LITERAL) && (tk.literal.type == LITERAL_INTEGER))
-            {
-                size = tk.literal.integer.value;
-
-                Variable* var = new Variable();
-                var->type = TYPE_ARRAY;
-                var->flags.value = head->flags.value;
-                var->array.size = size;
-                var->array.elements = head;
-
-                head = var;
-            }
-            else
-            {
-                error("Expected a constant array size\n");
-                status = false;
-            }
-
-            if(status)
-            {
-                // pop the remaining ']'
-                if(m_stack->pop().type != TK_CLOSE_SQUARE_BRACKET)
-                {
-                    error("Expected ']'\n");
-                    status = false;
-                }
-            }
-        }
-    }
 
     if(status)
     {
@@ -1277,13 +1237,151 @@ bool Parser::parse_variable(Variable** ptr)
     return status;
 }
 
+bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
+{
+    bool status = true;
+
+    Parameter* params = nullptr;
+
+    if(!parse_parameters(&params))
+    {
+        status = false;
+    }
+    else
+    {
+        uint8_t stmt_type = 0;
+        
+        Token tk = m_stack->peek(0);
+        switch(tk.type)
+        {
+            case TK_OPEN_CURLY_BRACKET:
+            {
+                stmt_type = STMT_FUNCTION_DEF;
+                break;
+            }
+            
+            case TK_SEMICOLON:
+            {
+                m_stack->pop();
+                stmt_type = STMT_FUNCTION_DECL;
+                break;
+            }
+
+            default:
+            {
+                error("Expected '{' or ';' after function\n");
+                status = false;
+                break;
+            }
+        }
+
+        if(status)
+        {
+            Function* function = new Function();
+            function->body = nullptr;
+            function->params = params;
+            function->ret_type = var;
+
+            Statement* stmt = new Statement();
+            stmt->type           = stmt_type;
+            stmt->function.name  = name;
+            stmt->function.ptr   = function;
+
+            if((stmt->type == STMT_FUNCTION_DEF) && !parse_body(&function->body))
+            {
+                status = false;
+            }
+            else
+            {
+                *ptr = stmt;
+            }
+        }
+    }
+
+    return status;
+}
+
+bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
+{
+    bool status = true;
+
+    Token tk = m_stack->peek(0);
+
+    switch(tk.type)
+    {
+        case TK_SEMICOLON:
+        case TK_EQUAL:
+        {
+            tk = m_stack->pop();
+
+            if(var->flags.is_external_symbol && (tk.type == TK_EQUAL))
+            {
+                error("Cannot initialize an external symbol\n");
+                status = false;
+            }
+
+            Statement* stmt = nullptr;
+            if(status)
+            {
+                stmt = new Statement();
+                stmt->type = STMT_VARIABLE_DECL;
+                stmt->variable.name = name;
+                stmt->variable.type = var;
+            }
+            
+            if(status && (tk.type == TK_EQUAL))
+            {
+                Expression* value = nullptr;
+                if(!parse_expression(&value))
+                {
+                    status = false;
+                }
+                else
+                {
+                    if(m_stack->pop().type != TK_SEMICOLON)
+                    {
+                        error("Expected semicolon\n");
+                        status = false;
+                    }
+                    else
+                    {
+                        if(value != nullptr)
+                        {
+                            stmt->variable.value = value;
+                        }
+                        else
+                        {
+                            status = false;
+                        }
+                    }
+                }
+            }
+
+            if(status)
+            {
+                *ptr = stmt;
+            }
+
+            break;
+        }
+
+        default:
+        {
+            error("Unexpected token\n");
+            status = false;
+        }
+    }
+
+    return status;
+}
+
 bool Parser::parse_declaration(Statement** ptr)
 {
     bool status = true;
 
-    Token     tk    = {};
+    Token     tk   = {};
     strptr    name = {};
-    Variable* var = new Variable();
+    Variable* var  = new Variable();
 
     status = parse_variable(&var);
     
@@ -1305,137 +1403,42 @@ bool Parser::parse_declaration(Statement** ptr)
     {
         tk = m_stack->peek(0);
 
-        switch(tk.type)
+        if(tk.type == TK_OPEN_ROUND_BRACKET)
         {
-            case TK_OPEN_ROUND_BRACKET:
+            status = parse_function_decl(var, name, ptr);
+        }
+        else
+        {
+            if(tk.type == TK_OPEN_SQUARE_BRACKET)
             {
-                Parameter* params = nullptr;
+                while(status && (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET))
+                {
+                    m_stack->pop();
 
-                if(!parse_parameters(&params))
-                {
-                    status = false;
-                }
-                else
-                {
-                    uint8_t stmt_type = 0;
-                    
-                    tk = m_stack->peek(0);
-                    switch(tk.type)
+                    Variable* head = new Variable();
+                    head->type = TYPE_ARRAY;
+                    head->flags.value = var->flags.value;
+                    head->array.elements = var;
+
+                    status = parse_expression(&head->array.size);
+                    if(status)
                     {
-                        case TK_OPEN_CURLY_BRACKET:
-                        {
-                            stmt_type = STMT_FUNCTION_DEF;
-                            break;
-                        }
-                        
-                        case TK_SEMICOLON:
-                        {
-                            m_stack->pop();
-                            stmt_type = STMT_FUNCTION_DECL;
-                            break;
-                        }
-
-                        default:
-                        {
-                            error("Expected '{' or ';' after function\n");
-                            status = false;
-                            break;
-                        }
+                        var = head;
                     }
 
                     if(status)
                     {
-                        Function* function = new Function();
-                        function->body = nullptr;
-                        function->params = params;
-                        function->ret_type = var;
-
-                        Statement* stmt = new Statement();
-                        stmt->type           = stmt_type;
-                        stmt->function.name  = name;
-                        stmt->function.ptr   = function;
-
-                        if((stmt->type == STMT_FUNCTION_DEF) && !parse_body(&function->body))
+                        // pop the remaining ']'
+                        if(m_stack->pop().type != TK_CLOSE_SQUARE_BRACKET)
                         {
+                            error("Expected ']'\n");
                             status = false;
                         }
-                        else
-                        {
-                            *ptr = stmt;
-                        }
                     }
                 }
-
-                break;
             }
-
-			case TK_SEMICOLON:
-            case TK_EQUAL:
-            {
-                m_stack->pop();
-
-                /*
-                if(func_mod.value != 0)
-                {
-                    error("Function modifiers on variable\n");
-                    status = false;
-                }
-                else */ if(var->flags.is_external_symbol && (tk.type == TK_EQUAL))
-                {
-                    error("Cannot initialize an external symbol\n");
-                    status = false;
-                }
-
-                Statement* stmt = nullptr;
-                if(status)
-                {
-                    stmt = new Statement();
-                    stmt->type = STMT_VARIABLE_DECL;
-                    stmt->variable.name = name;
-                    stmt->variable.type = var;
-                }
-                
-                if(status && (tk.type == TK_EQUAL))
-                {
-                    Expression* value = nullptr;
-                    if(!parse_expression(&value))
-                    {
-                        status = false;
-                    }
-                    else
-                    {
-                        if(m_stack->pop().type != TK_SEMICOLON)
-                        {
-                            error("Expected semicolon\n");
-                            status = false;
-                        }
-                        else
-                        {
-                            if(value != nullptr)
-                            {
-                                stmt->variable.value = value;
-                            }
-                            else
-                            {
-                                status = false;
-                            }
-                        }
-                    }
-                }
-
-                if(status)
-                {
-                    *ptr = stmt;
-                }
-
-                break;
-            }
-
-            default:
-            {
-                error("Unexpected token\n");
-                status = false;
-            }
+            
+            status = parse_variable_decl(var, name, ptr);
         }
     }
 

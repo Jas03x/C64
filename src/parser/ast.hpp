@@ -182,7 +182,7 @@ struct Variable
     {
         struct
         {
-            uint32_t        size;
+            Expression*     size;
             const Variable* elements;
         } array;
 
