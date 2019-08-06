@@ -5,9 +5,11 @@ U32 main()
 {
     while(true)
     {
-        for(U8 i = 0; i < 10; i = i + 1)
+        U8 i = 0;
+        for(; i < 10;)
         {
             printf("ding a dong\n");
+            i = i + 1;
         }
     }
 

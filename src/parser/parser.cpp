@@ -504,19 +504,15 @@ bool Parser::parse_for_stmt(Statement** ptr)
             {
                 status = parse_statement(&var);
 
-                if(var->type != STMT_VARIABLE_DECL)
+                if(status && (var->type != STMT_VARIABLE_DECL))
                 {
                     status = false;
                     error("Expected variable declaration\n");
                 }
-                else
-                {
-                    if(m_stack->pop().type != TK_SEMICOLON)
-                    {
-                        status = false;
-                        error("Expected ';'\n");
-                    }
-                }
+            }
+            else
+            {
+                m_stack->pop();
             }
 
             // read the condition
@@ -546,11 +542,15 @@ bool Parser::parse_for_stmt(Statement** ptr)
                 {
                     status = parse_expression(&step);
 
-                    if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+                    if(status && (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET))
                     {
                         status = false;
                         error("Expected ')'\n");
                     }
+                }
+                else
+                {
+                    m_stack->pop();
                 }
             }
         }
@@ -1482,7 +1482,7 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
                 }
                 else
                 {
-                    if(m_stack->peek(0).type != TK_SEMICOLON)
+                    if(m_stack->pop().type != TK_SEMICOLON)
                     {
                         error("Expected semicolon\n");
                         status = false;

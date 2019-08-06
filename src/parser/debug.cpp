@@ -334,7 +334,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
             debug_indent(level + 1);
             printf("VARIABLE:\n");
-            debug_print_stmt(stmt->for_stmt.variable, level + 2);
+            if(stmt->for_stmt.variable != nullptr) { debug_print_stmt(stmt->for_stmt.variable, level + 2); }
             
             debug_indent(level + 1);
             printf("CONDITION:\n");
@@ -342,7 +342,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
             debug_indent(level + 1);
             printf("STEP:\n");
-            debug_print_expr(stmt->for_stmt.step, level + 2);
+            if(stmt->for_stmt.step) { debug_print_expr(stmt->for_stmt.step, level + 2); }
 
             debug_indent(level + 1);
             printf("BODY:\n");
