@@ -40,6 +40,8 @@ enum TOKEN
     TK_PERCENT,
     TK_NAMESPACE,
     TK_TYPE,
+    TK_FOR,
+    TK_WHILE,
     TK_EOF,
     TK_COUNT
 };

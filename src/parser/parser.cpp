@@ -374,11 +374,9 @@ bool Parser::parse_statement(Statement** ptr)
             break;
         }
 
-        case TK_IF:
-        {
-            status = parse_if_stmt(&stmt);
-            break;
-        }
+        case TK_IF:    { status = parse_if_stmt(&stmt);    break; }
+        case TK_FOR:   { status = parse_for_stmt(&stmt);   break; }
+        case TK_WHILE: { status = parse_while_stmt(&stmt); break; }
 
         case TK_RETURN:
         {
@@ -438,20 +436,26 @@ bool Parser::parse_if_stmt(Statement** ptr)
     Token tk = m_stack->pop();
     if(tk.type != TK_IF)
     {
-        error("Unexpected token\n");
         status = false;
+        error("Unexpected token\n");
     }
 
     if(status)
     {
-        if(m_stack->peek(0).type != TK_OPEN_ROUND_BRACKET)
+        if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
         {
-            printf("Expected '('\n");
             status = false;
+            printf("Expected '('\n");
         }
         else
         {
             status = parse_expression(&condition);
+
+            if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+            {
+                status = false;
+                error("Expected ')'\n");
+            }
         }
     }
 
@@ -461,7 +465,154 @@ bool Parser::parse_if_stmt(Statement** ptr)
         stmt->type = STMT_IF;
         stmt->if_stmt.condition = condition;
 
-        if(parse_body(&stmt->if_stmt.body))
+        status = parse_body(&stmt->if_stmt.body);
+        if(status)
+        {
+            *ptr = stmt;
+        }
+    }
+
+    return status;
+}
+
+bool Parser::parse_for_stmt(Statement** ptr)
+{
+    bool status = true;
+    
+    Statement*  var  = nullptr;
+    Expression* cond = nullptr;
+    Expression* step = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_FOR)
+    {
+        status = false;
+        error("Expected 'for'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
+        {
+            status = false;
+            printf("Expected '('\n");
+        }
+        else
+        {
+            // read the variable
+            if(m_stack->peek(0).type != TK_SEMICOLON)
+            {
+                status = parse_statement(&var);
+
+                if(var->type != STMT_VARIABLE_DECL)
+                {
+                    status = false;
+                    error("Expected variable declaration\n");
+                }
+                else
+                {
+                    if(m_stack->pop().type != TK_SEMICOLON)
+                    {
+                        status = false;
+                        error("Expected ';'\n");
+                    }
+                }
+            }
+
+            // read the condition
+            if(status)
+            {
+                if(m_stack->peek(0).type == TK_SEMICOLON)
+                {
+                    status = false;
+                    error("For loop condition is mandatory\n");
+                }
+                else
+                {
+                    status = parse_expression(&cond);
+
+                    if(m_stack->pop().type != TK_SEMICOLON)
+                    {
+                        status = false;
+                        error("Expected ';'\n");
+                    }
+                }
+            }
+
+            // read the step expression
+            if(status)
+            {
+                if(m_stack->peek(0).type != TK_CLOSE_ROUND_BRACKET)
+                {
+                    status = parse_expression(&step);
+
+                    if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+                    {
+                        status = false;
+                        error("Expected ')'\n");
+                    }
+                }
+            }
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_FOR;
+        stmt->for_stmt.variable  = var;
+        stmt->for_stmt.condition = cond;
+        stmt->for_stmt.step      = step;
+
+        status = parse_body(&stmt->for_stmt.body);
+        if(status)
+        {
+            *ptr = stmt;
+        }
+    }
+
+    return status;
+}
+
+bool Parser::parse_while_stmt(Statement** ptr)
+{
+    bool status = true;
+    Expression* condition = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_WHILE)
+    {
+        status = false;
+        error("Expected 'while'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
+        {
+            status = false;
+            printf("Expected '('\n");
+        }
+        else
+        {
+            status = parse_expression(&condition);
+
+            if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+            {
+                status = false;
+                error("Expected ')'\n");
+            }
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_WHILE;
+        stmt->while_stmt.condition = condition;
+
+        status = parse_body(&stmt->if_stmt.body);
+        if(status)
         {
             *ptr = stmt;
         }
@@ -722,13 +873,6 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
             {
                 if((it->expr->type == EXPR_OPERATION) && check_operator_precedence(i, it->expr->operation.op))
                 {
-                    /*
-                    ExpressionList::Entry* prev = it->prev;
-                    ExpressionList::Entry* next = it->next;
-                    Expression* lhs = prev == nullptr ? nullptr : prev->expr;
-                    Expression* rhs = next == nullptr ? nullptr : next->expr;
-                    */
-
                     ExpressionList::Entry* prev = nullptr;
                     ExpressionList::Entry* next = nullptr;
                     uint8_t op = it->expr->operation.op;
@@ -1338,7 +1482,7 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
                 }
                 else
                 {
-                    if(m_stack->pop().type != TK_SEMICOLON)
+                    if(m_stack->peek(0).type != TK_SEMICOLON)
                     {
                         error("Expected semicolon\n");
                         status = false;

@@ -98,7 +98,9 @@ enum
     STMT_VARIABLE_DECL = 0x4,
     STMT_IF            = 0x5,
     STMT_RET           = 0x6,
-    STMT_STRUCT_DEF    = 0x7
+    STMT_STRUCT_DEF    = 0x7,
+    STMT_FOR           = 0x8,
+    STMT_WHILE         = 0x9
 };
 
 enum TYPE
@@ -232,6 +234,20 @@ struct Statement
             Expression* condition;
             Statement*  body;
         } if_stmt;
+
+        struct
+        {
+            Expression* condition;
+            Statement*  body;
+        } while_stmt;
+
+        struct
+        {
+            Statement*  variable;
+            Expression* condition;
+            Expression* step;
+            Statement*  body;
+        } for_stmt;
 
         struct
         {

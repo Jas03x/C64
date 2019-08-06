@@ -356,6 +356,11 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             switch(str[0])
             {
                 case 'a': { if(_strncmp(str, "and", 3)) { tk.type = TK_AND; } break; }
+                case 'f':
+                {
+                    if(_strncmp(str, "for", 3)) { tk.type = TK_FOR; }
+                    break;
+                }
                 case 'F':
                 {
                     if(_strncmp(str, "F32", 3))      { tk = { TK_TYPE, { TK_TYPE_F32 } }; }
@@ -390,6 +395,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
         case 5:
         {
             if(_strncmp(str, "const", 5)) { tk.type = TK_CONST; break; }
+            else if(_strncmp(str, "while", 5)) { tk.type = TK_WHILE; break; }
             break;
         }
 

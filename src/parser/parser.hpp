@@ -63,6 +63,8 @@ private:
     bool parse_parameters(Parameter** params);
 
     bool parse_body(Statement** stmt);
+    bool parse_for_stmt(Statement** ptr);
+    bool parse_while_stmt(Statement** ptr);
     bool parse_variable(Variable** ptr);
     bool parse_if_stmt(Statement** stmt);
     bool parse_return(Statement** stmt);

@@ -310,6 +310,50 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
             break;
         }
 
+        case STMT_WHILE:
+        {
+            printf("WHILE\n");
+
+            debug_indent(level + 1);
+            printf("CONDITION:\n");
+            debug_print_expr(stmt->while_stmt.condition, level + 2);
+
+            debug_indent(level + 1);
+            printf("BODY:\n");
+            for (Statement* s = stmt->while_stmt.body; s != nullptr; s = s->next)
+            {
+                debug_print_stmt(s, level + 2);
+            }
+
+            break;
+        }
+
+        case STMT_FOR:
+        {
+            printf("FOR\n");
+
+            debug_indent(level + 1);
+            printf("VARIABLE:\n");
+            debug_print_stmt(stmt->for_stmt.variable, level + 2);
+            
+            debug_indent(level + 1);
+            printf("CONDITION:\n");
+            debug_print_expr(stmt->for_stmt.condition, level + 2);
+
+            debug_indent(level + 1);
+            printf("STEP:\n");
+            debug_print_expr(stmt->for_stmt.step, level + 2);
+
+            debug_indent(level + 1);
+            printf("BODY:\n");
+            for (Statement* s = stmt->for_stmt.body; s != nullptr; s = s->next)
+            {
+                debug_print_stmt(s, level + 2);
+            }
+
+            break;
+        }
+
         default:
         {
             printf("Unknown statement\n");
@@ -364,6 +408,8 @@ void debug_print_token(const Token& tk)
         case TK_PERCENT: { str = "TK_PERCENT"; break; }
         case TK_NAMESPACE: { str = "TK_NAMESPACE"; break; }
         case TK_TYPE: { str = "TK_TYPE"; break; }
+        case TK_FOR: { str = "TK_FOR"; break; }
+        case TK_WHILE: { str = "TK_WHILE"; break; }
         case TK_EOF: { str = "TK_EOF"; break; }
         default: break;
     }
