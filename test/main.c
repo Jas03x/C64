@@ -1,8 +1,16 @@
 
 VOID printf(const U8* buffer);
 
+struct Person
+{
+    const U8* name;
+    U32       age;
+}
+
 U32 main(U32 argc, U8* argv[])
 {
+    Person jas = { "Jas", 21 };
+
     while(true)
     {
         U8 i = 0;

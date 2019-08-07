@@ -14,13 +14,14 @@ struct Argument
 
 enum
 {
-    EXPR_INVALID    = 0x0,
-    EXPR_SUB_EXPR   = 0x1,
-    EXPR_LITERAL    = 0x2,
-    EXPR_IDENTIFIER = 0x3,
-    EXPR_ASSIGN     = 0x4,
-    EXPR_OPERATION  = 0x5,
-    EXPR_CALL       = 0x6
+    EXPR_INVALID     = 0x0,
+    EXPR_SUB_EXPR    = 0x1,
+    EXPR_LITERAL     = 0x2,
+    EXPR_IDENTIFIER  = 0x3,
+    EXPR_ASSIGN      = 0x4,
+    EXPR_OPERATION   = 0x5,
+    EXPR_CALL        = 0x6,
+    EXPR_INITIALIZER = 0x7
 };
 
 enum
@@ -51,6 +52,19 @@ enum
     EXPR_OP_ACCESS_FIELD           = 0x17,
     EXPR_OP_ARROW                  = 0x18,
     EXPR_OP_INDEX                  = 0x19
+};
+
+struct Expression;
+
+struct Initializer
+{
+    struct Value
+    {
+        Expression* expr;
+        Value*      next;
+    };
+    
+    Value* values;
 };
 
 struct Expression
@@ -86,6 +100,8 @@ struct Expression
             Expression* function;
             Argument*   arguments;
         } call;
+
+        Initializer initializer;
     };
 };
 

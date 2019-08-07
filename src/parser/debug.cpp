@@ -60,6 +60,26 @@ void debug_print_expr(Expression* expr, unsigned int level)
             break;
         }
 
+        case EXPR_INITIALIZER:
+        {
+            printf("INITIALIZER:\n");
+            if(expr->initializer.values == nullptr)
+            {
+                debug_indent(level + 1);
+                printf("NULL\n");
+            }
+            else
+            {
+                for(Initializer::Value* value = expr->initializer.values; value != nullptr; value = value->next)
+                {
+                    debug_indent(level + 1);
+                    printf("VALUE:\n");
+                    debug_print_expr(value->expr, level + 2);
+                }
+            }
+            break;
+        }
+
         case EXPR_LITERAL:
         {
             switch(expr->literal.type)
@@ -138,8 +158,7 @@ void debug_print_variable(const Variable* var, unsigned int level)
 
     if(var->type == TYPE_STRUCT)
     {
-        printf("STRUCT:\n");
-        debug_print_struct(var->structure, level + 1);
+        printf("STRUCT: %.*s\n", var->structure->name.len, var->structure->name.ptr);
     }
     else
     {
@@ -256,7 +275,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
             printf("NAME: %.*s\n", stmt->struct_def.name.len, stmt->struct_def.name.ptr);
 
             debug_indent(level + 1);
-            printf("MEMBERS\n");
+            printf("MEMBERS:\n");
 
             for(Structure::Member* m = stmt->struct_def.structure->members; m != nullptr; m = m->next)
             {

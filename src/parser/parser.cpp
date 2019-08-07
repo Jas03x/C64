@@ -621,6 +621,68 @@ bool Parser::parse_while_stmt(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_initializer(Expression** ptr)
+{
+    bool status = true;
+    
+    Initializer::Value *head = nullptr, *tail = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_OPEN_CURLY_BRACKET)
+    {
+        status = false;
+        error("Expected '{'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->peek(0).type == TK_CLOSE_CURLY_BRACKET)
+        {
+            m_stack->pop();
+        }
+        else
+        {
+            while(status)
+            {
+                Expression* expr = nullptr;
+                status = parse_expression(&expr);
+
+                if(status)
+                {
+                    Initializer::Value* value = new Initializer::Value();
+                    value->expr = expr;
+
+                    if(head == nullptr) { head = value; }
+                    else                { tail->next = value; }
+                    tail = value;
+                }
+
+                tk = m_stack->pop();
+                if(tk.type == TK_CLOSE_CURLY_BRACKET)
+                {
+                    break;
+                }
+                else if(tk.type != TK_COMMA)
+                {
+                    status = false;
+                    error("Unexpected token\n");
+                }
+            }
+        }
+    }
+
+    if(status)
+    {
+        Expression* expr = new Expression();
+        expr->type = EXPR_INITIALIZER;
+        expr->initializer.values = head;
+
+        *ptr = expr;
+    }
+
+    return status;
+}
+
 bool Parser::parse_expression(Expression** ptr)
 {
     bool status = true;
@@ -688,9 +750,15 @@ bool Parser::parse_expression(Expression** ptr)
             case TK_SEMICOLON:
             case TK_CLOSE_ROUND_BRACKET:
             case TK_CLOSE_SQUARE_BRACKET:
-            case TK_OPEN_CURLY_BRACKET:
+            case TK_CLOSE_CURLY_BRACKET:
             {
                 reading = false;
+                break;
+            }
+
+            case TK_OPEN_CURLY_BRACKET:
+            {
+                status = parse_initializer(&expr);
                 break;
             }
 
