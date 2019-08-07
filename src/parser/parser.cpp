@@ -173,16 +173,17 @@ bool Parser::parse_struct_declaration(Statement** ptr)
                     {
                         case STMT_VARIABLE_DECL:
                         {
-                            member->name = stmt->variable.name;
-                            member->variable = stmt->variable.type;
-                            break;
-                        }
-
-                        case STMT_FUNCTION_DEF:
-                        {
-                            delete stmt;
-                            status = false;
-                            error("TODO: support struct functions\n");
+                            if(stmt->variable.value != nullptr)
+                            {
+                                delete stmt;
+                                status = false;
+                                error("non-const struct members cannot be assigned values\n");
+                            }
+                            else
+                            {
+                                member->name = stmt->variable.name;
+                                member->variable = stmt->variable.type;
+                            }
                             break;
                         }
 
