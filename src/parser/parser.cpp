@@ -79,6 +79,8 @@ bool Parser::parse_body(Statement** ptr)
     STATUS status = STATUS_WORKING;
     Statement *head = nullptr, *tail = nullptr;
 
+    add_scope();
+
     Token tk = m_stack->pop();
     if(tk.type != TK_OPEN_CURLY_BRACKET)
     {
@@ -118,6 +120,8 @@ bool Parser::parse_body(Statement** ptr)
         *ptr = head;
     }
 
+    pop_scope();
+
     return (status == STATUS_SUCCESS);
 }
 
@@ -130,7 +134,7 @@ bool Parser::parse_struct_declaration(Statement** ptr)
     Token tk = m_stack->pop();
     if(tk.type != TK_STRUCT)
     {
-        error("Expected struct\n");
+        error("expected struct\n");
         status = false;
     }
     
@@ -143,7 +147,7 @@ bool Parser::parse_struct_declaration(Statement** ptr)
         }
         else
         {
-            error("Expected identifier\n");
+            error("expected identifier\n");
             status = false;
         }
     }
@@ -264,21 +268,21 @@ bool Parser::process_symbol(Statement* stmt, Symbol** sym_ptr)
         case STMT_FUNCTION_DECL:
         {
             sym.type = SYMBOL_FUNCTION;
-            sym.value.function = stmt->function.ptr;
+            sym.value = stmt->function.ptr;
             break;
         }
 
         case STMT_VARIABLE_DECL:
         {
             sym.type = SYMBOL_VARIABLE;
-            sym.value.variable = stmt->variable.type;
+            sym.value = stmt->variable.type;
             break;
         }
 
         case STMT_STRUCT_DEF:
         {
             sym.type = SYMBOL_STRUCT;
-            sym.value.structure = stmt->struct_def.structure;
+            sym.value = stmt->struct_def.structure;
             break;
         }
 
@@ -301,36 +305,29 @@ bool Parser::process_symbol(Statement* stmt, Symbol** sym_ptr)
 
 bool Parser::insert_symbol(strptr id, Symbol* sym)
 {
-    bool status = true;
+    bool status = m_symbols.insert(id, sym);
 
-    std::string key = std::string(id.ptr, id.len);
-    SymbolMap::const_iterator it = m_symbols.find(key);
-
-    if(it != m_symbols.end())
+    if(!status)
     {
-        error("Duplicate definition of %.*s\n", id.len, id.ptr);
-        status = false;
-    }
-    else
-    {
-        m_symbols[key] = sym;
+        error("duplicate definition of symbol \"%.*s\"\n", id.len, id.ptr);
     }
 
     return status;
 }
 
+void Parser::add_scope()
+{
+    m_symbols.push_level();
+}
+
+void Parser::pop_scope()
+{
+    m_symbols.pop_level();
+}
+
 Symbol* Parser::find_symbol(strptr id)
 {
-    Symbol* ret = nullptr;
-
-    std::string key = std::string(id.ptr, id.len);
-    SymbolMap::const_iterator it = m_symbols.find(key);
-    if(it != m_symbols.end())
-    {
-        ret = it->second;
-    }
-
-    return ret;
+    return m_symbols.search(id);
 }
 
 int Parser::is_type(strptr str)
@@ -1399,7 +1396,7 @@ bool Parser::parse_variable(Variable** ptr)
                     case SYMBOL_STRUCT:
                     {
                         head->type = TYPE_STRUCT;
-                        head->structure = sym->value.structure;
+                        head->structure = reinterpret_cast<Structure*>(sym->value);
                         break;
                     }
 

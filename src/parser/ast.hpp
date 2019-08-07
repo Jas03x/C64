@@ -139,31 +139,7 @@ enum TYPE
     TYPE_VARIABLE_SIZED_ARRAY = 0xF
 };
 
-enum SYMBOL
-{
-    SYMBOL_INVALID  = 0x0,
-    SYMBOL_TYPE     = 0x1,
-    SYMBOL_STRUCT   = 0x2,
-    SYMBOL_VARIABLE = 0x3,
-    SYMBOL_FUNCTION = 0x4
-};
-
-struct Statement;
-struct Structure;
 struct Variable;
-struct Function;
-
-struct Symbol
-{
-    uint8_t type;
-
-    union
-    {
-        Structure* structure;
-        Variable*  variable;
-        Function*  function;
-    } value;
-};
 
 struct Structure
 {
@@ -217,6 +193,8 @@ struct Parameter
     Variable*  type;
     Parameter* next;
 };
+
+struct Statement;
 
 struct Function
 {

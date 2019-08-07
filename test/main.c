@@ -1,5 +1,11 @@
 
-VOID printf(const U8* buffer);
+VOID print(const U8* buffer);
+/*
+namespace io
+{
+    VOID print(const U8* buffer);
+}
+*/
 
 struct Person
 {
@@ -11,15 +17,20 @@ U32 main(U32 argc, U8* argv[])
 {
     Person jas = { "Jas", 21 };
 
-    while(true)
+    if(true)
     {
-        U8 i = 0;
-        for(; i < 10;)
+        struct out_of_scope
         {
-            printf("ding a dong\n");
-            i = i + 1;
+            U64 var;
         }
+
+        out_of_scope test1;
     }
+
+    // out_of_scope test2;
+
+    print(jas.name);
+    //io::print(jas.name);
 
     return 0;
 }

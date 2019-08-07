@@ -1,13 +1,12 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
-#include <map>
 #include <string>
 
+#include <symbol.hpp>
+#include <symbol_map.hpp>
 #include <token_stack.hpp>
 #include <expression_list.hpp>
-
-typedef std::map<std::string, Symbol*> SymbolMap;
 
 class Parser
 {
@@ -40,6 +39,8 @@ private:
     Symbol* find_symbol(strptr id);
     bool    insert_symbol(strptr id, Symbol* type);
     bool    process_symbol(Statement* stmt, Symbol** sym_ptr);
+    void    add_scope();
+    void    pop_scope();
 
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
@@ -77,7 +78,6 @@ private:
 
 public:
     static AST* Parse(TokenStack* stack);
-
 };
 
 #endif // PARSER_HPP
