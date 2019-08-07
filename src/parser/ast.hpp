@@ -118,8 +118,9 @@ enum TYPE
     TYPE_F32     = 0xA,
     TYPE_F64     = 0xB,
     TYPE_PTR     = 0xC,
-    TYPE_ARRAY   = 0xD,
-    TYPE_STRUCT  = 0xE
+    TYPE_STRUCT  = 0xD,
+    TYPE_CONSTANT_SIZED_ARRAY = 0xE,
+    TYPE_VARIABLE_SIZED_ARRAY = 0xF
 };
 
 enum SYMBOL

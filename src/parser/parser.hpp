@@ -61,6 +61,7 @@ private:
     bool parse_modifiers(VariableFlags& flags);
     bool parse_arguments(Argument** args);
     bool parse_parameters(Parameter** params);
+    bool parse_array(Variable** variable);
 
     bool parse_body(Statement** stmt);
     bool parse_for_stmt(Statement** ptr);

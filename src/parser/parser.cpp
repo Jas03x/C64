@@ -1187,15 +1187,6 @@ bool Parser::parse_parameters(Parameter** params)
                 Variable* var = nullptr;
 
                 status = parse_variable(&var);
-                /*
-                else if(func_modifiers.value != 0)
-                {
-                    status = false;
-                    error("Function modifiers in parameter declaration\n");
-                    break;
-                }
-                */
-
                 if(status)
                 {
                     tk = m_stack->pop();
@@ -1203,21 +1194,29 @@ bool Parser::parse_parameters(Parameter** params)
                     {
                         strptr name = tk.identifier.string;
 
-                        Parameter* p = new Parameter();
-                        p->type = var;
-                        p->name = name;
-                        *p_ptr = p;
-                        p_ptr = &p->next;
-
-                        tk = m_stack->pop();
-                        if (tk.type == TK_CLOSE_ROUND_BRACKET)
+                        if(m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
                         {
-                            break;
+                            status = parse_array(&var);
                         }
-                        else if (tk.type != TK_COMMA)
+
+                        if(status)
                         {
-                            status = false;
-                            error("Unexpected token\n");
+                            Parameter* p = new Parameter();
+                            p->type = var;
+                            p->name = name;
+                            *p_ptr = p;
+                            p_ptr = &p->next;
+
+                            tk = m_stack->pop();
+                            if (tk.type == TK_CLOSE_ROUND_BRACKET)
+                            {
+                                break;
+                            }
+                            else if (tk.type != TK_COMMA)
+                            {
+                                status = false;
+                                error("Unexpected token\n");
+                            }
                         }
                     }
                     else
@@ -1519,6 +1518,49 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
     return status;
 }
 
+bool Parser::parse_array(Variable** variable)
+{
+    bool status = true;
+
+    while(status && (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET))
+    {
+        m_stack->pop();
+
+        Variable* head = new Variable();
+        head->flags.value = (*variable)->flags.value;
+        head->array.elements = *variable;
+
+        if(m_stack->peek(0).type == TK_CLOSE_SQUARE_BRACKET)
+        {
+            m_stack->pop();
+            head->type = TYPE_VARIABLE_SIZED_ARRAY;
+            head->array.size = nullptr;
+        }
+        else
+        {
+            head->type = TYPE_CONSTANT_SIZED_ARRAY;
+            status = parse_expression(&head->array.size);
+
+            if(status)
+            {
+                // pop the remaining ']'
+                if(m_stack->pop().type != TK_CLOSE_SQUARE_BRACKET)
+                {
+                    error("Expected ']'\n");
+                    status = false;
+                }
+            }
+        }
+        
+        if(status)
+        {
+            *variable = head;
+        }
+    }
+
+    return status;
+}
+
 bool Parser::parse_declaration(Statement** ptr)
 {
     bool status = true;
@@ -1555,34 +1597,13 @@ bool Parser::parse_declaration(Statement** ptr)
         {
             if(tk.type == TK_OPEN_SQUARE_BRACKET)
             {
-                while(status && (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET))
-                {
-                    m_stack->pop();
-
-                    Variable* head = new Variable();
-                    head->type = TYPE_ARRAY;
-                    head->flags.value = var->flags.value;
-                    head->array.elements = var;
-
-                    status = parse_expression(&head->array.size);
-                    if(status)
-                    {
-                        var = head;
-                    }
-
-                    if(status)
-                    {
-                        // pop the remaining ']'
-                        if(m_stack->pop().type != TK_CLOSE_SQUARE_BRACKET)
-                        {
-                            error("Expected ']'\n");
-                            status = false;
-                        }
-                    }
-                }
+                status = parse_array(&var);
             }
-            
-            status = parse_variable_decl(var, name, ptr);
+
+            if(status)
+            {
+                status = parse_variable_decl(var, name, ptr);
+            }
         }
     }
 

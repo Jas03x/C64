@@ -158,9 +158,10 @@ void debug_print_variable(const Variable* var, unsigned int level)
             case TYPE_F64:    { type_str = "I64";    break; }
             case TYPE_VOID:   { type_str = "VOID";   break; }
             case TYPE_PTR:    { type_str = "PTR";    break; }
-            case TYPE_ARRAY:  { type_str = "ARRAY";  break; }
             case TYPE_STRUCT: { type_str = "STRUCT"; break; }
-            default:          { break; }
+            case TYPE_CONSTANT_SIZED_ARRAY: { type_str = "CONSTANT SIZED ARRAY"; break; }
+            case TYPE_VARIABLE_SIZED_ARRAY: { type_str = "VARIABLE SIZED ARRAY"; break; }
+            default: { break; }
         }
 
         printf("%s\n", type_str);
@@ -173,11 +174,13 @@ void debug_print_variable(const Variable* var, unsigned int level)
                 break;
             }
 
-            case TYPE_ARRAY:
+            case TYPE_CONSTANT_SIZED_ARRAY:
+            case TYPE_VARIABLE_SIZED_ARRAY:
             {
                 debug_indent(level + 1);
                 printf("SIZE:\n");
-                debug_print_expr(var->array.size, level + 2);
+                if(var->array.size != nullptr) { debug_print_expr(var->array.size, level + 2); }
+                else                           { debug_indent(level + 2); printf("NULL\n"); }
                 
                 debug_indent(level + 1);
                 printf("ELEMENTS:\n");
