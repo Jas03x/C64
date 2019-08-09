@@ -156,7 +156,14 @@ void debug_print_variable(const Variable* var, unsigned int level)
         }
     }
 
-    if(var->type == TYPE_STRUCT)
+    if(var->type == TYPE_UNKNOWN)
+    {
+        if(var->identifier.len > 0)
+        {
+            printf("%.*s\n", var->identifier.len, var->identifier.ptr);
+        }
+    }
+    else if(var->type == TYPE_STRUCT)
     {
         printf("STRUCT: %.*s\n", var->structure->name.len, var->structure->name.ptr);
     }

@@ -54,8 +54,6 @@ enum
     EXPR_OP_INDEX                  = 0x19
 };
 
-struct Expression;
-
 struct Initializer
 {
     struct Value
@@ -121,7 +119,7 @@ enum
 
 enum TYPE
 {
-    TYPE_INVALID = 0x0,
+    TYPE_UNKNOWN = 0x0,
     TYPE_VOID    = 0x1,
     TYPE_U8      = 0x2,
     TYPE_U16     = 0x3,
@@ -170,11 +168,12 @@ union VariableFlags
 struct Variable
 {
     uint8_t type;
-
     VariableFlags flags;
 
     union
     {
+        strptr identifier;
+
         struct
         {
             Expression*     size;

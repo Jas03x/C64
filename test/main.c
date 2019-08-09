@@ -27,7 +27,7 @@ U32 main(U32 argc, U8* argv[])
         out_of_scope test1;
     }
 
-    // out_of_scope test2;
+    out_of_scope test2;
 
     print(jas.name);
     //io::print(jas.name);

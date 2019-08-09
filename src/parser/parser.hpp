@@ -30,29 +30,15 @@ private:
     TokenStack*    m_stack;
     ExpressionList m_list;
 
-    SymbolMap m_symbols;
-
 private:
     Parser(TokenStack* stack);
     ~Parser();
-
-    Symbol* find_symbol(strptr id);
-    bool    insert_symbol(strptr id, Symbol* type);
-    bool    process_symbol(Statement* stmt, Symbol** sym_ptr);
-    void    add_scope();
-    void    pop_scope();
 
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
     AST* parse();
 
     bool process_expression(ExpressionList::Entry* list, Expression** expr);
-
-    // checks if the identifier exists and its type
-    // -1: error
-    //  0: false
-    //  1: true
-    int is_type(strptr str);
 
     bool parse_statement(Statement** ptr);
     bool parse_value(Expression** ptr);
