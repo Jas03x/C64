@@ -106,15 +106,16 @@ struct Expression
 enum
 {
     STMT_INVALID       = 0x0,
-    STMT_FUNCTION_DECL = 0x1,
-    STMT_FUNCTION_DEF  = 0x2,
+    STMT_FUNCTION_DEF  = 0x1,
+    STMT_FUNCTION_DECL = 0x2,
     STMT_EXPR          = 0x3,
     STMT_VARIABLE_DECL = 0x4,
     STMT_IF            = 0x5,
     STMT_RET           = 0x6,
     STMT_STRUCT_DEF    = 0x7,
-    STMT_FOR           = 0x8,
-    STMT_WHILE         = 0x9
+    STMT_STRUCT_DECL   = 0x8,
+    STMT_FOR           = 0x9,
+    STMT_WHILE         = 0xA
 };
 
 enum TYPE

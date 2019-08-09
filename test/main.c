@@ -1,5 +1,6 @@
 
-VOID print(const U8* buffer);
+// VOID print(const U8* buffer);
+
 /*
 namespace io
 {
@@ -11,11 +12,13 @@ struct Person
 {
     const U8* name;
     U32       age;
-}
+};
 
 U32 main(U32 argc, U8* argv[])
 {
     Person jas = { "Jas", 21 };
+
+    struct { const U8* name; U32 age; } bob = { "Bob", 31 };
 
     if(true)
     {
@@ -29,6 +32,7 @@ U32 main(U32 argc, U8* argv[])
 
     out_of_scope test2;
 
+    print(bob.name);
     print(jas.name);
     //io::print(jas.name);
 
