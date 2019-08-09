@@ -134,7 +134,7 @@ void debug_print_struct(const Structure* structure, unsigned level)
     for(Structure::Member* m = structure->members; m != nullptr; m = m->next)
     {
         debug_indent(level + 1);
-        printf("VARIABLE %.*s:\n", m->name.len, m->name.ptr);
+        printf("VARIABLE: %.*s\n", m->name.len, m->name.ptr);
         debug_print_variable(m->variable, level + 2);
     }
 }
@@ -160,12 +160,20 @@ void debug_print_variable(const Variable* var, unsigned int level)
     {
         if(var->identifier.len > 0)
         {
-            printf("%.*s\n", var->identifier.len, var->identifier.ptr);
+            printf("TYPE: %.*s\n", var->identifier.len, var->identifier.ptr);
         }
     }
     else if(var->type == TYPE_STRUCT)
     {
-        printf("STRUCT: %.*s\n", var->structure->name.len, var->structure->name.ptr);
+        if(var->structure->name.len > 0)
+        {
+            printf("STRUCT: %.*s\n", var->structure->name.len, var->structure->name.ptr);
+        }
+        else
+        {
+            printf("UNNAMED STRUCT:\n");
+            debug_print_struct(var->structure, level + 1);
+        }
     }
     else
     {

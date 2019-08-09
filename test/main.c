@@ -18,14 +18,18 @@ U32 main(U32 argc, U8* argv[])
 {
     Person jas = { "Jas", 21 };
 
-    struct { const U8* name; U32 age; } bob = { "Bob", 31 };
+    struct
+    {
+        const U8* name;
+        U32 age;
+    } bob = { "Bob", 31 };
 
     if(true)
     {
         struct out_of_scope
         {
             U64 var;
-        }
+        };
 
         out_of_scope test1;
     }

@@ -121,7 +121,7 @@ bool Parser::parse_body(Statement** ptr)
     return (status == STATUS_SUCCESS);
 }
 
-bool Parser::parse_struct_declaration(Statement** ptr)
+bool Parser::parse_struct(Structure** ptr)
 {
     bool status = true;
 
@@ -136,15 +136,11 @@ bool Parser::parse_struct_declaration(Statement** ptr)
     
     if(status)
     {
-        tk = m_stack->pop();
+        tk = m_stack->peek(0);
         if(tk.type == TK_IDENTIFIER)
         {
+            m_stack->pop();
             name = tk.identifier.string;
-        }
-        else
-        {
-            error("expected identifier\n");
-            status = false;
         }
     }
 
@@ -235,12 +231,42 @@ bool Parser::parse_struct_declaration(Statement** ptr)
         structure->name = name;
         structure->members = head;
 
-        Statement* stmt = new Statement();
-        stmt->type = STMT_STRUCT_DEF;
-        stmt->struct_def.name = name;
-        stmt->struct_def.structure = structure;
+        *ptr = structure;
+    }
 
-        *ptr = stmt;
+    return status;
+}
+
+bool Parser::parse_struct_definition(Statement** ptr)
+{
+    Token tk = {};
+    Structure* structure = nullptr;
+    bool status = parse_struct(&structure);
+
+    if(status && (structure->name.len == 0))
+    {
+        status = false;
+        error("struct name cannot be null\n");
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type != TK_SEMICOLON)
+        {
+            status = false;
+            error("Expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* statement = new Statement();
+        statement->type = STMT_STRUCT_DEF;
+        statement->struct_def.name = structure->name;
+        statement->struct_def.structure = structure;
+
+        *ptr = statement;
     }
 
     return status;
@@ -257,7 +283,16 @@ bool Parser::parse_statement(Statement** ptr)
     {
         case TK_STRUCT:
         {
-            status = parse_struct_declaration(&stmt);
+            tk = m_stack->peek(1);
+            if(tk.type == TK_IDENTIFIER)
+            {
+                status = parse_struct_definition(&stmt);
+            }
+            else
+            {
+                goto DECLARATION;
+            }
+            
             break;
         }
 
@@ -1261,19 +1296,41 @@ bool Parser::parse_variable(Variable** ptr)
 
     if(status)
     {
-        tk = m_stack->pop();
+        tk = m_stack->peek(0);
         switch(tk.type)
         {
             case TK_TYPE:
             {
+                m_stack->pop();
                 head->type = tk.subtype;
                 break;
             }
 
             case TK_IDENTIFIER:
             {
+                m_stack->pop();
                 head->type = TYPE_UNKNOWN;
                 head->identifier = tk.identifier.string;
+                break;
+            }
+
+            case TK_STRUCT:
+            {
+                Structure* structure = nullptr;
+                status = parse_struct(&structure);
+
+                if(status && (structure->name.len > 0))
+                {
+                    status = false;
+                    error("inline struct must not have a name\n");
+                }
+
+                if(status)
+                {
+                    head->type = TYPE_STRUCT;
+                    head->structure = structure;
+                }
+
                 break;
             }
 
@@ -1311,17 +1368,25 @@ bool Parser::parse_variable(Variable** ptr)
 bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
 {
     bool status = true;
-
+    uint8_t stmt_type = STMT_INVALID;
     Parameter* params = nullptr;
 
-    if(!parse_parameters(&params))
+    if(var->type == TYPE_STRUCT)
     {
-        status = false;
+        if(var->structure->name.len == 0)
+        {
+            status = false;
+            error("function cannot return unnamed struct\n");
+        }
     }
-    else
+
+    if(status)
     {
-        uint8_t stmt_type = 0;
-        
+        status = parse_parameters(&params);
+    }
+    
+    if(status)
+    {
         Token tk = m_stack->peek(0);
         switch(tk.type)
         {
@@ -1345,27 +1410,27 @@ bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
                 break;
             }
         }
+    }
 
-        if(status)
+    if(status)
+    {
+        Function* function = new Function();
+        function->body = nullptr;
+        function->params = params;
+        function->ret_type = var;
+
+        Statement* stmt = new Statement();
+        stmt->type           = stmt_type;
+        stmt->function.name  = name;
+        stmt->function.ptr   = function;
+
+        if((stmt->type == STMT_FUNCTION_DEF) && !parse_body(&function->body))
         {
-            Function* function = new Function();
-            function->body = nullptr;
-            function->params = params;
-            function->ret_type = var;
-
-            Statement* stmt = new Statement();
-            stmt->type           = stmt_type;
-            stmt->function.name  = name;
-            stmt->function.ptr   = function;
-
-            if((stmt->type == STMT_FUNCTION_DEF) && !parse_body(&function->body))
-            {
-                status = false;
-            }
-            else
-            {
-                *ptr = stmt;
-            }
+            status = false;
+        }
+        else
+        {
+            *ptr = stmt;
         }
     }
 
@@ -1411,7 +1476,7 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
                 {
                     if(m_stack->pop().type != TK_SEMICOLON)
                     {
-                        error("Expected semicolon\n");
+                        error("Expected ';'\n");
                         status = false;
                     }
                     else

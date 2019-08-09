@@ -58,7 +58,8 @@ private:
     bool parse_if_stmt(Statement** stmt);
     bool parse_return(Statement** stmt);
     bool parse_declaration(Statement** stmt);
-    bool parse_struct_declaration(Statement** ptr);
+    bool parse_struct(Structure** ptr);
+    bool parse_struct_definition(Statement** ptr);
     bool parse_function_decl(Variable* var, strptr name, Statement** ptr);
     bool parse_variable_decl(Variable* var, strptr name, Statement** ptr);
 
