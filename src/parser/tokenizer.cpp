@@ -316,6 +316,7 @@ bool Tokenizer::process(char c, Token& tk)
         case ';': { tk.type = TK_SEMICOLON;            break; }
         case ',': { tk.type = TK_COMMA;                break; }
         case '%': { tk.type = TK_PERCENT;              break; }
+		case ':': { tk.type = TK_COLON;                break; }
 
         default:
         {
@@ -472,7 +473,7 @@ bool Tokenizer::next_token(Token& tk)
             }
 
             FORWARD_SLASH:
-            case '+': case '-': case '*':
+            case '+': case '-': case '*': case ':':
             case '=': case '<': case '>': case ';':
             case '(': case ')': case '[': case ']':
             case '{': case '}': case ',': case '.':

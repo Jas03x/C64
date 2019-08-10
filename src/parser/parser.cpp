@@ -74,6 +74,55 @@ AST* Parser::parse()
     return ast;
 }
 
+bool Parser::parse_identifier(Identifier** identifier)
+{
+	bool status = true;
+
+	Token tk = {};
+	Identifier *head = nullptr, *tail = nullptr;
+	
+	while(status)
+	{
+		tk = m_stack->pop();
+		if(tk.type == TK_IDENTIFIER)
+		{
+			Identifier* id = new Identifier();
+			id->str = tk.identifier.string;
+			
+			if(tail == nullptr) { head = id;       }
+			else                { tail->next = id; }
+			tail = id;
+			
+			if(m_stack->peek(0).type == TK_COLON)
+			{
+				m_stack->pop();
+				
+				if(m_stack->pop().type != TK_COLON)
+				{
+					status = false;
+					error("expected ':'\n");
+				}
+			}
+			else
+			{
+				break;
+			}
+		}
+		else
+		{
+			status = false;
+			error("expected identifier\n");
+		}
+	}
+	
+    if(status)
+    {
+        *identifier = head;
+    }
+
+	return status;
+}
+
 bool Parser::parse_body(Statement** ptr)
 {
     STATUS status = STATUS_WORKING;
@@ -317,18 +366,45 @@ bool Parser::parse_statement(Statement** ptr)
 
         case TK_IDENTIFIER:
         {
-            switch(m_stack->peek(1).type)
-            {
-                case TK_IDENTIFIER:
-                case TK_ASTERISK:
+			int offset = 1;
+			while(status)
+			{
+				if(m_stack->peek(offset + 0).type == TK_COLON)
+				{
+					if((m_stack->peek(offset + 1).type == TK_COLON) && (m_stack->peek(offset + 2).type == TK_IDENTIFIER))
+					{
+						offset += 3;
+					}
+					else
+					{
+						status = false;
+						error("unexpected token sequence\n");
+					}
+				}
+                else
                 {
-                    goto DECLARATION;
+                    break;
                 }
+			}
+			
+			if(status)
+			{
+				switch(m_stack->peek(1).type)
+				{
+					case TK_IDENTIFIER:
+					case TK_ASTERISK:
+					{
+						goto DECLARATION;
+					}
 
-                default: break;
-            }
-
-            goto EXPRESSION;
+					default:
+					{
+						goto EXPRESSION;
+					}
+				}
+			}
+			
+			break;
         }
 
         EXPRESSION: default:
@@ -453,12 +529,7 @@ bool Parser::parse_for_stmt(Statement** ptr)
             // read the condition
             if(status)
             {
-                if(m_stack->peek(0).type == TK_SEMICOLON)
-                {
-                    status = false;
-                    error("For loop condition is mandatory\n");
-                }
-                else
+                if(m_stack->peek(0).type != TK_SEMICOLON)
                 {
                     status = parse_expression(&cond);
 
@@ -467,6 +538,10 @@ bool Parser::parse_for_stmt(Statement** ptr)
                         status = false;
                         error("Expected ';'\n");
                     }
+                }
+                else
+                {
+                    m_stack->pop();
                 }
             }
 
@@ -1308,9 +1383,14 @@ bool Parser::parse_variable(Variable** ptr)
 
             case TK_IDENTIFIER:
             {
-                m_stack->pop();
-                head->type = TYPE_UNKNOWN;
-                head->identifier = tk.identifier.string;
+                Identifier* identifier = nullptr;
+                status = parse_identifier(&identifier);
+
+                if(status)
+                {
+                    head->type = TYPE_UNKNOWN;
+                    head->identifier = identifier;
+                }
                 break;
             }
 
@@ -1608,12 +1688,14 @@ bool Parser::parse_value(Expression** ptr)
     bool status = true;
     
     Expression* expr = nullptr;
-    Token tk = m_stack->pop();
+    Token tk = m_stack->peek(0);
     
     switch(tk.type)
     {
         case TK_LITERAL:
         {
+			m_stack->pop();
+			
             expr = new Expression();
             expr->type = EXPR_LITERAL;
             expr->literal = tk.literal;
@@ -1622,7 +1704,8 @@ bool Parser::parse_value(Expression** ptr)
 
         case TK_IDENTIFIER:
         {
-            strptr name = tk.identifier.string;
+			Identifier* identifier = nullptr;
+			status = parse_identifier(&identifier);	
 
             tk = m_stack->peek(0);
             if(tk.type == TK_OPEN_ROUND_BRACKET)
@@ -1638,7 +1721,7 @@ bool Parser::parse_value(Expression** ptr)
                 {
                     Expression* func_name = new Expression();
                     func_name->type = EXPR_IDENTIFIER;
-                    func_name->identifier.name = name;
+                    func_name->identifier = identifier;
 
                     expr = new Expression();
                     expr->type = EXPR_CALL;
@@ -1650,7 +1733,7 @@ bool Parser::parse_value(Expression** ptr)
             {
                 expr = new Expression();
                 expr->type = EXPR_IDENTIFIER;
-                expr->identifier.name = name;
+                expr->identifier = identifier;
             }
 
             break;

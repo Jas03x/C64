@@ -12,6 +12,12 @@ struct Argument
     Argument*   next;
 };
 
+struct Identifier
+{
+	strptr      str;
+	Identifier* next;
+};
+
 enum
 {
     EXPR_INVALID     = 0x0,
@@ -75,10 +81,7 @@ struct Expression
 
         Expression* sub_expr;
 
-        struct
-        {
-            strptr name;
-        } identifier;
+		Identifier* identifier;
 
         struct
         {
@@ -173,7 +176,7 @@ struct Variable
 
     union
     {
-        strptr identifier;
+        Identifier* identifier;
 
         struct
         {

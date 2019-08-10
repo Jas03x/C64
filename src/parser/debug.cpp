@@ -7,6 +7,26 @@ void debug_indent(unsigned int level)
     for(unsigned int i = 0; i < level * 4; i++) printf(" ");
 }
 
+void debug_print_identifier(Identifier* id)
+{
+    Identifier* it = id;
+    while(true)
+    {
+        printf("%.*s", it->str.len, it->str.ptr);
+
+        it = it->next;
+        if(it != nullptr)
+        {
+            printf("::");
+        }
+        else
+        {
+            printf("\n");
+            break;
+        }
+    }
+}
+
 void debug_print_expr(Expression* expr, unsigned int level)
 {
     if(expr == nullptr) return;
@@ -94,7 +114,7 @@ void debug_print_expr(Expression* expr, unsigned int level)
 
         case EXPR_IDENTIFIER:
         {
-            printf("%.*s\n", expr->identifier.name.len, expr->identifier.name.ptr);
+            debug_print_identifier(expr->identifier);
             break;
         }
 
@@ -158,9 +178,10 @@ void debug_print_variable(const Variable* var, unsigned int level)
 
     if(var->type == TYPE_UNKNOWN)
     {
-        if(var->identifier.len > 0)
+        if(var->identifier != nullptr)
         {
-            printf("TYPE: %.*s\n", var->identifier.len, var->identifier.ptr);
+            printf("TYPE: ");
+            debug_print_identifier(var->identifier);
         }
     }
     else if(var->type == TYPE_STRUCT)
@@ -375,7 +396,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
             
             debug_indent(level + 1);
             printf("CONDITION:\n");
-            debug_print_expr(stmt->for_stmt.condition, level + 2);
+            if(stmt->for_stmt.condition != nullptr) debug_print_expr(stmt->for_stmt.condition, level + 2);
 
             debug_indent(level + 1);
             printf("STEP:\n");
@@ -448,6 +469,7 @@ void debug_print_token(const Token& tk)
         case TK_FOR: { str = "TK_FOR"; break; }
         case TK_WHILE: { str = "TK_WHILE"; break; }
         case TK_EOF: { str = "TK_EOF"; break; }
+		case TK_COLON: { str = "TK_COLON"; break; }
         default: break;
     }
 
