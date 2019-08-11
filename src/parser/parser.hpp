@@ -36,7 +36,7 @@ private:
 
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
-    AST* parse();
+    bool parse(AST** ptr);
 
     bool process_expression(ExpressionList::Entry* list, Expression** expr);
 
@@ -51,6 +51,7 @@ private:
     bool parse_array(Variable** variable);
     bool parse_initializer(Expression** ptr);
 
+    bool parse_namespace(Statement** ptr);
 	bool parse_identifier(Identifier** identifier);
     bool parse_body(Statement** stmt);
     bool parse_for_stmt(Statement** ptr);

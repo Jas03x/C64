@@ -410,7 +410,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 
         case 9:
         {
-            if(_strncmp(str, "namespace", 9) == 0) { tk.type = TK_NAMESPACE; break; }
+            if(_strncmp(str, "namespace", 9)) { tk.type = TK_NAMESPACE; break; }
             break;
         }
     }

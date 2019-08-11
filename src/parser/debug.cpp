@@ -269,6 +269,12 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
     switch(stmt->type)
     {
+        case STMT_NAMESPACE:
+        {
+            debug_print_namespace(stmt, level);
+            break;
+        }
+
         case STMT_FUNCTION_DEF:
         case STMT_FUNCTION_DECL:
         {
@@ -538,5 +544,22 @@ void debug_print_token(const Token& tk)
             printf("\n");
             break;
         }
+    }
+}
+
+void debug_print_namespace(const Statement* statement, unsigned int level)
+{
+    debug_indent(level);
+    printf("NAMESPACE:\n");
+
+    debug_indent(level + 1);
+    printf("NAME: ");
+    debug_print_identifier(statement->name_space.identifier);
+
+    debug_indent(level + 1);
+    printf("BODY:\n");
+    for(Statement* stmt = statement->name_space.statements; stmt != nullptr; stmt = stmt->next)
+    {
+        debug_print_stmt(stmt, level + 1);
     }
 }

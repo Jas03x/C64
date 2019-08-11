@@ -17,16 +17,18 @@ AST* Parser::Parse(TokenStack* stack)
 {
     Parser parser(stack);
 
-    AST* ast = parser.parse();
+    AST* ast = nullptr;
+    parser.parse(&ast);
+
     return ast;
 }
 
-AST* Parser::parse()
+bool Parser::parse(AST** ptr)
 {
-    STATUS status = STATUS_WORKING;
+    bool status = true;
     Statement *head = nullptr, *tail = nullptr;
 
-    while(status == STATUS_WORKING)
+    while(status)
     {
         Token tk = m_stack->peek(0);
         
@@ -34,7 +36,7 @@ AST* Parser::parse()
         {
             m_stack->pop();
 
-            status = STATUS_SUCCESS;
+            break;
         }
         else
         {
@@ -42,36 +44,26 @@ AST* Parser::parse()
             
             if(parse_statement(&stmt))
             {
-                if((stmt->type == STMT_VARIABLE_DECL) ||
-                   (stmt->type == STMT_FUNCTION_DEF)  ||
-                   (stmt->type == STMT_FUNCTION_DECL) ||
-                   (stmt->type == STMT_STRUCT_DEF))
-                {
-                    if(tail == nullptr) { head = stmt;       }
-                    else                { tail->next = stmt; }
-                    tail = stmt;
-                }
-                else
-                {
-                    error("invalid global statement\n");
-                    status = STATUS_ERROR;
-                }
+                if(tail == nullptr) { head = stmt;       }
+                else                { tail->next = stmt; }
+                tail = stmt;
             }
             else
             {
-                status = STATUS_ERROR;
+                status = false;
             }
         }
     }
 
-    AST* ast = nullptr;
-    if(status == STATUS_SUCCESS)
+    if(status)
     {
-        ast = new AST();
+        AST* ast = new AST();
         ast->statements = head;
+
+        *ptr = ast;
     }
 
-    return ast;
+    return status;
 }
 
 bool Parser::parse_identifier(Identifier** identifier)
@@ -125,17 +117,17 @@ bool Parser::parse_identifier(Identifier** identifier)
 
 bool Parser::parse_body(Statement** ptr)
 {
-    STATUS status = STATUS_WORKING;
+    bool status = true;
     Statement *head = nullptr, *tail = nullptr;
 
     Token tk = m_stack->pop();
     if(tk.type != TK_OPEN_CURLY_BRACKET)
     {
         error("expected '{'\n");
-        status = STATUS_ERROR;
+        status = false;
     }
 
-    while(status == STATUS_WORKING)
+    while(status)
     {
         Token tk = m_stack->peek(0);
         
@@ -143,7 +135,7 @@ bool Parser::parse_body(Statement** ptr)
         {
             m_stack->pop();
 
-            status = STATUS_SUCCESS;
+            break;
         }
         else
         {
@@ -157,17 +149,17 @@ bool Parser::parse_body(Statement** ptr)
             }
             else
             {
-                status = STATUS_ERROR;
+                status = false;
             }
         }
     }
 
-    if(status == STATUS_SUCCESS)
+    if(status)
     {
         *ptr = head;
     }
 
-    return (status == STATUS_SUCCESS);
+    return status;
 }
 
 bool Parser::parse_struct(Structure** ptr)
@@ -321,6 +313,49 @@ bool Parser::parse_struct_definition(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_namespace(Statement** ptr)
+{
+    bool status = true;
+
+    Identifier* name = nullptr;
+    Statement*  body = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_NAMESPACE)
+    {
+        status = false;
+        error("expected 'namespace'\n");
+    }
+
+    tk = m_stack->peek(0);
+    if(tk.type == TK_IDENTIFIER)
+    {
+        status = parse_identifier(&name);
+    }
+    else
+    {
+        status = false;
+        error("expected identifier\n");
+    }
+
+    if(status)
+    {
+        status = parse_body(&body);
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_NAMESPACE;
+        stmt->name_space.identifier = name;
+        stmt->name_space.statements = body;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
@@ -330,6 +365,12 @@ bool Parser::parse_statement(Statement** ptr)
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
+        case TK_NAMESPACE:
+        {
+            status = parse_namespace(&stmt);
+            break;
+        }
+
         case TK_STRUCT:
         {
             tk = m_stack->peek(1);
