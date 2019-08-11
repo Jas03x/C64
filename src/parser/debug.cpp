@@ -204,6 +204,10 @@ void debug_print_variable(const Variable* var, unsigned int level)
             debug_print_struct(var->structure, level + 1);
         }
     }
+    else if(var->type == TYPE_ENUM)
+    {
+        debug_print_enum(var->enumerator, level);
+    }
     else
     {
         const char* type_str = "UNKNOWN";
@@ -277,9 +281,9 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
     switch(stmt->type)
     {
-        case STMT_ENUM:
+        case STMT_ENUM_DEF:
         {
-            debug_print_enum(stmt);
+            debug_print_enum(stmt->enum_def.enumerator);
             break;
         }
 
@@ -639,12 +643,21 @@ void debug_print_token(const Token& tk)
     }
 }
 
-void debug_print_enum(const Statement* statement, unsigned int level)
+void debug_print_enum(const Enum* enumerator, unsigned int level)
 {
     debug_indent(level);
-    printf("ENUM: %.*s\n", statement->enumerator.name.len, statement->enumerator.name.ptr);
+    printf("ENUM:");
+    
+    if(enumerator->name.len > 0)
+    {
+        printf(" %.*s\n", enumerator->name.len, enumerator->name.ptr);
+    }
+    else
+    {
+        printf("\n");
+    }
 
-    for(Enum::Value* v = statement->enumerator.values; v != nullptr; v = v->next)
+    for(Enum::Value* v = enumerator->values; v != nullptr; v = v->next)
     {
         printf("VALUE %.*s = ", v->name.len, v->name.ptr);
         switch(v->value.type)

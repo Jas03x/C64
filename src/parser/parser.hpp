@@ -51,7 +51,9 @@ private:
     bool parse_array(Variable** variable);
     bool parse_initializer(Expression** ptr);
 
-    bool parse_enum_stmt(Statement** ptr);
+    bool parse_enum(Enum** ptr);
+
+    bool parse_enum_definition(Statement** ptr);
     bool parse_switch_stmt(Statement** ptr);
     bool parse_default_stmt(Statement** ptr);
     bool parse_case_stmt(Statement** ptr);

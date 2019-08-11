@@ -24,6 +24,13 @@ namespace io
 
 U32 main(U32 argc, U8* argv[])
 {
+	enum
+	{
+		BAD  = 0,
+		OK   = 1,
+		GOOD = 2
+	} STATUS = OK;
+
 	switch(io::get_char())
 	{
 		case 'A': io::print("very good!\n"); break;

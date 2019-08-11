@@ -131,27 +131,28 @@ enum
     STMT_CASE          = 0x14,
     STMT_LABEL         = 0x15,
     STMT_DEFAULT_CASE  = 0x16,
-    STMT_ENUM          = 0x17
+    STMT_ENUM_DEF      = 0x17
 };
 
 enum TYPE
 {
-    TYPE_UNKNOWN = 0x0,
-    TYPE_VOID    = 0x1,
-    TYPE_U8      = 0x2,
-    TYPE_U16     = 0x3,
-    TYPE_U32     = 0x4,
-    TYPE_U64     = 0x5,
-    TYPE_I8      = 0x6,
-    TYPE_I16     = 0x7,
-    TYPE_I32     = 0x8,
-    TYPE_I64     = 0x9,
-    TYPE_F32     = 0xA,
-    TYPE_F64     = 0xB,
-    TYPE_PTR     = 0xC,
-    TYPE_STRUCT  = 0xD,
-    TYPE_CONSTANT_SIZED_ARRAY = 0xE,
-    TYPE_VARIABLE_SIZED_ARRAY = 0xF
+    TYPE_UNKNOWN = 0x00,
+    TYPE_VOID    = 0x01,
+    TYPE_U8      = 0x02,
+    TYPE_U16     = 0x03,
+    TYPE_U32     = 0x04,
+    TYPE_U64     = 0x05,
+    TYPE_I8      = 0x06,
+    TYPE_I16     = 0x07,
+    TYPE_I32     = 0x08,
+    TYPE_I64     = 0x09,
+    TYPE_F32     = 0x0A,
+    TYPE_F64     = 0x0B,
+    TYPE_PTR     = 0x0C,
+    TYPE_STRUCT  = 0x0D,
+    TYPE_ENUM    = 0x0E,
+    TYPE_CONSTANT_SIZED_ARRAY = 0x0F,
+    TYPE_VARIABLE_SIZED_ARRAY = 0x10
 };
 
 struct Variable;
@@ -182,6 +183,22 @@ union VariableFlags
     uint8_t value;
 };
 
+struct Enum
+{
+    strptr name;
+    
+    struct Value
+    {
+        strptr  name;
+        Literal value;
+
+        Value* next;
+    };
+
+    Value* values;
+};
+
+
 struct Variable
 {
     uint8_t type;
@@ -197,6 +214,7 @@ struct Variable
             const Variable* elements;
         } array;
 
+        Enum*      enumerator;
         Structure* structure;
 
         const Variable* pointer;
@@ -217,21 +235,6 @@ struct Function
     Variable*  ret_type;
     Parameter* params;
     Statement* body;
-};
-
-struct Enum
-{
-    strptr name;
-    
-    struct Value
-    {
-        strptr  name;
-        Literal value;
-
-        Value* next;
-    };
-
-    Value* values;
 };
 
 struct Statement
@@ -330,7 +333,11 @@ struct Statement
             Statement* body;
         } case_stmt;
 
-        Enum enumerator;
+        struct
+        {
+            strptr name;
+            Enum*  enumerator;
+        } enum_def;
     };
 
     Statement* next;

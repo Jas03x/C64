@@ -15,7 +15,7 @@ void debug_print_namespace(const Statement* statment, unsigned int level = 0);
 void debug_print_typedef(const Statement* statement, unsigned int level = 0);
 void debug_print_switch(const Statement* statement, unsigned int level = 0);
 void debug_print_case(const Statement* statement, unsigned int level = 0);
-void debug_print_enum(const Statement* statement, unsigned int level = 0);
+void debug_print_enum(const Enum* enumerator, unsigned int level = 0);
 
 void debug_print_ast(AST* ast);
 

@@ -305,7 +305,7 @@ bool Parser::parse_struct_definition(Statement** ptr)
         if(tk.type != TK_SEMICOLON)
         {
             status = false;
-            error("Expected ';'\n");
+            error("expected ';'\n");
         }
     }
 
@@ -317,6 +317,46 @@ bool Parser::parse_struct_definition(Statement** ptr)
         statement->struct_def.structure = structure;
 
         *ptr = statement;
+    }
+
+    return status;
+}
+
+bool Parser::parse_enum_definition(Statement** ptr)
+{
+    bool status = true;
+
+    Token tk = {};
+    Enum* enumerator = nullptr;
+    
+    status = parse_enum(&enumerator);
+    if(status)
+    {
+        if(enumerator->name.len == 0)
+        {
+            status = false;
+            error("enum name cannot be null\n");
+        }
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_ENUM_DEF;
+        stmt->enum_def.name = enumerator->name;
+        stmt->enum_def.enumerator = enumerator;
+
+        *ptr = stmt;
     }
 
     return status;
@@ -451,7 +491,7 @@ bool Parser::parse_compound_stmt(Statement** ptr)
     return status;
 }
 
-bool Parser::parse_enum_stmt(Statement** ptr)
+bool Parser::parse_enum(Enum** ptr)
 {
     bool status = true;
 
@@ -466,15 +506,10 @@ bool Parser::parse_enum_stmt(Statement** ptr)
 
     if(status)
     {
-        tk = m_stack->pop();
-        if(tk.type == TK_IDENTIFIER)
+        if(m_stack->peek(0).type == TK_IDENTIFIER)
         {
+            tk = m_stack->pop();
             enum_name = tk.identifier.string;
-        }
-        else
-        {
-            status = false;
-            error("expected identifier\n");
         }
     }
 
@@ -487,7 +522,7 @@ bool Parser::parse_enum_stmt(Statement** ptr)
         }
     }
 
-    Enum::Value *head = nullptr, *tail = nullptr;
+    Enum::Value *list_head = nullptr, *list_tail = nullptr;
 
     if(status && (m_stack->peek(0).type != TK_CLOSE_CURLY_BRACKET))
     {
@@ -530,9 +565,9 @@ bool Parser::parse_enum_stmt(Statement** ptr)
                 entry->name  = name;
                 entry->value = value;
 
-                if(tail == nullptr) { head = entry;       }
-                else                { tail->next = entry; }
-                tail = entry;
+                if(list_tail == nullptr) { list_head = entry;       }
+                else                     { list_tail->next = entry; }
+                list_tail = entry;
             }
 
             if(status)
@@ -553,21 +588,11 @@ bool Parser::parse_enum_stmt(Statement** ptr)
 
     if(status)
     {
-        if(m_stack->pop().type != TK_SEMICOLON)
-        {
-            status = false;
-            error("expected ';'\n");
-        }
-    }
+        Enum* enumerator = new Enum();
+        enumerator->name = enum_name;
+        enumerator->values = list_head;
 
-    if(status)
-    {
-        Statement* stmt = new Statement();
-        stmt->type = STMT_ENUM;
-        stmt->enumerator.name   = enum_name;
-        stmt->enumerator.values = head;
-
-        *ptr = stmt;
+        *ptr = enumerator;
     }
 
     return status;
@@ -862,12 +887,6 @@ bool Parser::parse_statement(Statement** ptr)
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
-        case TK_ENUM:
-        {
-            status = parse_enum_stmt(&stmt);
-            break;
-        }
-        
         case TK_BREAK:
         {
             status = parse_break_stmt(&stmt);
@@ -939,6 +958,21 @@ bool Parser::parse_statement(Statement** ptr)
                 goto DECLARATION;
             }
             
+            break;
+        }
+
+        case TK_ENUM:
+        {
+            tk = m_stack->peek(1);
+            if(tk.type == TK_IDENTIFIER)
+            {
+                status = parse_enum_definition(&stmt);
+            }
+            else
+            {
+                goto DECLARATION;
+            }
+
             break;
         }
 
@@ -2053,13 +2087,33 @@ bool Parser::parse_variable(Variable** ptr)
                 if(status && (structure->name.len > 0))
                 {
                     status = false;
-                    error("inline struct must not have a name\n");
+                    error("inline struct cannot not have a name\n");
                 }
 
                 if(status)
                 {
                     head->type = TYPE_STRUCT;
                     head->structure = structure;
+                }
+
+                break;
+            }
+
+            case TK_ENUM:
+            {
+                Enum* enumerator = nullptr;
+                status = parse_enum(&enumerator);
+
+                if(status && (enumerator->name.len > 0))
+                {
+                    status = false;
+                    error("inline enum cannot have a name\n");
+                }
+
+                if(status)
+                {
+                    head->type = TYPE_ENUM;
+                    head->enumerator = enumerator;
                 }
 
                 break;
