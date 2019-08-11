@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include <ascii.hpp>
+
 #include <status.hpp>
 
 char Tokenizer::pop()
@@ -203,51 +205,131 @@ bool Tokenizer::read_literal(Token& tk)
     {
         ret = read_value(tk);
     }
-    
 
     return ret;
 }
 
 bool Tokenizer::read_string(Token& tk)
 {
-    bool ret = (pop() == '"');
+    bool status = (pop() == '"');
 
-    const char* ptr = current_ptr();
-    unsigned int len = 0;
+    m_string_buffer.clear();
 
-    if(true)
+    while(status)
     {
-        while(true)
+        char c = pop();
+        if(c == 0)
         {
-            char c = pop();
-            if(c == 0)
+            printf("Error: Unexpected EOF\n");
+            status = false;
+            break;
+        }
+        else if(c == '"')
+        {
+            break;
+        }
+        else
+        {
+            if(c == '\\')
             {
-                printf("Error: Unexpected EOF\n");
-                ret = false;
-                break;
+                status = read_escape_character(c);
             }
-            else if(c == '"')
+            
+            if(status)
             {
-                break;
-            }
-            else
-            {
-                len ++;
+                m_string_buffer.push_back(c);
             }
         }
     }
 
-    if(ret)
+    m_string_buffer.push_back(0); // insert the null terminator
+
+    if(status)
     {
         tk.type = TK_LITERAL;
         tk.literal.type = LITERAL_STRING;
-        tk.literal.string.ptr = ptr;
-        tk.literal.string.len = len;
+        tk.literal.string.ptr = strdup(m_string_buffer.data());
+        tk.literal.string.len = m_string_buffer.size();
 
         printf("%.*s => %hhu\n", tk.literal.string.len, tk.literal.string.ptr, tk.type);
     }
 
-    return ret;
+    return status;
+}
+
+bool Tokenizer::read_escape_character(char& character)
+{
+    bool status = true;
+
+    char c = pop();
+    switch(c)
+    {
+        case 'n':  { c = ASCII_NEWLINE;         break; }
+        case 'r':  { c = ASCII_CARRIAGE_RETURN; break; }
+        case 't':  { c = ASCII_TAB;             break; }
+        case '"':  { c = ASCII_DOUBLE_QUOTE;    break; }
+        case '\'': { c = ASCII_SINGLE_QUOTE;    break; }
+
+        case 'x':
+        {
+            char buf[3];
+            for(unsigned int i = 0; i < 2; i++)
+            {
+                buf[i] = pop();
+                if(!(((buf[i] >= '0') && (buf[i] <= '9')) || ((buf[i] >= 'A') && (buf[i] <= 'F'))))
+                {
+                    status = false;
+                    printf("invalid character in escape sequence\n");
+                }
+            }
+            buf[2] = 0;
+            
+            if(status)
+            {
+                long value = strtol(buf, nullptr, 16);
+                
+                character = static_cast<char>(value);
+            }
+            
+            break;
+        }
+
+        default:
+        {
+            status = false;
+            printf("unknown character escape sequence\n");
+        }
+    }
+
+    return status;
+}
+
+bool Tokenizer::read_character(Token& tk)
+{
+    bool status = true;
+
+    pop(); // pop the '
+
+    char c = pop();
+    if(c == '\\')
+    {
+        status = read_escape_character(c);
+    }
+
+    if(pop() != '\'')
+    {
+        status = false;
+        printf("invalid character sequence\n");
+    }
+
+    if(status)
+    {
+        tk.type = TK_LITERAL;
+        tk.literal.type = LITERAL_CHAR;
+        tk.literal.character = c;
+    }
+
+    return status;
 }
 
 bool Tokenizer::read_token(Token& tk)
@@ -486,6 +568,12 @@ bool Tokenizer::next_token(Token& tk)
             {
                 pop();
                 status = process(c, tk) ? STATUS_SUCCESS : STATUS_ERROR;
+                break;
+            }
+
+            case '\'':
+            {
+                status = read_character(tk) ? STATUS_SUCCESS : STATUS_ERROR;
                 break;
             }
 

@@ -106,6 +106,7 @@ void debug_print_expr(Expression* expr, unsigned int level)
             {
                 case LITERAL_INTEGER: { printf("%llu\n", expr->literal.integer.value); break; }
                 case LITERAL_DECIMAL: { printf("%f\n",   expr->literal.decimal.value); break; }
+                case LITERAL_CHAR:    { printf("'%c'\n",   expr->literal.character);     break; }
                 case LITERAL_STRING:  { printf("\"%.*s\"\n", expr->literal.string.len, expr->literal.string.ptr); break; }
                 default:              { printf("Unknown token\n"); break; }
             }
@@ -553,6 +554,12 @@ void debug_print_token(const Token& tk)
                 case LITERAL_STRING:
                 {
                     printf("- string (\"%.*\")\n", tk.literal.string.len, tk.literal.string.ptr);
+                    break;
+                }
+
+                case LITERAL_CHAR:
+                {
+                    printf("- character (%c)\n", tk.literal.character);
                     break;
                 }
 

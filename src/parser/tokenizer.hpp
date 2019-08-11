@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <vector>
+
 #include <token.hpp>
 #include <token_stack.hpp>
 
@@ -15,6 +17,8 @@ private:
     unsigned int m_buffer_size;
 
     unsigned int m_read_ptr;
+
+    std::vector<char> m_string_buffer;
 
     TokenStack m_tokens;
 
@@ -33,6 +37,9 @@ private:
     bool read_value(Token& tk);
     bool read_string(Token& tk);
     bool read_literal(Token& tk);
+    bool read_character(Token& tk);
+    
+    bool read_escape_character(char& c);
 
     bool read_token(Token& tk);
 
