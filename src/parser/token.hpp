@@ -43,6 +43,7 @@ enum TOKEN
     TK_FOR,
     TK_WHILE,
 	TK_COLON,
+    TK_TYPEDEF,
     TK_EOF,
     TK_COUNT
 };

@@ -149,7 +149,14 @@ void debug_print_expr(Expression* expr, unsigned int level)
 void debug_print_struct(const Structure* structure, unsigned level)
 {
     debug_indent(level);
-    printf("STRUCT %.*s:\n", structure->name.len, structure->name.ptr);
+    if(structure->name.len == 0)
+    {
+        printf("STRUCT:\n");
+    }
+    else
+    {
+        printf("STRUCT %.*s:\n", structure->name.len, structure->name.ptr);
+    }
 
     for(Structure::Member* m = structure->members; m != nullptr; m = m->next)
     {
@@ -269,6 +276,12 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
     switch(stmt->type)
     {
+        case STMT_TYPEDEF:
+        {
+            debug_print_typedef(stmt, level);
+            break;
+        }
+
         case STMT_NAMESPACE:
         {
             debug_print_namespace(stmt, level);
@@ -562,4 +575,18 @@ void debug_print_namespace(const Statement* statement, unsigned int level)
     {
         debug_print_stmt(stmt, level + 1);
     }
+}
+
+void debug_print_typedef(const Statement* statement, unsigned int level)
+{
+    debug_indent(level);
+    printf("TYPEDEF: \n");
+    
+    debug_indent(level + 1);
+    printf("NAME: ");
+    debug_print_identifier(statement->type_def.identifier);
+
+    debug_indent(level + 1);
+    printf("VARIABLE:\n");
+    debug_print_variable(statement->type_def.variable, level + 2);
 }

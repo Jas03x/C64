@@ -3,10 +3,12 @@ namespace io
 {
     VOID print(const U8* buffer);
 
+	typedef struct { VOID* handle; } FILE;
+
 	namespace file
 	{
-		VOID* open(const U8* path);
-		VOID  close(VOID* handle);
+		FILE* open(const U8* path);
+		VOID  close(FILE* handle);
 	}
 }
 

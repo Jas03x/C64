@@ -408,6 +408,12 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             break;
         }
 
+        case 7:
+        {
+            if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; break; }
+            break;
+        }
+
         case 9:
         {
             if(_strncmp(str, "namespace", 9)) { tk.type = TK_NAMESPACE; break; }

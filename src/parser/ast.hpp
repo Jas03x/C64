@@ -119,7 +119,8 @@ enum
     STMT_STRUCT_DECL   = 0x8,
     STMT_FOR           = 0x9,
     STMT_WHILE         = 0xA,
-    STMT_NAMESPACE     = 0xB
+    STMT_NAMESPACE     = 0xB,
+    STMT_TYPEDEF       = 0xC
 };
 
 enum TYPE
@@ -264,6 +265,12 @@ struct Statement
             Identifier* identifier;
             Statement*  statements;
         } name_space;
+
+        struct
+        {
+            Identifier* identifier;
+            Variable*   variable;
+        } type_def;
     };
 
     Statement* next;

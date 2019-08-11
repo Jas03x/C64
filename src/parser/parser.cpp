@@ -356,6 +356,69 @@ bool Parser::parse_namespace(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_typedef(Statement** ptr)
+{
+    bool status = true;
+
+    Identifier* name = nullptr;
+    Variable* variable = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_TYPEDEF)
+    {
+        status = false;
+        error("expected 'typedef'\n");
+    }
+
+    if(status)
+    {
+        status = parse_variable(&variable);
+    }
+
+    if(status)
+    {
+        if(m_stack->peek(0).type == TK_IDENTIFIER)
+        {
+            status = parse_identifier(&name);
+        }
+        else
+        {
+            status = false;
+            error("expected identifier\n");
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
+        {
+            status = parse_array(&variable);
+        }
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_TYPEDEF;
+        stmt->type_def.identifier = name;
+        stmt->type_def.variable = variable;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
@@ -365,6 +428,12 @@ bool Parser::parse_statement(Statement** ptr)
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
+        case TK_TYPEDEF:
+        {
+            status = parse_typedef(&stmt);
+            break;
+        }
+
         case TK_NAMESPACE:
         {
             status = parse_namespace(&stmt);
