@@ -120,7 +120,8 @@ enum
     STMT_FOR           = 0x9,
     STMT_WHILE         = 0xA,
     STMT_NAMESPACE     = 0xB,
-    STMT_TYPEDEF       = 0xC
+    STMT_TYPEDEF       = 0xC,
+    STMT_COMPOUND_STMT = 0xD
 };
 
 enum TYPE
@@ -271,6 +272,11 @@ struct Statement
             Identifier* identifier;
             Variable*   variable;
         } type_def;
+
+        struct
+        {
+            Statement* body;
+        } compound_stmt;
     };
 
     Statement* next;

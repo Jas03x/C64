@@ -44,9 +44,12 @@ bool Parser::parse(AST** ptr)
             
             if(parse_statement(&stmt))
             {
-                if(tail == nullptr) { head = stmt;       }
-                else                { tail->next = stmt; }
-                tail = stmt;
+                if(stmt != nullptr)
+                {
+                    if(tail == nullptr) { head = stmt;       }
+                    else                { tail->next = stmt; }
+                    tail = stmt;
+                }
             }
             else
             {
@@ -143,9 +146,12 @@ bool Parser::parse_body(Statement** ptr)
             
             if(parse_statement(&stmt))
             {
-                if(tail == nullptr) { head = stmt; }
-                else                { tail->next = stmt; }
-                tail = stmt;
+                if(stmt != nullptr)
+                {
+                    if(tail == nullptr) { head = stmt; }
+                    else                { tail->next = stmt; }
+                    tail = stmt;
+                }
             }
             else
             {
@@ -204,48 +210,51 @@ bool Parser::parse_struct(Structure** ptr)
                 Statement* stmt = nullptr;
                 if(parse_statement(&stmt))
                 {
-                    Structure::Member* member = new Structure::Member();
-
-                    switch(stmt->type)
+                    if(stmt != nullptr)
                     {
-                        case STMT_VARIABLE_DECL:
+                        Structure::Member* member = new Structure::Member();
+
+                        switch(stmt->type)
                         {
-                            if(stmt->variable.value != nullptr)
+                            case STMT_VARIABLE_DECL:
+                            {
+                                if(stmt->variable.value != nullptr)
+                                {
+                                    delete stmt;
+                                    status = false;
+                                    error("non-const struct members cannot be assigned values\n");
+                                }
+                                else
+                                {
+                                    member->name = stmt->variable.name;
+                                    member->variable = stmt->variable.type;
+                                }
+                                break;
+                            }
+
+                            case STMT_STRUCT_DEF:
                             {
                                 delete stmt;
                                 status = false;
-                                error("non-const struct members cannot be assigned values\n");
+                                error("TODO: support nested structs\n");
+                                break;
                             }
-                            else
+
+                            default:
                             {
-                                member->name = stmt->variable.name;
-                                member->variable = stmt->variable.type;
+                                delete stmt;
+                                status = false;
+                                error("Invalid struct member\n");
+                                break;
                             }
-                            break;
                         }
 
-                        case STMT_STRUCT_DEF:
+                        if(status)
                         {
-                            delete stmt;
-                            status = false;
-                            error("TODO: support nested structs\n");
-                            break;
+                            if(tail == nullptr) { head = member; }
+                            else                { tail->next = member; }
+                            tail = member;
                         }
-
-                        default:
-                        {
-                            delete stmt;
-                            status = false;
-                            error("Invalid struct member\n");
-                            break;
-                        }
-                    }
-
-                    if(status)
-                    {
-                        if(tail == nullptr) { head = member; }
-                        else                { tail->next = member; }
-                        tail = member;
                     }
                 }
                 else
@@ -419,6 +428,29 @@ bool Parser::parse_typedef(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_compound_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    Statement* body = nullptr;
+
+    if(status)
+    {
+        status = parse_body(&body);
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_COMPOUND_STMT;
+        stmt->compound_stmt.body = body;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
@@ -428,6 +460,17 @@ bool Parser::parse_statement(Statement** ptr)
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
+        case TK_SEMICOLON:
+        {
+            break;
+        }
+
+        case TK_OPEN_CURLY_BRACKET:
+        {
+            status = parse_compound_stmt(&stmt);
+            break;
+        }
+
         case TK_TYPEDEF:
         {
             status = parse_typedef(&stmt);

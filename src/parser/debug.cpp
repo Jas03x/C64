@@ -276,6 +276,16 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
     switch(stmt->type)
     {
+        case STMT_COMPOUND_STMT:
+        {
+            printf("COMPOUND STMT:\n");
+            for(Statement* s = stmt->compound_stmt.body; s != nullptr; s = s->next)
+            {
+                debug_print_stmt(s, level + 1);
+            }
+            break;
+        }
+
         case STMT_TYPEDEF:
         {
             debug_print_typedef(stmt, level);
@@ -344,7 +354,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
         {
             printf("VAR\n");
             debug_print_variable(stmt->variable.type, level + 1);
-            
+
             debug_indent(level + 1);
             printf("NAME: %.*s\n", stmt->variable.name.len, stmt->variable.name.ptr);
             

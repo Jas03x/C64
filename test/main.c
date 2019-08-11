@@ -16,6 +16,10 @@ U32 main(U32 argc, U8* argv[])
 {
 	VOID* file = io::file::open("file.txt");
 
+	{
+		io::print("lmao wut");
+	}
+
 	for(;;)
 	{
 		io::print("hello world");
