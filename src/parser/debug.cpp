@@ -277,6 +277,12 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
     switch(stmt->type)
     {
+        case STMT_ENUM:
+        {
+            debug_print_enum(stmt);
+            break;
+        }
+
         case STMT_BREAK:
         {
             printf("BREAK\n");
@@ -629,6 +635,25 @@ void debug_print_token(const Token& tk)
         {
             printf("\n");
             break;
+        }
+    }
+}
+
+void debug_print_enum(const Statement* statement, unsigned int level)
+{
+    debug_indent(level);
+    printf("ENUM: %.*s\n", statement->enumerator.name.len, statement->enumerator.name.ptr);
+
+    for(Enum::Value* v = statement->enumerator.values; v != nullptr; v = v->next)
+    {
+        printf("VALUE %.*s = ", v->name.len, v->name.ptr);
+        switch(v->value.type)
+        {
+            case LITERAL_INTEGER: { printf("%llu\n", v->value.integer.value); break; }
+            case LITERAL_DECIMAL: { printf("%f\n",   v->value.decimal.value); break; }
+            case LITERAL_CHAR:    { printf("'%c'\n",   v->value.character);     break; }
+            case LITERAL_STRING:  { printf("\"%.*s\"\n", v->value.string.len, v->value.string.ptr); break; }
+            default:              { printf("Unknown token\n"); break; }
         }
     }
 }

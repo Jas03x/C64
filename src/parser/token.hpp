@@ -51,6 +51,7 @@ enum TOKEN
     TK_SWITCH,
     TK_CASE,
     TK_DEFAULT,
+    TK_ENUM,
     TK_EOF,
     TK_COUNT
 };

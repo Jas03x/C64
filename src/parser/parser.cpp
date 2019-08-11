@@ -451,6 +451,128 @@ bool Parser::parse_compound_stmt(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_enum_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    strptr enum_name = {};
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_ENUM)
+    {
+        status = false;
+        error("expected 'enum'\n");
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type == TK_IDENTIFIER)
+        {
+            enum_name = tk.identifier.string;
+        }
+        else
+        {
+            status = false;
+            error("expected identifier\n");
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
+        {
+            status = false;
+            error("expected '{'\n");
+        }
+    }
+
+    Enum::Value *head = nullptr, *tail = nullptr;
+
+    if(status && (m_stack->peek(0).type != TK_CLOSE_CURLY_BRACKET))
+    {
+        while(status)
+        {
+            strptr  name = { };
+            Literal value = { };
+
+            tk = m_stack->pop();
+            if(tk.type == TK_IDENTIFIER)
+            {
+                name = tk.identifier.string;
+            }
+            else
+            {
+                status = false;
+                error("expected identifier\n");
+            }
+
+            tk = m_stack->peek(0);
+            if(tk.type == TK_EQUAL)
+            {
+                m_stack->pop();
+                tk = m_stack->pop();
+
+                if(tk.type == TK_LITERAL)
+                {
+                    value = tk.literal;
+                }
+                else
+                {
+                    status = false;
+                    error("expected literal\n");
+                }
+            }
+            
+            if(status)
+            {
+                Enum::Value* entry = new Enum::Value();
+                entry->name  = name;
+                entry->value = value;
+
+                if(tail == nullptr) { head = entry;       }
+                else                { tail->next = entry; }
+                tail = entry;
+            }
+
+            if(status)
+            {
+                tk = m_stack->pop();
+                if(tk.type == TK_CLOSE_CURLY_BRACKET)
+                {
+                    break;
+                }
+                else if(tk.type != TK_COMMA)
+                {
+                    status = false;
+                    error("expected ',' or '}'\n");
+                }
+            }
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_ENUM;
+        stmt->enumerator.name   = enum_name;
+        stmt->enumerator.values = head;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_goto_stmt(Statement** ptr)
 {
     bool status = true;
@@ -740,6 +862,12 @@ bool Parser::parse_statement(Statement** ptr)
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
+        case TK_ENUM:
+        {
+            status = parse_enum_stmt(&stmt);
+            break;
+        }
+        
         case TK_BREAK:
         {
             status = parse_break_stmt(&stmt);

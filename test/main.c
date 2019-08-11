@@ -1,4 +1,13 @@
 
+enum STATUS
+{
+	GOOD = 0x0,
+	BAD  = 0x1,
+	FAILURE = 0x2,
+	WHAT,
+	SUCCESS = 0x3
+};
+
 namespace io
 {
     VOID print(const U8* buffer);

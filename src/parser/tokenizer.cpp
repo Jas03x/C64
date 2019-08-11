@@ -473,6 +473,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
         {
             if(_strncmp(str, "case", 4))      { tk.type = TK_CASE;                  }
             else if(_strncmp(str, "else", 4)) { tk.type = TK_ELSE;                  }
+            else if(_strncmp(str, "enum", 4)) { tk.type = TK_ENUM;                  }
             else if(_strncmp(str, "goto", 4)) { tk.type = TK_GOTO;                  }
             else if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; }
             break;

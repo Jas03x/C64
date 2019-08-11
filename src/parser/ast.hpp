@@ -130,7 +130,8 @@ enum
     STMT_SWITCH        = 0x13,
     STMT_CASE          = 0x14,
     STMT_LABEL         = 0x15,
-    STMT_DEFAULT_CASE  = 0x16
+    STMT_DEFAULT_CASE  = 0x16,
+    STMT_ENUM          = 0x17
 };
 
 enum TYPE
@@ -216,6 +217,21 @@ struct Function
     Variable*  ret_type;
     Parameter* params;
     Statement* body;
+};
+
+struct Enum
+{
+    strptr name;
+    
+    struct Value
+    {
+        strptr  name;
+        Literal value;
+
+        Value* next;
+    };
+
+    Value* values;
 };
 
 struct Statement
@@ -313,6 +329,8 @@ struct Statement
             Literal    value;
             Statement* body;
         } case_stmt;
+
+        Enum enumerator;
     };
 
     Statement* next;
