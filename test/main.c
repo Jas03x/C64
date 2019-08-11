@@ -26,8 +26,14 @@ U32 main(U32 argc, U8* argv[])
 	{
 		break;
 	}
-	// else
-	goto LOOP;
+	else if(input == 'B')
+	{
+		io::print("very bad!\n");
+	}
+	else
+	{
+		goto LOOP;
+	}
 
 	io::file::close(file);
 

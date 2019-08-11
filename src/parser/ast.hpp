@@ -114,17 +114,19 @@ enum
     STMT_EXPR          = 0x03,
     STMT_VARIABLE_DECL = 0x04,
     STMT_IF            = 0x05,
-    STMT_RET           = 0x06,
-    STMT_STRUCT_DEF    = 0x07,
-    STMT_STRUCT_DECL   = 0x08,
-    STMT_FOR           = 0x09,
-    STMT_WHILE         = 0x0A,
-    STMT_NAMESPACE     = 0x0B,
-    STMT_TYPEDEF       = 0x0C,
-    STMT_COMPOUND_STMT = 0x0D,
-    STMT_BREAK         = 0x0E,
-    STMT_GOTO          = 0x0F,
-    STMT_LABEL         = 0x10
+    STMT_ELSE_IF       = 0x06,
+    STMT_ELSE          = 0x07,
+    STMT_RET           = 0x08,
+    STMT_STRUCT_DEF    = 0x09,
+    STMT_STRUCT_DECL   = 0x0A,
+    STMT_FOR           = 0x0B,
+    STMT_WHILE         = 0x0C,
+    STMT_NAMESPACE     = 0x0D,
+    STMT_TYPEDEF       = 0x0E,
+    STMT_COMPOUND_STMT = 0x0F,
+    STMT_BREAK         = 0x10,
+    STMT_GOTO          = 0x11,
+    STMT_LABEL         = 0x12
 };
 
 enum TYPE
@@ -238,6 +240,11 @@ struct Statement
             Expression* condition;
             Statement*  body;
         } if_stmt;
+
+        struct
+        {
+            Statement* body;
+        } else_stmt;
 
         struct
         {

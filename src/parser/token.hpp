@@ -46,6 +46,7 @@ enum TOKEN
     TK_TYPEDEF,
     TK_BREAK,
     TK_GOTO,
+    TK_ELSE,
     TK_EOF,
     TK_COUNT
 };

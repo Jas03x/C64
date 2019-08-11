@@ -63,6 +63,7 @@ private:
     bool parse_while_stmt(Statement** ptr);
     bool parse_variable(Variable** ptr);
     bool parse_if_stmt(Statement** stmt);
+    bool parse_else_stmt(Statement** ptr);
     bool parse_return(Statement** stmt);
     bool parse_declaration(Statement** stmt);
     bool parse_struct(Structure** ptr);

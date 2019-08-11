@@ -399,16 +399,30 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
         }
 
         case STMT_IF:
+        case STMT_ELSE:
+        case STMT_ELSE_IF:
         {
-            printf("IF\n");
+            const char* output = "IF";
+            switch(stmt->type)
+            {
+                case STMT_ELSE:    { output = "ELSE";    break; }
+                case STMT_ELSE_IF: { output = "ELSE_IF"; break; }
+                default: break;
+            }
+            printf("%s\n", output);
             
-            debug_indent(level + 1);
-            printf("COND:\n");
-            debug_print_expr(stmt->if_stmt.condition, level + 2);
+            if(stmt->type != STMT_ELSE)
+            {
+                debug_indent(level + 1);
+                printf("COND:\n");
+                debug_print_expr(stmt->if_stmt.condition, level + 2);
+            }
+
+            Statement* body = (stmt->type == STMT_ELSE) ? stmt->else_stmt.body : stmt->if_stmt.body;
 
             debug_indent(level + 1);
             printf("BODY:\n");
-            for (Statement* s = stmt->if_stmt.body; s != nullptr; s = s->next)
+            for (Statement* s = body; s != nullptr; s = s->next)
             {
                 debug_print_stmt(s, level + 2);
             }

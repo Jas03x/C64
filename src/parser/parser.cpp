@@ -634,6 +634,7 @@ bool Parser::parse_statement(Statement** ptr)
         }
 
         case TK_IF:    { status = parse_if_stmt(&stmt);    break; }
+        case TK_ELSE:  { status = parse_else_stmt(&stmt);  break; }
         case TK_FOR:   { status = parse_for_stmt(&stmt);   break; }
         case TK_WHILE: { status = parse_while_stmt(&stmt); break; }
 
@@ -713,6 +714,52 @@ bool Parser::parse_statement(Statement** ptr)
                     stmt->type = STMT_EXPR;
                     stmt->expr = expr;
                 }
+            }
+        }
+    }
+
+    if(status)
+    {
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::parse_else_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    Statement* stmt = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_ELSE)
+    {
+        status = false;
+        error("expected 'else'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->peek(0).type == TK_IF)
+        {
+            status = parse_if_stmt(&stmt);
+
+            if(status)
+            {
+                stmt->type = STMT_ELSE_IF;
+            }
+        }
+        else
+        {
+            Statement* body = nullptr;
+            status = parse_body(&body);
+
+            if(status)
+            {
+                stmt = new Statement();
+                stmt->type = STMT_ELSE;
+                stmt->else_stmt.body = body;
             }
         }
     }
