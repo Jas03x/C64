@@ -565,6 +565,37 @@ bool Parser::parse_label(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_continue_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_CONTINUE)
+    {
+        status = false;
+        error("expected 'continue'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_CONTINUE;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
@@ -577,6 +608,12 @@ bool Parser::parse_statement(Statement** ptr)
         case TK_BREAK:
         {
             status = parse_break_stmt(&stmt);
+            break;
+        }
+
+        case TK_CONTINUE:
+        {
+            status = parse_continue_stmt(&stmt);
             break;
         }
 

@@ -28,7 +28,7 @@ U32 main(U32 argc, U8* argv[])
 	}
 	else if(input == 'B')
 	{
-		io::print("very bad!\n");
+		continue;
 	}
 	else
 	{

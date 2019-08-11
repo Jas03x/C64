@@ -47,6 +47,7 @@ enum TOKEN
     TK_BREAK,
     TK_GOTO,
     TK_ELSE,
+    TK_CONTINUE,
     TK_EOF,
     TK_COUNT
 };

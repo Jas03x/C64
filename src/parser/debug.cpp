@@ -283,6 +283,12 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
             break;
         }
 
+        case STMT_CONTINUE:
+        {
+            printf("CONTINUE\n");
+            break;
+        }
+
         case STMT_LABEL:
         {
             printf("LABEL: %.*s\n", stmt->label.name.len, stmt->label.name.ptr);

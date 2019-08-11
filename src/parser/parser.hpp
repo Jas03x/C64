@@ -51,6 +51,7 @@ private:
     bool parse_array(Variable** variable);
     bool parse_initializer(Expression** ptr);
 
+    bool parse_continue_stmt(Statement** ptr);
     bool parse_label(Statement** ptr);
     bool parse_goto_stmt(Statement** ptr);
     bool parse_break_stmt(Statement** ptr);

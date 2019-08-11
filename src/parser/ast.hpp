@@ -125,8 +125,9 @@ enum
     STMT_TYPEDEF       = 0x0E,
     STMT_COMPOUND_STMT = 0x0F,
     STMT_BREAK         = 0x10,
-    STMT_GOTO          = 0x11,
-    STMT_LABEL         = 0x12
+    STMT_CONTINUE      = 0x11,
+    STMT_GOTO          = 0x12,
+    STMT_LABEL         = 0x13
 };
 
 enum TYPE
