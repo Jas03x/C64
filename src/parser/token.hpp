@@ -48,6 +48,9 @@ enum TOKEN
     TK_GOTO,
     TK_ELSE,
     TK_CONTINUE,
+    TK_SWITCH,
+    TK_CASE,
+    TK_DEFAULT,
     TK_EOF,
     TK_COUNT
 };

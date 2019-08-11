@@ -15,27 +15,16 @@ namespace io
 
 U32 main(U32 argc, U8* argv[])
 {
-	VOID* file = io::file::open("file.txt");
-
-	char* str = "\x48\x45\x4C\x4C\x4F\x20WORLD";
-
-	LOOP:
-	U8 input = io::get_char();
-
-	if(input == 'A')
+	switch(io::get_char())
 	{
-		break;
+		case 'A': io::print("very good!\n"); break;
+		case 'B': io::print("not bad!\n");   break;
+		default:
+		{
+			io::print("you are a failure\n");
+			break;
+		}
 	}
-	else if(input == 'B')
-	{
-		continue;
-	}
-	else
-	{
-		goto LOOP;
-	}
-
-	io::file::close(file);
 
     return 0;
 }

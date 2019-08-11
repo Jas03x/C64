@@ -127,7 +127,10 @@ enum
     STMT_BREAK         = 0x10,
     STMT_CONTINUE      = 0x11,
     STMT_GOTO          = 0x12,
-    STMT_LABEL         = 0x13
+    STMT_SWITCH        = 0x13,
+    STMT_CASE          = 0x14,
+    STMT_LABEL         = 0x15,
+    STMT_DEFAULT_CASE  = 0x16
 };
 
 enum TYPE
@@ -298,6 +301,18 @@ struct Statement
         {
             strptr name;
         } label;
+
+        struct
+        {
+            Expression* expr;
+            Statement*  body;
+        } switch_stmt;
+
+        struct
+        {
+            Literal    value;
+            Statement* body;
+        } case_stmt;
     };
 
     Statement* next;

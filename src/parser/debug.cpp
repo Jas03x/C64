@@ -283,6 +283,24 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
             break;
         }
 
+        case STMT_SWITCH:
+        {
+            debug_print_switch(stmt, level);
+            break;
+        }
+
+        case STMT_DEFAULT_CASE:
+        {
+            printf("DEFAULT:\n");
+            break;
+        }
+
+        case STMT_CASE:
+        {
+            debug_print_case(stmt, level);
+            break;
+        }
+
         case STMT_CONTINUE:
         {
             printf("CONTINUE\n");
@@ -613,6 +631,38 @@ void debug_print_token(const Token& tk)
             break;
         }
     }
+}
+
+void debug_print_switch(const Statement* statement, unsigned int level)
+{
+    debug_indent(level);
+    printf("SWITCH:\n");
+
+    debug_indent(level + 1);
+    printf("EXPR:\n");
+    debug_print_expr(statement->switch_stmt.expr, level + 2);
+
+    debug_indent(level + 1);
+    printf("BODY:\n");
+    for(Statement* s = statement->switch_stmt.body; s != nullptr; s = s->next)
+    {
+        debug_print_stmt(s, level + 2);
+    }
+}
+
+void debug_print_case(const Statement* statement, unsigned int level)
+{
+    debug_indent(level);
+    printf("CASE: ");
+    switch(statement->case_stmt.value.type)
+    {
+        case LITERAL_INTEGER: { printf("%llu\n", statement->case_stmt.value.integer.value); break; }
+        case LITERAL_DECIMAL: { printf("%f\n",   statement->case_stmt.value.decimal.value); break; }
+        case LITERAL_CHAR:    { printf("'%c'\n",   statement->case_stmt.value.character);     break; }
+        case LITERAL_STRING:  { printf("\"%.*s\"\n", statement->case_stmt.value.string.len, statement->case_stmt.value.string.ptr); break; }
+        default:              { printf("Unknown token\n"); break; }
+    }
+    
 }
 
 void debug_print_namespace(const Statement* statement, unsigned int level)

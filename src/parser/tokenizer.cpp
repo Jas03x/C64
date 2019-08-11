@@ -471,7 +471,8 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 
         case 4:
         {
-            if(_strncmp(str, "else", 4))      { tk.type = TK_ELSE;                  }
+            if(_strncmp(str, "case", 4))      { tk.type = TK_CASE;                  }
+            else if(_strncmp(str, "else", 4)) { tk.type = TK_ELSE;                  }
             else if(_strncmp(str, "goto", 4)) { tk.type = TK_GOTO;                  }
             else if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; }
             break;
@@ -490,12 +491,14 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             if(_strncmp(str, "return", 6))      { tk.type = TK_RETURN; }
             else if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; }
             else if(_strncmp(str, "struct", 6)) { tk.type = TK_STRUCT; }
+            else if(_strncmp(str, "switch", 6)) { tk.type = TK_SWITCH; }
             break;
         }
 
         case 7:
         {
-            if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; }
+            if(_strncmp(str, "default", 7))      { tk.type = TK_DEFAULT; }
+            else if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; }
             break;
         }
 

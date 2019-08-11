@@ -596,6 +596,141 @@ bool Parser::parse_continue_stmt(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_switch_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    Expression* expr = nullptr;
+    Statement*  body = nullptr;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_SWITCH)
+    {
+        status = false;
+        error("expected 'switch'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
+        {
+            status = false;
+            error("expected '('\n");
+        }
+    }
+
+    if(status)
+    {
+        status = parse_expression(&expr);
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+        {
+            status = false;
+            error("expected ')'\n");
+        }
+    }
+
+    if(status)
+    {
+        status = parse_body(&body);
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_SWITCH;
+        stmt->switch_stmt.expr = expr;
+        stmt->switch_stmt.body = body;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::parse_default_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_DEFAULT)
+    {
+        status = false;
+        error("expecting 'default'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_COLON)
+        {
+            status = false;
+            error("expecting ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_DEFAULT_CASE;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::parse_case_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    Literal value = { };
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_CASE)
+    {
+        status = false;
+        error("expecting 'case'\n");
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+
+        if(tk.type == TK_LITERAL)
+        {
+            value = tk.literal;
+        }
+        else
+        {
+            status = false;
+            error("expecting literal\n");
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_COLON)
+        {
+            status = false;
+            error("expecting ':'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_CASE;
+        stmt->case_stmt.value = value;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
@@ -614,6 +749,24 @@ bool Parser::parse_statement(Statement** ptr)
         case TK_CONTINUE:
         {
             status = parse_continue_stmt(&stmt);
+            break;
+        }
+
+        case TK_SWITCH:
+        {
+            status = parse_switch_stmt(&stmt);
+            break;
+        }
+
+        case TK_CASE:
+        {
+            status = parse_case_stmt(&stmt);
+            break;
+        }
+
+        case TK_DEFAULT:
+        {
+            status = parse_default_stmt(&stmt);
             break;
         }
 
