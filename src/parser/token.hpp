@@ -44,6 +44,8 @@ enum TOKEN
     TK_WHILE,
 	TK_COLON,
     TK_TYPEDEF,
+    TK_BREAK,
+    TK_GOTO,
     TK_EOF,
     TK_COUNT
 };

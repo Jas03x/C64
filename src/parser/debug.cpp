@@ -277,6 +277,24 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
     switch(stmt->type)
     {
+        case STMT_BREAK:
+        {
+            printf("BREAK\n");
+            break;
+        }
+
+        case STMT_LABEL:
+        {
+            printf("LABEL: %.*s\n", stmt->label.name.len, stmt->label.name.ptr);
+            break;
+        }
+
+        case STMT_GOTO:
+        {
+            printf("GOTO: %.*s\n", stmt->goto_stmt.target.len, stmt->goto_stmt.target.ptr);
+            break;
+        }
+
         case STMT_COMPOUND_STMT:
         {
             printf("COMPOUND STMT:\n");

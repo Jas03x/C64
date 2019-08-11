@@ -19,15 +19,15 @@ U32 main(U32 argc, U8* argv[])
 
 	char* str = "\x48\x45\x4C\x4C\x4F\x20WORLD";
 
-	U8 running = 1;
-	while(running == 1)
-	{
-		U8 input = io::get_char();
+	LOOP:
+	U8 input = io::get_char();
 
-		if(input == 'A')
-		{
-		}
+	if(input == 'A')
+	{
+		break;
 	}
+	// else
+	goto LOOP;
 
 	io::file::close(file);
 

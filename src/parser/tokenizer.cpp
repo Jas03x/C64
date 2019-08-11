@@ -471,34 +471,36 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 
         case 4:
         {
-            if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; }
+            if(_strncmp(str, "goto", 4))      { tk.type = TK_GOTO; }
+            else if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; }
             break;
         }
 
         case 5:
         {
-            if(_strncmp(str, "const", 5)) { tk.type = TK_CONST; break; }
-            else if(_strncmp(str, "while", 5)) { tk.type = TK_WHILE; break; }
+            if(_strncmp(str, "break", 5))      { tk.type = TK_BREAK; }
+            else if(_strncmp(str, "const", 5)) { tk.type = TK_CONST; }
+            else if(_strncmp(str, "while", 5)) { tk.type = TK_WHILE; }
             break;
         }
 
         case 6:
         {
-            if(_strncmp(str, "return", 6))      { tk.type = TK_RETURN; break; }
-            else if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; break; }
-            else if(_strncmp(str, "struct", 6)) { tk.type = TK_STRUCT; break; }
+            if(_strncmp(str, "return", 6))      { tk.type = TK_RETURN; }
+            else if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; }
+            else if(_strncmp(str, "struct", 6)) { tk.type = TK_STRUCT; }
             break;
         }
 
         case 7:
         {
-            if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; break; }
+            if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; }
             break;
         }
 
         case 9:
         {
-            if(_strncmp(str, "namespace", 9)) { tk.type = TK_NAMESPACE; break; }
+            if(_strncmp(str, "namespace", 9)) { tk.type = TK_NAMESPACE; }
             break;
         }
     }

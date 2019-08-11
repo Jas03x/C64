@@ -108,20 +108,23 @@ struct Expression
 
 enum
 {
-    STMT_INVALID       = 0x0,
-    STMT_FUNCTION_DEF  = 0x1,
-    STMT_FUNCTION_DECL = 0x2,
-    STMT_EXPR          = 0x3,
-    STMT_VARIABLE_DECL = 0x4,
-    STMT_IF            = 0x5,
-    STMT_RET           = 0x6,
-    STMT_STRUCT_DEF    = 0x7,
-    STMT_STRUCT_DECL   = 0x8,
-    STMT_FOR           = 0x9,
-    STMT_WHILE         = 0xA,
-    STMT_NAMESPACE     = 0xB,
-    STMT_TYPEDEF       = 0xC,
-    STMT_COMPOUND_STMT = 0xD
+    STMT_INVALID       = 0x00,
+    STMT_FUNCTION_DEF  = 0x01,
+    STMT_FUNCTION_DECL = 0x02,
+    STMT_EXPR          = 0x03,
+    STMT_VARIABLE_DECL = 0x04,
+    STMT_IF            = 0x05,
+    STMT_RET           = 0x06,
+    STMT_STRUCT_DEF    = 0x07,
+    STMT_STRUCT_DECL   = 0x08,
+    STMT_FOR           = 0x09,
+    STMT_WHILE         = 0x0A,
+    STMT_NAMESPACE     = 0x0B,
+    STMT_TYPEDEF       = 0x0C,
+    STMT_COMPOUND_STMT = 0x0D,
+    STMT_BREAK         = 0x0E,
+    STMT_GOTO          = 0x0F,
+    STMT_LABEL         = 0x10
 };
 
 enum TYPE
@@ -277,6 +280,16 @@ struct Statement
         {
             Statement* body;
         } compound_stmt;
+
+        struct
+        {
+            strptr target;
+        } goto_stmt;
+
+        struct
+        {
+            strptr name;
+        } label;
     };
 
     Statement* next;

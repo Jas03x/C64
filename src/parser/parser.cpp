@@ -451,6 +451,120 @@ bool Parser::parse_compound_stmt(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_goto_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    strptr target = { };
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_GOTO)
+    {
+        status = false;
+        error("expected 'goto'\n");
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type == TK_IDENTIFIER)
+        {
+            target = tk.identifier.string;
+        }
+        else
+        {
+            status = false;
+            error("expected identifier\n");
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_GOTO;
+        stmt->goto_stmt.target = target;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::parse_break_stmt(Statement** ptr)
+{
+    bool status = true;
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_BREAK)
+    {
+        status = false;
+        error("expected 'break'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_BREAK;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::parse_label(Statement** ptr)
+{
+    bool status = true;
+
+    strptr name = {};
+
+    Token tk = m_stack->pop();
+    if(tk.type == TK_IDENTIFIER)
+    {
+        name = tk.identifier.string;
+    }
+    else
+    {
+        status = false;
+        error("expected identifier\n");
+    }
+
+    if(m_stack->pop().type != TK_COLON)
+    {
+        status = false;
+        error("expected ':'\n");
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_LABEL;
+        stmt->label.name = name;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
@@ -460,6 +574,18 @@ bool Parser::parse_statement(Statement** ptr)
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
+        case TK_BREAK:
+        {
+            status = parse_break_stmt(&stmt);
+            break;
+        }
+
+        case TK_GOTO:
+        {
+            status = parse_goto_stmt(&stmt);
+            break;
+        }
+
         case TK_SEMICOLON:
         {
             break;
@@ -519,43 +645,50 @@ bool Parser::parse_statement(Statement** ptr)
 
         case TK_IDENTIFIER:
         {
-			int offset = 1;
-			while(status)
-			{
-				if(m_stack->peek(offset + 0).type == TK_COLON)
-				{
-					if((m_stack->peek(offset + 1).type == TK_COLON) && (m_stack->peek(offset + 2).type == TK_IDENTIFIER))
-					{
-						offset += 3;
-					}
-					else
-					{
-						status = false;
-						error("unexpected token sequence\n");
-					}
-				}
-                else
+            if((m_stack->peek(1).type == TK_COLON) && (m_stack->peek(2).type != TK_COLON))
+            {
+                status = parse_label(&stmt);
+            }
+            else
+            {
+                int offset = 1;
+                while(status)
                 {
-                    break;
+                    if(m_stack->peek(offset + 0).type == TK_COLON)
+                    {
+                        if((m_stack->peek(offset + 1).type == TK_COLON) && (m_stack->peek(offset + 2).type == TK_IDENTIFIER))
+                        {
+                            offset += 3;
+                        }
+                        else
+                        {
+                            status = false;
+                            error("unexpected token sequence\n");
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
-			}
-			
-			if(status)
-			{
-				switch(m_stack->peek(1).type)
-				{
-					case TK_IDENTIFIER:
-					case TK_ASTERISK:
-					{
-						goto DECLARATION;
-					}
+                
+                if(status)
+                {
+                    switch(m_stack->peek(1).type)
+                    {
+                        case TK_IDENTIFIER:
+                        case TK_ASTERISK:
+                        {
+                            goto DECLARATION;
+                        }
 
-					default:
-					{
-						goto EXPRESSION;
-					}
-				}
-			}
+                        default:
+                        {
+                            goto EXPRESSION;
+                        }
+                    }
+                }
+            }
 			
 			break;
         }
