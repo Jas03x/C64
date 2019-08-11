@@ -269,6 +269,7 @@ bool Tokenizer::read_escape_character(char& character)
         case 't':  { c = ASCII_TAB;             break; }
         case '"':  { c = ASCII_DOUBLE_QUOTE;    break; }
         case '\'': { c = ASCII_SINGLE_QUOTE;    break; }
+        case '\\': { c = ASCII_BACK_SLASH;      break; }
 
         case 'x':
         {
