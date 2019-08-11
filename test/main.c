@@ -24,12 +24,14 @@ namespace io
 
 U32 main(U32 argc, U8* argv[])
 {
-	enum
+	enum STATUS
 	{
 		BAD  = 0,
 		OK   = 1,
 		GOOD = 2
-	} STATUS = OK;
+	};
+
+	STATUS status = STATUS::OK;
 
 	switch(io::get_char())
 	{
