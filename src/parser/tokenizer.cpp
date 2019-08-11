@@ -264,12 +264,12 @@ bool Tokenizer::read_escape_character(char& character)
     char c = pop();
     switch(c)
     {
-        case 'n':  { c = ASCII_NEWLINE;         break; }
-        case 'r':  { c = ASCII_CARRIAGE_RETURN; break; }
-        case 't':  { c = ASCII_TAB;             break; }
-        case '"':  { c = ASCII_DOUBLE_QUOTE;    break; }
-        case '\'': { c = ASCII_SINGLE_QUOTE;    break; }
-        case '\\': { c = ASCII_BACK_SLASH;      break; }
+        case 'n':  { character = ASCII_NEWLINE;         break; }
+        case 'r':  { character = ASCII_CARRIAGE_RETURN; break; }
+        case 't':  { character = ASCII_TAB;             break; }
+        case '"':  { character = ASCII_DOUBLE_QUOTE;    break; }
+        case '\'': { character = ASCII_SINGLE_QUOTE;    break; }
+        case '\\': { character = ASCII_BACK_SLASH;      break; }
 
         case 'x':
         {
