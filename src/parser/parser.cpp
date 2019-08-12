@@ -1952,40 +1952,37 @@ bool Parser::parse_parameters(Parameter** params)
                 status = parse_variable(&var);
                 if(status)
                 {
-                    tk = m_stack->pop();
-                    if (tk.type == TK_IDENTIFIER)
+                    strptr name = {}; 
+
+                    if(m_stack->peek(0).type == TK_IDENTIFIER)
                     {
-                        strptr name = tk.identifier.string;
-
-                        if(m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
-                        {
-                            status = parse_array(&var);
-                        }
-
-                        if(status)
-                        {
-                            Parameter* p = new Parameter();
-                            p->type = var;
-                            p->name = name;
-                            *p_ptr = p;
-                            p_ptr = &p->next;
-
-                            tk = m_stack->pop();
-                            if (tk.type == TK_CLOSE_ROUND_BRACKET)
-                            {
-                                break;
-                            }
-                            else if (tk.type != TK_COMMA)
-                            {
-                                status = false;
-                                error("Unexpected token\n");
-                            }
-                        }
+                        tk = m_stack->pop();
+                        name = tk.identifier.string;
                     }
-                    else
+                    
+                    if(m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
                     {
-                        status = false;
-                        error("Expected parameter name\n");
+                        status = parse_array(&var);
+                    }
+
+                    if(status)
+                    {
+                        Parameter* p = new Parameter();
+                        p->type = var;
+                        p->name = name;
+                        *p_ptr = p;
+                        p_ptr = &p->next;
+
+                        tk = m_stack->pop();
+                        if (tk.type == TK_CLOSE_ROUND_BRACKET)
+                        {
+                            break;
+                        }
+                        else if (tk.type != TK_COMMA)
+                        {
+                            status = false;
+                            error("Unexpected token\n");
+                        }
                     }
                 }
             }

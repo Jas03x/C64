@@ -1,13 +1,4 @@
 
-enum STATUS
-{
-	GOOD = 0x0,
-	BAD  = 0x1,
-	FAILURE = 0x2,
-	WHAT,
-	SUCCESS = 0x3
-};
-
 namespace io
 {
     VOID print(const U8* buffer);
@@ -22,6 +13,8 @@ namespace io
 	}
 }
 
+VOID test(U8*, U16*, U32*, U64*);
+
 U32 main(U32 argc, U8* argv[])
 {
 	enum STATUS
@@ -30,8 +23,6 @@ U32 main(U32 argc, U8* argv[])
 		OK   = 1,
 		GOOD = 2
 	};
-
-	STATUS status = STATUS::OK;
 
 	switch(io::get_char())
 	{
