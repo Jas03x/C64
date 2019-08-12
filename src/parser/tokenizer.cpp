@@ -494,6 +494,10 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             else if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; }
             else if(_strncmp(str, "struct", 6)) { tk.type = TK_STRUCT; }
             else if(_strncmp(str, "switch", 6)) { tk.type = TK_SWITCH; }
+            else if(_strncmp(str, "public", 6)) { tk.type = TK_PUBLIC; }
+            else if(_strncmp(str, "import", 6)) { tk.type = TK_IMPORT; }
+            else if(_strncmp(str, "export", 6)) { tk.type = TK_EXPORT; }
+            else if(_strncmp(str, "module", 6)) { tk.type = TK_MODULE; }
             break;
         }
 
@@ -501,6 +505,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
         {
             if(_strncmp(str, "default", 7))      { tk.type = TK_DEFAULT; }
             else if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; }
+            else if(_strncmp(str, "private", 7)) { tk.type = TK_PRIVATE; }
             break;
         }
 

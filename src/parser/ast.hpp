@@ -131,7 +131,10 @@ enum
     STMT_CASE          = 0x14,
     STMT_LABEL         = 0x15,
     STMT_DEFAULT_CASE  = 0x16,
-    STMT_ENUM_DEF      = 0x17
+    STMT_ENUM_DEF      = 0x17,
+    STMT_IMPORT        = 0x18,
+    STMT_EXPORT        = 0x19,
+    STMT_MODULE        = 0x20
 };
 
 enum TYPE
@@ -237,6 +240,12 @@ struct Function
     Statement* body;
 };
 
+enum ACCESS
+{
+    PRIVATE = 0,
+    PUBLIC  = 1
+};
+
 struct Statement
 {
     uint8_t type;
@@ -338,6 +347,23 @@ struct Statement
             strptr name;
             Enum*  enumerator;
         } enum_def;
+
+        struct
+        {
+            strptr module_name;
+        } import_stmt;
+
+        struct
+        {
+            strptr module_name;
+        } export_stmt;
+
+        struct
+        {
+            uint8_t access;
+            strptr  name;
+        } module_decl;
+
     };
 
     Statement* next;

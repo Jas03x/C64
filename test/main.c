@@ -1,19 +1,5 @@
 
-namespace io
-{
-    VOID print(const U8* buffer);
-	U8   get_char();
-
-	typedef struct { VOID* handle; } FILE;
-
-	namespace file
-	{
-		FILE* open(const U8* path);
-		VOID  close(FILE* handle);
-	}
-}
-
-VOID test(U8*, U16*, U32*, U64*);
+import io;
 
 U32 main(U32 argc, U8* argv[])
 {

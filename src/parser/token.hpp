@@ -52,6 +52,11 @@ enum TOKEN
     TK_CASE,
     TK_DEFAULT,
     TK_ENUM,
+    TK_PUBLIC,
+    TK_PRIVATE,
+    TK_IMPORT,
+    TK_EXPORT,
+    TK_MODULE,
     TK_EOF,
     TK_COUNT
 };

@@ -281,6 +281,24 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
     switch(stmt->type)
     {
+        case STMT_IMPORT:
+        {
+            printf("IMPORT: %.*s\n", stmt->import_stmt.module_name.len, stmt->import_stmt.module_name.ptr);
+            break;
+        }
+
+        case STMT_EXPORT:
+        {
+            printf("EXPORT: %.*s\n", stmt->export_stmt.module_name.len, stmt->export_stmt.module_name.ptr);
+            break;
+        }
+
+        case STMT_MODULE:
+        {
+            printf("%s MODULE: %.*s\n", stmt->module_decl.access == ACCESS::PUBLIC ? "PUBLIC" : "PRIVATE", stmt->module_decl.name.len, stmt->module_decl.name.ptr);
+            break;
+        }
+
         case STMT_ENUM_DEF:
         {
             debug_print_enum(stmt->enum_def.enumerator);
@@ -566,6 +584,11 @@ void debug_print_token(const Token& tk)
         case TK_WHILE: { str = "TK_WHILE"; break; }
         case TK_EOF: { str = "TK_EOF"; break; }
 		case TK_COLON: { str = "TK_COLON"; break; }
+        case TK_PRIVATE: { str = "PRIVATE"; break; }
+        case TK_PUBLIC: { str = "PUBLIC"; break; }
+        case TK_IMPORT: { str = "IMPORT"; break; }
+        case TK_EXPORT: { str = "EXPORT"; break; }
+        case TK_MODULE: { str = "MODULE"; break; }
         default: break;
     }
 
