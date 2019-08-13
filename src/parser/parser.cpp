@@ -174,10 +174,16 @@ bool Parser::parse_struct(Structure** ptr)
 
     strptr name = {};
 
+    bool is_union = false;
+
     Token tk = m_stack->pop();
-    if(tk.type != TK_STRUCT)
+    if(tk.type == TK_UNION)
     {
-        error("expected struct\n");
+        is_union = true;
+    }
+    else if(tk.type != TK_STRUCT)
+    {
+        error("expected structure type\n");
         status = false;
     }
     
@@ -278,6 +284,7 @@ bool Parser::parse_struct(Structure** ptr)
     if(status)
     {
         Structure* structure = new Structure();
+        structure->is_union = is_union;
         structure->name = name;
         structure->members = head;
 
@@ -1120,6 +1127,7 @@ bool Parser::parse_statement(Statement** ptr)
             break;
         }
 
+        case TK_UNION:
         case TK_STRUCT:
         {
             tk = m_stack->peek(1);
@@ -2250,6 +2258,7 @@ bool Parser::parse_variable(Variable** ptr)
                 break;
             }
 
+            case TK_UNION:
             case TK_STRUCT:
             {
                 Structure* structure = nullptr;

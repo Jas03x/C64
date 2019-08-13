@@ -1,8 +1,29 @@
 
 import io;
 
+union var
+{
+	U8  u8;
+	U16 u6;
+	U32 u32;
+	U64 u64;
+
+	I8  i8;
+	I16 i6;
+	I32 i32;
+	I64 i64;
+
+	VOID* ptr;
+};
+
 U32 main(U32 argc, U8* argv[])
 {
+	union
+	{
+		U8 a;
+		U8 b;
+	} pair;
+
 	enum STATUS
 	{
 		BAD  = 0,

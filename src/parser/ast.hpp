@@ -164,6 +164,8 @@ struct Structure
 {
     strptr name;
 
+    bool is_union;
+
     struct Member
     {
         strptr    name;

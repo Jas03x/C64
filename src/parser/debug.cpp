@@ -150,13 +150,14 @@ void debug_print_expr(Expression* expr, unsigned int level)
 void debug_print_struct(const Structure* structure, unsigned level)
 {
     debug_indent(level);
+    const char* type = structure->is_union ? "UNION" : "STRUCT";
     if(structure->name.len == 0)
     {
-        printf("STRUCT:\n");
+        printf("%s:\n", type);
     }
     else
     {
-        printf("STRUCT %.*s:\n", structure->name.len, structure->name.ptr);
+        printf("%s %.*s:\n", type, structure->name.len, structure->name.ptr);
     }
 
     for(Structure::Member* m = structure->members; m != nullptr; m = m->next)
@@ -196,7 +197,7 @@ void debug_print_variable(const Variable* var, unsigned int level)
     {
         if(var->structure->name.len > 0)
         {
-            printf("STRUCT: %.*s\n", var->structure->name.len, var->structure->name.ptr);
+            printf("%s: %.*s\n", var->structure->is_union ? "UNION" : "STRUCT", var->structure->name.len, var->structure->name.ptr);
         }
         else
         {
@@ -405,7 +406,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
         case STMT_STRUCT_DEF:
         {
-            printf("STRUCT\n");
+            printf("%s\n", stmt->struct_def.structure->is_union ? "UNION" : "STRUCT");
 
             debug_indent(level + 1);
             printf("NAME: %.*s\n", stmt->struct_def.name.len, stmt->struct_def.name.ptr);
@@ -589,6 +590,7 @@ void debug_print_token(const Token& tk)
         case TK_IMPORT: { str = "IMPORT"; break; }
         case TK_EXPORT: { str = "EXPORT"; break; }
         case TK_MODULE: { str = "MODULE"; break; }
+        case TK_UNION: { str = "UNION"; break; }
         default: break;
     }
 

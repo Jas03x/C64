@@ -49,6 +49,7 @@ enum TOKEN
     TK_ELSE,
     TK_CONTINUE,
     TK_SWITCH,
+    TK_UNION,
     TK_CASE,
     TK_DEFAULT,
     TK_ENUM,

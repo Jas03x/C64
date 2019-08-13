@@ -485,6 +485,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             if(_strncmp(str, "break", 5))      { tk.type = TK_BREAK; }
             else if(_strncmp(str, "const", 5)) { tk.type = TK_CONST; }
             else if(_strncmp(str, "while", 5)) { tk.type = TK_WHILE; }
+            else if(_strncmp(str, "union", 5)) { tk.type = TK_UNION; }
             break;
         }
 
