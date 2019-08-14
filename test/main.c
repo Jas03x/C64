@@ -1,46 +1,34 @@
 
 import io;
 
-union var
+VOID run(VOID(*pfn_array[2])())
 {
-	U8  u8;
-	U16 u6;
-	U32 u32;
-	U64 u64;
+	pfn_array[0]();
+	pfn_array[1]();
+}
 
-	I8  i8;
-	I16 i6;
-	I32 i32;
-	I64 i64;
+VOID print_hello()
+{
+	io::print("hello ");
+}
 
-	VOID* ptr;
-};
+VOID print_world()
+{
+	io::print("world\n");
+}
+
+typedef VOID (*pfn_print_hello_world[2])();
 
 U32 main(U32 argc, U8* argv[])
 {
-	union
+	VOID (*pfn_array[2])() =
 	{
-		U8 a;
-		U8 b;
-	} pair;
-
-	enum STATUS
-	{
-		BAD  = 0,
-		OK   = 1,
-		GOOD = 2
+		&print_hello,
+		&print_world
 	};
 
-	switch(io::get_char())
-	{
-		case 'A': io::print("very good!\n"); break;
-		case 'B': io::print("not bad!\n");   break;
-		default:
-		{
-			io::print("you are a failure\n");
-			break;
-		}
-	}
+	run(pfn_array);
 
     return 0;
 }
+

@@ -23,7 +23,8 @@ private:
         PRECEDENCE_LEVEL_7       =  7,
         PRECEDENCE_LEVEL_8       =  8,
         PRECEDENCE_LEVEL_9       =  9,
-        PRECEDENCE_LEVEL_MAX     = 10
+		PRECEDENCE_LEVEL_10      = 10,
+        PRECEDENCE_LEVEL_MAX     = 11
     };
 
 private:
@@ -53,6 +54,7 @@ private:
 
     bool parse_enum(Enum** ptr);
 
+	bool parse_function_pointer(strptr& name, Variable** ptr, Variable* ret_type);
     bool parse_import_stmt(Statement** ptr);
     bool parse_export_stmt(Statement** ptr);
     bool parse_module_stmt(Statement** ptr);

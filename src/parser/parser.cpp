@@ -412,6 +412,67 @@ bool Parser::parse_namespace(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_function_pointer(strptr& name, Variable** ptr, Variable* ret_type)
+{
+	bool status = true;
+
+	Variable* var = nullptr;
+
+	if (m_stack->pop().type != TK_OPEN_ROUND_BRACKET)
+	{
+		status = false;
+		error("expected '('\n");
+	}
+	else
+	{
+		if (m_stack->pop().type != TK_ASTERISK)
+		{
+			status = false;
+			error("expected '*'\n");
+		}
+		else
+		{
+			Token tk = m_stack->peek(0);
+			if (tk.type == TK_IDENTIFIER)
+			{
+				m_stack->pop();
+				name = tk.identifier.string;
+			}
+
+			var = new Variable();
+			var->type = TYPE_FUNCTION_POINTER;
+			var->func_ptr.ret_type = ret_type;
+
+			Variable* var_ptr = var; // a copy because the parse array function will over-write the pointer
+
+			if (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
+			{
+				status = parse_array(&var);
+			}
+			
+			if (status)
+			{
+				if (m_stack->pop().type == TK_CLOSE_ROUND_BRACKET)
+				{
+					status = parse_parameters(&var_ptr->func_ptr.parameters);
+				}
+				else
+				{
+					status = false;
+					error("expected ')'\n");
+				}
+			}
+		}
+	}
+
+	if (status)
+	{
+		*ptr = var;
+	}
+
+	return status;
+}
+
 bool Parser::parse_typedef(Statement** ptr)
 {
     bool status = true;
@@ -433,15 +494,28 @@ bool Parser::parse_typedef(Statement** ptr)
 
     if(status)
     {
-        if(m_stack->peek(0).type == TK_IDENTIFIER)
-        {
-            status = parse_identifier(&name);
-        }
-        else
-        {
-            status = false;
-            error("expected identifier\n");
-        }
+		tk = m_stack->peek(0);
+
+		if (tk.type == TK_IDENTIFIER)
+		{
+			status = parse_identifier(&name);
+		}
+		else if (tk.type == TK_OPEN_ROUND_BRACKET)
+		{
+			strptr id = {};
+			status = parse_function_pointer(id, &variable, variable);
+
+			if (status)
+			{
+				name = new Identifier();
+				name->str = id;
+			}
+		}
+		else
+		{
+			status = false;
+			error("unexpected token\n");
+		}
     }
 
     if(status)
@@ -1579,7 +1653,17 @@ bool Parser::parse_expression(Expression** ptr)
             case TK_OPEN_ROUND_BRACKET:
             {
                 bool is_func_call = false;
-                if(list_tail != nullptr) { is_func_call = list_tail->expr->type != EXPR_OPERATION; }
+                if(list_tail != nullptr)
+				{
+					if (list_tail->expr->type != EXPR_OPERATION)
+					{
+						is_func_call = true;
+					}
+					else
+					{
+						is_func_call = list_tail->expr->operation.op == EXPR_OP_INDEX;
+					}
+				}
 
                 if(!is_func_call)
                 {
@@ -1611,12 +1695,9 @@ bool Parser::parse_expression(Expression** ptr)
                     if(status)
                     {
                         expr = new Expression();
-                        expr->type = EXPR_CALL;
-                        expr->call.function = list_tail->expr;
-                        expr->call.arguments = args;
-
-                        list_tail->expr = expr;
-                        expr = nullptr; // we will not add this expression node to the list
+                        expr->type = EXPR_OPERATION;
+						expr->operation.op = EXPR_OP_FUNCTION_CALL;
+                        expr->operation.call.arguments = args;
                     }
                 }
                 
@@ -1768,31 +1849,32 @@ bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op
     const static uint8_t TABLE[] =
     {
         PRECEDENCE_LEVEL_INVALID, // EXPR_OP_INVALID
-        PRECEDENCE_LEVEL_5, // EXPR_OP_ADD
-        PRECEDENCE_LEVEL_5, // EXPR_OP_SUB
-        PRECEDENCE_LEVEL_4, // EXPR_OP_MUL
-        PRECEDENCE_LEVEL_4, // EXPR_OP_DIV,
-        PRECEDENCE_LEVEL_8, // EXPR_OP_LOGICAL_NOT
-        PRECEDENCE_LEVEL_8, // EXPR_OP_LOGICAL_AND
-        PRECEDENCE_LEVEL_8, // EXPR_OP_LOGICAL_OR
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_COMPLEMENT
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_XOR
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_AND
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_OR
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_L_SHIFT
-        PRECEDENCE_LEVEL_6, // EXPR_OP_BITWISE_R_SHIFT
-        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_EQUAL
-        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_NOT_EQUAL
-        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_LESS_THAN
-        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_MORE_THAN
-        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
-        PRECEDENCE_LEVEL_7, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
-        PRECEDENCE_LEVEL_3, // EXPR_OP_REFERENCE
-        PRECEDENCE_LEVEL_3, // EXPR_OP_DEREFERENCE
-        PRECEDENCE_LEVEL_8, // EXPR_OP_ASSIGN
+        PRECEDENCE_LEVEL_6, // EXPR_OP_ADD
+        PRECEDENCE_LEVEL_6, // EXPR_OP_SUB
+        PRECEDENCE_LEVEL_5, // EXPR_OP_MUL
+        PRECEDENCE_LEVEL_5, // EXPR_OP_DIV,
+        PRECEDENCE_LEVEL_9, // EXPR_OP_LOGICAL_NOT
+        PRECEDENCE_LEVEL_9, // EXPR_OP_LOGICAL_AND
+        PRECEDENCE_LEVEL_9, // EXPR_OP_LOGICAL_OR
+        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_COMPLEMENT
+        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_XOR
+        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_AND
+        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_OR
+        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_L_SHIFT
+        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_R_SHIFT
+        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_EQUAL
+        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_NOT_EQUAL
+        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_LESS_THAN
+        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_MORE_THAN
+        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
+        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
+        PRECEDENCE_LEVEL_4, // EXPR_OP_REFERENCE
+        PRECEDENCE_LEVEL_4, // EXPR_OP_DEREFERENCE
+        PRECEDENCE_LEVEL_9, // EXPR_OP_ASSIGN
         PRECEDENCE_LEVEL_1, // EXPR_OP_ACCESS_FIELD
         PRECEDENCE_LEVEL_1, // EXPR_OP_ARROW
-        PRECEDENCE_LEVEL_2  // EXPR_OP_INDEX
+        PRECEDENCE_LEVEL_2, // EXPR_OP_INDEX
+		PRECEDENCE_LEVEL_3  // EXPR_OP_FUNCTION_CALL
     };
 
     bool ret = false;
@@ -1851,7 +1933,7 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
                             if(lhs == nullptr)
                             {
                                 status = false;
-                                error("No LHS for index operation\n");
+                                error("no lhs for index operation\n");
                             }
                             else
                             {
@@ -1860,6 +1942,24 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
                             
                             break;
                         }
+
+						case EXPR_OP_FUNCTION_CALL:
+						{
+							prev = it->prev;
+							Expression* lhs = prev == nullptr ? nullptr : prev->expr;
+
+							if (lhs == nullptr)
+							{
+								status = false;
+								error("no lhs for function call\n");
+							}
+							else
+							{
+								it->expr->operation.call.function = lhs;
+							}
+
+							break;
+						}
 
                         default:
                         {
@@ -1879,15 +1979,15 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
                                 {
                                     case EXPR_OP_ACCESS_FIELD:
                                     {
-                                        bool valid = false;
-                                        valid |= rhs->type == EXPR_IDENTIFIER;
-                                        valid |= rhs->type == EXPR_CALL;
+                                        //bool valid = false;
+                                        //valid |= rhs->type == EXPR_IDENTIFIER;
+                                        //valid |= rhs->type == EXPR_OPERATION && rhs->operation.op == EXPR_OP_FUNCTION_CALL;
 
-                                        if(!valid)
-                                        {
+                                        //if(!valid)
+                                        //{
                                             error("RHS of accessor must be an identifier\n");
                                             status = false;
-                                        }
+                                        //}
                                         
                                         break;
                                     }
@@ -2136,11 +2236,16 @@ bool Parser::parse_parameters(Parameter** params)
                 {
                     strptr name = {}; 
 
-                    if(m_stack->peek(0).type == TK_IDENTIFIER)
+					tk = m_stack->peek(0);
+                    if(tk.type == TK_IDENTIFIER)
                     {
                         tk = m_stack->pop();
                         name = tk.identifier.string;
                     }
+					else if (tk.type == TK_OPEN_ROUND_BRACKET)
+					{
+						status = parse_function_pointer(name, &var, var);
+					}
                     
                     if(m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
                     {
@@ -2531,15 +2636,20 @@ bool Parser::parse_declaration(Statement** ptr)
     
     if(status)
     {
-        tk = m_stack->pop();
-        if(tk.type != TK_IDENTIFIER)
+        tk = m_stack->peek(0);
+		if (tk.type == TK_IDENTIFIER)
+		{
+			m_stack->pop();
+			name = tk.identifier.string;
+		}
+		else if (tk.type == TK_OPEN_ROUND_BRACKET)
+		{
+			status = parse_function_pointer(name, &var, var);
+		}
+		else
         {
             error("Expected identifier\n");
             status = false;
-        }
-        else
-        {
-            name = tk.identifier.string;
         }
     }
 
@@ -2609,9 +2719,10 @@ bool Parser::parse_value(Expression** ptr)
                     func_name->identifier = identifier;
 
                     expr = new Expression();
-                    expr->type = EXPR_CALL;
-                    expr->call.function = func_name;
-                    expr->call.arguments = args;
+                    expr->type = EXPR_OPERATION;
+					expr->operation.op = EXPR_OP_FUNCTION_CALL;
+                    expr->operation.call.function = func_name;
+                    expr->operation.call.arguments = args;
                 }
             }
             else

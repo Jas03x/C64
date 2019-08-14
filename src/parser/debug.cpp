@@ -44,38 +44,60 @@ void debug_print_expr(Expression* expr, unsigned int level)
 
         case EXPR_OPERATION:
         {
-            switch(expr->operation.op)
-            {
-                case EXPR_OP_ADD:                    { printf("+\n");   break; }
-                case EXPR_OP_SUB:                    { printf("-\n");   break; }
-                case EXPR_OP_MUL:                    { printf("*\n");   break; }
-                case EXPR_OP_DIV:                    { printf("/\n");   break; }
-                case EXPR_OP_LOGICAL_NOT:            { printf("NOT\n"); break; }
-                case EXPR_OP_LOGICAL_AND:            { printf("AND\n"); break; }
-                case EXPR_OP_LOGICAL_OR:             { printf("OR\n");  break; }
-                case EXPR_OP_BITWISE_COMPLEMENT:     { printf("~\n");   break; }
-                case EXPR_OP_BITWISE_XOR:            { printf("^\n");   break; }
-                case EXPR_OP_BITWISE_AND:            { printf("&\n");   break; }
-                case EXPR_OP_BITWISE_OR:             { printf("|\n");   break; }
-                case EXPR_OP_BITWISE_L_SHIFT:        { printf("<<\n");  break; }
-                case EXPR_OP_BITWISE_R_SHIFT:        { printf(">>\n");  break; }
-                case EXPR_OP_CMP_EQUAL:              { printf("==\n");  break; }
-                case EXPR_OP_CMP_NOT_EQUAL:          { printf("!=\n");  break; }
-                case EXPR_OP_CMP_LESS_THAN:          { printf("<\n");   break; }
-                case EXPR_OP_CMP_MORE_THAN:          { printf(">\n");   break; }
-                case EXPR_OP_CMP_LESS_THAN_OR_EQUAL: { printf("<=\n");  break; }
-                case EXPR_OP_CMP_MORE_THAN_OR_EQUAL: { printf(">=\n");  break; }
-                case EXPR_OP_ASSIGN:                 { printf("=\n");   break; }
-                case EXPR_OP_ARROW:                  { printf("->\n");  break; }
-                case EXPR_OP_REFERENCE:              { printf("REF\n");    break; }
-                case EXPR_OP_DEREFERENCE:            { printf("DEREF\n");  break; }
-                case EXPR_OP_ACCESS_FIELD:           { printf("ACCESS\n"); break; }
-                case EXPR_OP_INDEX:                  { printf("INDEX\n");  break; }
-                default:                             { printf("Unknown operator\n"); break; }
-            }
+			if (expr->operation.op == EXPR_OP_FUNCTION_CALL)
+			{
+				printf("CALL:\n");
 
-            debug_print_expr(expr->operation.lhs, level + 1);
-            debug_print_expr(expr->operation.rhs, level + 1);
+				debug_indent(level + 1);
+				printf("FUNCTION:\n");
+
+				debug_print_expr(expr->operation.call.function, level + 2);
+
+				for (Argument* a = expr->operation.call.arguments; a != nullptr; a = a->next)
+				{
+					debug_indent(level + 1);
+					printf("ARG:\n");
+
+					debug_print_expr(a->value, level + 2);
+				}
+
+				break;
+			}
+			else
+			{
+				switch (expr->operation.op)
+				{
+				case EXPR_OP_ADD: { printf("+\n");   break; }
+				case EXPR_OP_SUB: { printf("-\n");   break; }
+				case EXPR_OP_MUL: { printf("*\n");   break; }
+				case EXPR_OP_DIV: { printf("/\n");   break; }
+				case EXPR_OP_LOGICAL_NOT: { printf("NOT\n"); break; }
+				case EXPR_OP_LOGICAL_AND: { printf("AND\n"); break; }
+				case EXPR_OP_LOGICAL_OR: { printf("OR\n");  break; }
+				case EXPR_OP_BITWISE_COMPLEMENT: { printf("~\n");   break; }
+				case EXPR_OP_BITWISE_XOR: { printf("^\n");   break; }
+				case EXPR_OP_BITWISE_AND: { printf("&\n");   break; }
+				case EXPR_OP_BITWISE_OR: { printf("|\n");   break; }
+				case EXPR_OP_BITWISE_L_SHIFT: { printf("<<\n");  break; }
+				case EXPR_OP_BITWISE_R_SHIFT: { printf(">>\n");  break; }
+				case EXPR_OP_CMP_EQUAL: { printf("==\n");  break; }
+				case EXPR_OP_CMP_NOT_EQUAL: { printf("!=\n");  break; }
+				case EXPR_OP_CMP_LESS_THAN: { printf("<\n");   break; }
+				case EXPR_OP_CMP_MORE_THAN: { printf(">\n");   break; }
+				case EXPR_OP_CMP_LESS_THAN_OR_EQUAL: { printf("<=\n");  break; }
+				case EXPR_OP_CMP_MORE_THAN_OR_EQUAL: { printf(">=\n");  break; }
+				case EXPR_OP_ASSIGN: { printf("=\n");   break; }
+				case EXPR_OP_ARROW: { printf("->\n");  break; }
+				case EXPR_OP_REFERENCE: { printf("REF\n");    break; }
+				case EXPR_OP_DEREFERENCE: { printf("DEREF\n");  break; }
+				case EXPR_OP_ACCESS_FIELD: { printf("ACCESS\n"); break; }
+				case EXPR_OP_INDEX: { printf("INDEX\n");  break; }
+				default: { printf("Unknown operator\n"); break; }
+				}
+
+				debug_print_expr(expr->operation.lhs, level + 1);
+				debug_print_expr(expr->operation.rhs, level + 1);
+			}
 
             break;
         }
@@ -116,26 +138,6 @@ void debug_print_expr(Expression* expr, unsigned int level)
         case EXPR_IDENTIFIER:
         {
             debug_print_identifier(expr->identifier);
-            break;
-        }
-
-        case EXPR_CALL:
-        {
-            printf("CALL:\n");
-
-            debug_indent(level + 1);
-            printf("FUNCTION:\n");
-
-            debug_print_expr(expr->call.function, level + 2);
-
-            for(Argument* a = expr->call.arguments; a != nullptr; a = a->next)
-            {
-                debug_indent(level + 1);
-                printf("ARG:\n");
-
-                debug_print_expr(a->value, level + 2);
-            }
-
             break;
         }
 
@@ -227,6 +229,7 @@ void debug_print_variable(const Variable* var, unsigned int level)
             case TYPE_VOID:   { type_str = "VOID";   break; }
             case TYPE_PTR:    { type_str = "PTR";    break; }
             case TYPE_STRUCT: { type_str = "STRUCT"; break; }
+			case TYPE_FUNCTION_POINTER:     { type_str = "FUNCTION POINTER";     break; }
             case TYPE_CONSTANT_SIZED_ARRAY: { type_str = "CONSTANT SIZED ARRAY"; break; }
             case TYPE_VARIABLE_SIZED_ARRAY: { type_str = "VARIABLE SIZED ARRAY"; break; }
             default: { break; }
@@ -241,6 +244,27 @@ void debug_print_variable(const Variable* var, unsigned int level)
                 debug_print_variable(var->pointer, level + 1);
                 break;
             }
+
+			case TYPE_FUNCTION_POINTER:
+			{
+				debug_indent(level + 1);
+				printf("RETURN:\n");
+				debug_print_variable(var->func_ptr.ret_type, level + 2);
+
+				debug_indent(level + 1);
+				printf("PARAMETERS:\n");
+				for (Parameter* p = var->func_ptr.parameters; p != nullptr; p = p->next)
+				{
+					debug_indent(level + 1);
+					printf("PARAMETER:\n");
+
+					debug_print_variable(p->type, level + 2);
+
+					debug_indent(level + 2);
+					printf("NAME: %.*s\n", p->name.len, p->name.ptr);
+				}
+				break;
+			}
 
             case TYPE_CONSTANT_SIZED_ARRAY:
             case TYPE_VARIABLE_SIZED_ARRAY:

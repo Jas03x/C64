@@ -26,8 +26,7 @@ enum
     EXPR_IDENTIFIER  = 0x3,
     EXPR_ASSIGN      = 0x4,
     EXPR_OPERATION   = 0x5,
-    EXPR_CALL        = 0x6,
-    EXPR_INITIALIZER = 0x7
+    EXPR_INITIALIZER = 0x6
 };
 
 enum
@@ -57,7 +56,8 @@ enum
     EXPR_OP_ASSIGN                 = 0x16,
     EXPR_OP_ACCESS_FIELD           = 0x17,
     EXPR_OP_ARROW                  = 0x18,
-    EXPR_OP_INDEX                  = 0x19
+    EXPR_OP_INDEX                  = 0x19,
+	EXPR_OP_FUNCTION_CALL          = 0x1A
 };
 
 struct Initializer
@@ -92,15 +92,21 @@ struct Expression
         struct
         {
             uint8_t     op;
-            Expression* lhs;
-            Expression* rhs;
-        } operation;
+			union
+			{
+				struct
+				{
+					Expression* lhs;
+					Expression* rhs;
+				};
 
-        struct
-        {
-            Expression* function;
-            Argument*   arguments;
-        } call;
+				struct
+				{
+					Expression* function;
+					Argument*   arguments;
+				} call;
+			};
+        } operation;
 
         Initializer initializer;
     };
@@ -154,8 +160,9 @@ enum TYPE
     TYPE_PTR     = 0x0C,
     TYPE_STRUCT  = 0x0D,
     TYPE_ENUM    = 0x0E,
-    TYPE_CONSTANT_SIZED_ARRAY = 0x0F,
-    TYPE_VARIABLE_SIZED_ARRAY = 0x10
+	TYPE_FUNCTION_POINTER     = 0x0F,
+    TYPE_CONSTANT_SIZED_ARRAY = 0x10,
+    TYPE_VARIABLE_SIZED_ARRAY = 0x11
 };
 
 struct Variable;
@@ -203,6 +210,7 @@ struct Enum
     Value* values;
 };
 
+struct Parameter;
 
 struct Variable
 {
@@ -221,6 +229,12 @@ struct Variable
 
         Enum*      enumerator;
         Structure* structure;
+
+		struct
+		{
+			Variable*  ret_type;
+			Parameter* parameters;
+		} func_ptr;
 
         const Variable* pointer;
     };
