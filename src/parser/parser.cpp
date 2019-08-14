@@ -1789,7 +1789,7 @@ bool Parser::parse_expression(Expression** ptr)
             case TK_PLUS: case TK_MINUS: case TK_PERCENT:
             case TK_FORWARD_SLASH: case TK_CARET:
             case TK_RIGHT_ARROW_HEAD: case TK_LEFT_ARROW_HEAD:
-            case TK_EQUAL: case TK_DOT:
+            case TK_EQUAL: case TK_DOT: case TK_EXPLANATION_MARK:
             {
                 if(!parse_operator(&expr))
                 {
