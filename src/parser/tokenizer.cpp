@@ -440,29 +440,34 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             switch(str[0])
             {
                 case 'a': { if(_strncmp(str, "and", 3)) { tk.type = TK_AND; } break; }
-                case 'f':
-                {
-                    if(_strncmp(str, "for", 3)) { tk.type = TK_FOR; }
-                    break;
-                }
+                case 'f': { if(_strncmp(str, "for", 3)) { tk.type = TK_FOR; } break; }
                 case 'F':
                 {
-                    if(_strncmp(str, "F32", 3))      { tk = { TK_TYPE, { TK_TYPE_F32 } }; }
-                    else if(_strncmp(str, "F64", 3)) { tk = { TK_TYPE, { TK_TYPE_F64 } }; }
+                    switch(str[1])
+                    {
+                        case '3': { if(_strncmp(str, "F32", 3)) { tk = { TK_TYPE, { TK_TYPE_F32 } }; } break; }
+                        case '6': { if(_strncmp(str, "F64", 3)) { tk = { TK_TYPE, { TK_TYPE_F64 } }; } break; }
+                    }
                     break;
                 }
                 case 'I':
                 {
-                    if(_strncmp(str, "I16", 3))      { tk = { TK_TYPE, { TK_TYPE_I16 } }; }
-                    else if(_strncmp(str, "I32", 3)) { tk = { TK_TYPE, { TK_TYPE_I32 } }; }
-                    else if(_strncmp(str, "I64", 3)) { tk = { TK_TYPE, { TK_TYPE_I64 } }; }
+                    switch(str[1])
+                    {
+                        case '1': { if(_strncmp(str, "I16", 3)) { tk = { TK_TYPE, { TK_TYPE_I16 } }; } break; }
+                        case '3': { if(_strncmp(str, "I32", 3)) { tk = { TK_TYPE, { TK_TYPE_I32 } }; } break; }
+                        case '6': { if(_strncmp(str, "I64", 3)) { tk = { TK_TYPE, { TK_TYPE_I64 } }; } break; }
+                    }
                     break;
                 }
                 case 'U':
                 {
-                    if(_strncmp(str, "U16", 3))      { tk = { TK_TYPE, { TK_TYPE_U16 } }; }
-                    else if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, { TK_TYPE_U32 } }; }
-                    else if(_strncmp(str, "U64", 3)) { tk = { TK_TYPE, { TK_TYPE_U64 } }; }
+                    switch(str[1])
+                    {
+                        case '1': { if(_strncmp(str, "U16", 3)) { tk = { TK_TYPE, { TK_TYPE_U16 } }; } break; }
+                        case '3': { if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, { TK_TYPE_U32 } }; } break; }
+                        case '6': { if(_strncmp(str, "U64", 3)) { tk = { TK_TYPE, { TK_TYPE_U64 } }; } break; }
+                    }
                     break;
                 }
             }
@@ -472,41 +477,73 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 
         case 4:
         {
-            if(_strncmp(str, "case", 4))      { tk.type = TK_CASE;                  }
-            else if(_strncmp(str, "else", 4)) { tk.type = TK_ELSE;                  }
-            else if(_strncmp(str, "enum", 4)) { tk.type = TK_ENUM;                  }
-            else if(_strncmp(str, "goto", 4)) { tk.type = TK_GOTO;                  }
-            else if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; }
+            switch(str[0])
+            {
+                case 'c': { if(_strncmp(str, "case", 4)) { tk.type = TK_CASE;                  } break; }
+                case 'g': { if(_strncmp(str, "goto", 4)) { tk.type = TK_GOTO;                  } break; }
+                case 'v': { if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; } break; }
+                case 'e':
+                {
+                    switch(str[1])
+                    {
+                        case 'l': { if(_strncmp(str, "else", 4)) { tk.type = TK_ELSE; } break; }
+                        case 'n': { if(_strncmp(str, "enum", 4)) { tk.type = TK_ENUM; } break; }
+                    }
+                    break;
+                }
+            }
             break;
         }
 
         case 5:
         {
-            if(_strncmp(str, "break", 5))      { tk.type = TK_BREAK; }
-            else if(_strncmp(str, "const", 5)) { tk.type = TK_CONST; }
-            else if(_strncmp(str, "while", 5)) { tk.type = TK_WHILE; }
-            else if(_strncmp(str, "union", 5)) { tk.type = TK_UNION; }
+            switch(str[0])
+            {
+                case 'b': { if(_strncmp(str, "break", 5)) { tk.type = TK_BREAK; } break; }
+                case 'c': { if(_strncmp(str, "const", 5)) { tk.type = TK_CONST; } break; }
+                case 'w': { if(_strncmp(str, "while", 5)) { tk.type = TK_WHILE; } break; }
+                case 'u': { if(_strncmp(str, "union", 5)) { tk.type = TK_UNION; } break; }
+            }
             break;
         }
 
         case 6:
         {
-            if(_strncmp(str, "return", 6))      { tk.type = TK_RETURN; }
-            else if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; }
-            else if(_strncmp(str, "struct", 6)) { tk.type = TK_STRUCT; }
-            else if(_strncmp(str, "switch", 6)) { tk.type = TK_SWITCH; }
-            else if(_strncmp(str, "public", 6)) { tk.type = TK_PUBLIC; }
-            else if(_strncmp(str, "import", 6)) { tk.type = TK_IMPORT; }
-            else if(_strncmp(str, "export", 6)) { tk.type = TK_EXPORT; }
-            else if(_strncmp(str, "module", 6)) { tk.type = TK_MODULE; }
+            switch(str[0])
+            {
+                case 'e':
+                {
+                    switch(str[2])
+                    {
+                        case 'p': { if(_strncmp(str, "export", 6)) { tk.type = TK_EXPORT; } break; }
+                        case 't': { if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; } break; }
+                    }
+                }
+                case 'i': { if(_strncmp(str, "import", 6)) { tk.type = TK_IMPORT; } break; }
+                case 'm': { if(_strncmp(str, "module", 6)) { tk.type = TK_MODULE; } break; }
+                case 'p': { if(_strncmp(str, "public", 6)) { tk.type = TK_PUBLIC; } break; }
+                case 'r': { if(_strncmp(str, "return", 6)) { tk.type = TK_RETURN; } break; }
+                case 's':
+                {
+                    switch(str[1])
+                    {
+                        case 't': { if(_strncmp(str, "struct", 6)) { tk.type = TK_STRUCT; } break; }
+                        case 'w': { if(_strncmp(str, "switch", 6)) { tk.type = TK_SWITCH; } break; }
+                    }
+                    break;
+                }
+            }
             break;
         }
 
         case 7:
         {
-            if(_strncmp(str, "default", 7))      { tk.type = TK_DEFAULT; }
-            else if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; }
-            else if(_strncmp(str, "private", 7)) { tk.type = TK_PRIVATE; }
+            switch(str[0])
+            {
+                case 'd': { if(_strncmp(str, "default", 7)) { tk.type = TK_DEFAULT; } break; }
+                case 'p': { if(_strncmp(str, "private", 7)) { tk.type = TK_PRIVATE; } break; }
+                case 't': { if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; } break; }
+            }
             break;
         }
 
