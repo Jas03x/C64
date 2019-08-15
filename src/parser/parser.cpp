@@ -1634,6 +1634,46 @@ bool Parser::parse_initializer(Expression** ptr)
     return status;
 }
 
+bool Parser::parse_cast(Expression** ptr)
+{
+	bool status = true;
+
+	Variable* var = nullptr;
+
+	Token tk = m_stack->peek(0);
+	if (tk.type == TK_OPEN_ROUND_BRACKET)
+	{
+		m_stack->pop();
+		status = parse_variable(&var);
+	}
+	else
+	{
+		status = false;
+		error("unexpected token\n");
+	}
+
+	if (status)
+	{
+		if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+		{
+			status = false;
+			error("expected ')'\n");
+		}
+	}
+
+	if (status)
+	{
+		Expression* expr = new Expression();
+		expr->type = EXPR_OPERATION;
+		expr->operation.op = EXPR_OP_STATIC_CAST;
+		expr->operation.cast.type = var;
+
+		*ptr = expr;
+	}
+
+	return status;
+}
+
 bool Parser::parse_expression(Expression** ptr)
 {
     bool status = true;
@@ -1667,25 +1707,45 @@ bool Parser::parse_expression(Expression** ptr)
 
                 if(!is_func_call)
                 {
-                    m_stack->pop();
+					bool is_cast = false;
+					switch (m_stack->peek(1).type)
+					{
+						case TK_TYPE:
+						case TK_CONST:
+						{
+							is_cast = true;
+							break;
+						}
 
-                    Expression* sub_expr = nullptr;
-                    status = parse_expression(&sub_expr);
+						default: break;
+					}
 
-                    if(status)
-                    {
-                        if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
-                        {
-                            error("Invalid expression, expected close bracket\n");
-                            status = false;
-                        }
-                        else
-                        {
-                            expr = new Expression();
-                            expr->type = EXPR_SUB_EXPR;
-                            expr->sub_expr = sub_expr;
-                        }
-                    }
+					if (is_cast)
+					{
+						status = parse_cast(&expr);
+					}
+					else
+					{
+						m_stack->pop();
+
+						Expression* sub_expr = nullptr;
+						status = parse_expression(&sub_expr);
+
+						if (status)
+						{
+							if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+							{
+								error("Invalid expression, expected close bracket\n");
+								status = false;
+							}
+							else
+							{
+								expr = new Expression();
+								expr->type = EXPR_SUB_EXPR;
+								expr->sub_expr = sub_expr;
+							}
+						}
+					}
                 }
                 else
                 {
@@ -1874,7 +1934,9 @@ bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op
         PRECEDENCE_LEVEL_1, // EXPR_OP_ACCESS_FIELD
         PRECEDENCE_LEVEL_1, // EXPR_OP_ARROW
         PRECEDENCE_LEVEL_2, // EXPR_OP_INDEX
-		PRECEDENCE_LEVEL_3  // EXPR_OP_FUNCTION_CALL
+		PRECEDENCE_LEVEL_3, // EXPR_OP_FUNCTION_CALL
+		PRECEDENCE_LEVEL_4, // EXPR_OP_STATIC_CAST
+		PRECEDENCE_LEVEL_4  // EXPR_OP_REINTERPRET_CAST
     };
 
     bool ret = false;
@@ -1925,6 +1987,24 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
                             break;
                         }
 
+						case EXPR_OP_STATIC_CAST:
+						case EXPR_OP_REINTERPRET_CAST:
+						{
+							next = it->next;
+							Expression* rhs = next == nullptr ? nullptr : next->expr;
+
+							if (rhs == nullptr)
+							{
+								status = false;
+								error("rhs null in cast\n");
+							}
+							else
+							{
+								it->expr->operation.cast.expr = rhs;
+							}
+							break;
+						}
+
                         case EXPR_OP_INDEX:
                         {
                             prev = it->prev;
@@ -1971,7 +2051,7 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
                             if((rhs == nullptr) || (lhs == nullptr))
                             {
                                 status = false;
-                                error("RHS or LHS null in operation\n");
+                                error("rhs or lhs null in operation\n");
                             }
                             else
                             {

@@ -5,6 +5,7 @@
 #include <token.hpp>
 
 struct Expression; // forward declare "expression" for "argument"
+struct Variable;
 
 struct Argument
 {
@@ -57,7 +58,9 @@ enum
     EXPR_OP_ACCESS_FIELD           = 0x17,
     EXPR_OP_ARROW                  = 0x18,
     EXPR_OP_INDEX                  = 0x19,
-	EXPR_OP_FUNCTION_CALL          = 0x1A
+	EXPR_OP_FUNCTION_CALL          = 0x1A,
+	EXPR_OP_STATIC_CAST            = 0x1B,
+	EXPR_OP_REINTERPRET_CAST       = 0x1C
 };
 
 struct Initializer
@@ -99,6 +102,12 @@ struct Expression
 					Expression* lhs;
 					Expression* rhs;
 				};
+
+				struct
+				{
+					Variable*   type;
+					Expression* expr;
+				} cast;
 
 				struct
 				{

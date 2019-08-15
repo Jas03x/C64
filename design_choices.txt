@@ -13,7 +13,8 @@
 		- similarly, we used "export <module name>;" in a source file to show this source's functions will define the functions for the declared module
 			- a c file can only export to one module
 
+- Macros: Not used because we want to use enums and inline functions instead
+
 - Classes, templates, and other object oriented concepts:
 	- These concepts will not be implemented in C64 because they conflict with the goals
-
 	- These concepts will be added later in an extended version of the language

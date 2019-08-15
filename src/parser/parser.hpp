@@ -54,6 +54,7 @@ private:
 
     bool parse_enum(Enum** ptr);
 
+	bool parse_cast(Expression** ptr);
 	bool parse_function_pointer(strptr& name, Variable** ptr, Variable* ret_type);
     bool parse_import_stmt(Statement** ptr);
     bool parse_export_stmt(Statement** ptr);

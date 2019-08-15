@@ -1,39 +1,16 @@
 
 import io;
 
-VOID run(VOID(*pfn_array[2])(U8))
-{
-	pfn_array[0](1);
-	pfn_array[1](1);
-}
-
-VOID print_hello(U8 val)
-{
-	if(val != 0)
-	{
-		io::print("hello ");
-	}
-}
-
-VOID print_world(U8 val)
-{
-	if(val != 0)
-	{
-		io::print("world\n");
-	}
-}
-
-typedef VOID (*pfn_print_hello_world[2])();
-
 U32 main(U32 argc, U8* argv[])
 {
-	VOID (*pfn_array[2])() =
-	{
-		&print_hello,
-		&print_world
-	};
+	F64 a = 3.1452;
+	//U64 b = static_cast<U64>(a);
+	//I64 c = reinterpret_cast<I64>(a);
+	U64 b = (U64) a;
 
-	run(pfn_array);
+	void* strt = (const struct { U64 a; U32 b; }*) { 1, 2 };
+	
+	io::print("Hello world\n");
 
     return 0;
 }
