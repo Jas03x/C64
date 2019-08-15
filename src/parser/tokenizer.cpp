@@ -429,7 +429,6 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
                 case 'o': { if(_strncmp(str, "or", 2)) { tk.type = TK_OR;                  } break; }
                 case 'I': { if(_strncmp(str, "I8", 2)) { tk = { TK_TYPE, { TK_TYPE_I8 } }; } break; }
                 case 'U': { if(_strncmp(str, "U8", 2)) { tk = { TK_TYPE, { TK_TYPE_U8 } }; } break; }
-                default:  { break; }
             }
 
             break;
