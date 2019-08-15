@@ -59,8 +59,9 @@ enum
     EXPR_OP_ARROW                  = 0x18,
     EXPR_OP_INDEX                  = 0x19,
 	EXPR_OP_FUNCTION_CALL          = 0x1A,
-	EXPR_OP_STATIC_CAST            = 0x1B,
-	EXPR_OP_REINTERPRET_CAST       = 0x1C
+	EXPR_OP_AUTO_CAST              = 0x1B,
+	EXPR_OP_STATIC_CAST            = 0x1C,
+	EXPR_OP_REINTERPRET_CAST       = 0x1D
 };
 
 struct Initializer

@@ -521,6 +521,18 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             if(_strncmp(str, "namespace", 9)) { tk.type = TK_NAMESPACE; }
             break;
         }
+
+		case 11:
+		{
+			if (_strncmp(str, "static_cast", 11)) { tk.type = TK_STATIC_CAST; }
+			break;
+		}
+
+		case 16:
+		{
+			if (_strncmp(str, "reinterpret_cast", 16)) { tk.type = TK_REINTERPRET_CAST; }
+			break;
+		}
     }
 
     if(tk.type == TK_INVALID)

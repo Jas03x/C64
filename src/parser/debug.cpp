@@ -46,6 +46,12 @@ void debug_print_expr(Expression* expr, unsigned int level)
 					break;
 				}
 
+				case EXPR_OP_AUTO_CAST:
+				{
+					printf("AUTO CAST:\n");
+					goto PRINT_CAST;
+				}
+
 				case EXPR_OP_STATIC_CAST:
 				{
 					printf("STATIC CAST:\n");

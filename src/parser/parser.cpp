@@ -1638,37 +1638,77 @@ bool Parser::parse_cast(Expression** ptr)
 {
 	bool status = true;
 
-	Variable* var = nullptr;
+	uint8_t cast_type = 0;
+	Variable* type = nullptr;
+	Expression* expr = nullptr;
 
 	Token tk = m_stack->peek(0);
-	if (tk.type == TK_OPEN_ROUND_BRACKET)
+	switch(tk.type)
 	{
-		m_stack->pop();
-		status = parse_variable(&var);
-	}
-	else
-	{
-		status = false;
-		error("unexpected token\n");
-	}
+		case TK_OPEN_ROUND_BRACKET:
+		{
+			m_stack->pop();
 
-	if (status)
-	{
-		if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+			cast_type = EXPR_OP_AUTO_CAST;
+			status = parse_variable(&type);
+
+			if (status)
+			{
+				if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+				{
+					status = false;
+					error("expected ')'\n");
+				}
+			}
+
+			break;
+		}
+
+		case TK_STATIC_CAST:
+		case TK_REINTERPRET_CAST:
+		{
+			tk = m_stack->pop();
+			cast_type = tk.type == TK_STATIC_CAST ? EXPR_OP_STATIC_CAST : EXPR_OP_REINTERPRET_CAST;
+
+			if (m_stack->pop().type != TK_LEFT_ARROW_HEAD) { status = false; error("expected '<'\n"); }
+			else { status = parse_variable(&type); }
+
+			if (status)
+			{
+				if (m_stack->pop().type != TK_RIGHT_ARROW_HEAD) { status = false; error("expected '>'\n"); }
+				else if (m_stack->pop().type != TK_OPEN_ROUND_BRACKET) { status = false; error("expected '('\n"); }
+				
+				if (status)
+				{
+					status = parse_expression(&expr);
+
+					if (status)
+					{
+						if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET) { status = false; error("expected ')'\n"); }
+					}
+				}
+			}
+
+			break;
+		}
+
+		default:
 		{
 			status = false;
-			error("expected ')'\n");
+			error("unexpected token\n");
+			break;
 		}
 	}
 
 	if (status)
 	{
-		Expression* expr = new Expression();
-		expr->type = EXPR_OPERATION;
-		expr->operation.op = EXPR_OP_STATIC_CAST;
-		expr->operation.cast.type = var;
+		Expression* expression = new Expression();
+		expression->type = EXPR_OPERATION;
+		expression->operation.op = cast_type;
+		expression->operation.cast.type = type;
+		expression->operation.cast.expr = expr;
 
-		*ptr = expr;
+		*ptr = expression;
 	}
 
 	return status;
@@ -1722,7 +1762,7 @@ bool Parser::parse_expression(Expression** ptr)
 
 					if (is_cast)
 					{
-						status = parse_cast(&expr);
+						goto PARSE_CAST;
 					}
 					else
 					{
@@ -1763,6 +1803,14 @@ bool Parser::parse_expression(Expression** ptr)
                 
                 break;
             }
+
+			PARSE_CAST:
+			case TK_STATIC_CAST:
+			case TK_REINTERPRET_CAST:
+			{
+				status = parse_cast(&expr);
+				break;
+			}
 
             case TK_COMMA:
             case TK_SEMICOLON:
@@ -1989,6 +2037,11 @@ bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
 
 						case EXPR_OP_STATIC_CAST:
 						case EXPR_OP_REINTERPRET_CAST:
+						{
+							break;
+						}
+
+						case EXPR_OP_AUTO_CAST:
 						{
 							next = it->next;
 							Expression* rhs = next == nullptr ? nullptr : next->expr;
