@@ -56,6 +56,9 @@ private:
 
 	bool parse_cast(Expression** ptr);
 	bool parse_function_pointer(strptr& name, Variable** ptr, Variable* ret_type);
+    bool parse_import_stmt(Statement** ptr);
+    bool parse_export_stmt(Statement** ptr);
+    bool parse_module_stmt(Statement** ptr);
     bool parse_enum_definition(Statement** ptr);
     bool parse_switch_stmt(Statement** ptr);
     bool parse_default_stmt(Statement** ptr);
