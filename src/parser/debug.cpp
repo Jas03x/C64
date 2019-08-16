@@ -644,6 +644,11 @@ void debug_print_token(const Token& tk)
         case TK_WHILE: { str = "TK_WHILE"; break; }
         case TK_EOF: { str = "TK_EOF"; break; }
 		case TK_COLON: { str = "TK_COLON"; break; }
+        case TK_PRIVATE: { str = "PRIVATE"; break; }
+        case TK_PUBLIC: { str = "PUBLIC"; break; }
+        case TK_IMPORT: { str = "IMPORT"; break; }
+        case TK_EXPORT: { str = "EXPORT"; break; }
+        case TK_MODULE: { str = "MODULE"; break; }
         case TK_UNION: { str = "UNION"; break; }
         default: break;
     }
