@@ -1,7 +1,5 @@
 #include <parser.hpp>
 
-#include <status.hpp>
-
 #define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
 
 Parser::Parser(TokenStack* stack)

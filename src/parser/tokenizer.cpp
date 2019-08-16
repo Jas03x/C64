@@ -5,8 +5,6 @@
 
 #include <ascii.hpp>
 
-#include <status.hpp>
-
 char Tokenizer::pop()
 {
     char c = 0;
@@ -587,7 +585,13 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 
 bool Tokenizer::next_token(Token& tk)
 {
-    STATUS status = STATUS_WORKING;
+    enum
+    {
+        STATUS_ERROR    = 0,
+        STATUS_WORKING  = 1,
+        STATUS_FINISHED = 2,
+        STATUS_SUCCESS  = 3
+    } status = STATUS_WORKING;
 
     while(status == STATUS_WORKING)
     {
