@@ -478,7 +478,14 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
         {
             switch(str[0])
             {
-                case 'c': { if(_strncmp(str, "case", 4)) { tk.type = TK_CASE;                  } break; }
+                case 'c':
+                {
+                    switch(str[3])
+                    {
+                        case 'a': { if(_strncmp(str, "case", 4)) { tk.type = TK_CASE;        } break; }
+                        case 't': { if(_strncmp(str, "cast", 4)) { tk.type = TK_STATIC_CAST; } break; }
+                    }
+                }
                 case 'g': { if(_strncmp(str, "goto", 4)) { tk.type = TK_GOTO;                  } break; }
                 case 'v': { if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; } break; }
                 case 'e':
@@ -521,7 +528,14 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
                 case 'i': { if(_strncmp(str, "import", 6)) { tk.type = TK_IMPORT; } break; }
                 case 'm': { if(_strncmp(str, "module", 6)) { tk.type = TK_MODULE; } break; }
                 case 'p': { if(_strncmp(str, "public", 6)) { tk.type = TK_PUBLIC; } break; }
-                case 'r': { if(_strncmp(str, "return", 6)) { tk.type = TK_RETURN; } break; }
+                case 'r':
+                {
+                    switch(str[1])
+                    {
+                        case 'e': { if(_strncmp(str, "return", 6)) { tk.type = TK_RETURN;           } break; }
+                        case '_': { if(_strncmp(str, "r_cast", 6)) { tk.type = TK_REINTERPRET_CAST; } break; }
+                    }
+                }
                 case 's':
                 {
                     switch(str[1])
@@ -557,18 +571,6 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             if(_strncmp(str, "namespace", 9)) { tk.type = TK_NAMESPACE; }
             break;
         }
-
-		case 11:
-		{
-			if (_strncmp(str, "static_cast", 11)) { tk.type = TK_STATIC_CAST; }
-			break;
-		}
-
-		case 16:
-		{
-			if (_strncmp(str, "reinterpret_cast", 16)) { tk.type = TK_REINTERPRET_CAST; }
-			break;
-		}
     }
 
     if(tk.type == TK_INVALID)
