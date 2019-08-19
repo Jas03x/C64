@@ -266,6 +266,12 @@ struct Function
     Statement* body;
 };
 
+enum ACCESS
+{
+    PRIVATE = 0,
+    PUBLIC  = 1
+};
+
 struct Statement
 {
     uint8_t type;

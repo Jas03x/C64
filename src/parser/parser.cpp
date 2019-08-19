@@ -957,6 +957,162 @@ bool Parser::parse_case_stmt(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_import_stmt(Statement** ptr)
+{
+    bool status = true;
+    strptr name = {};
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_IMPORT)
+    {
+        status = false;
+        error("expected 'import'\n");
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type == TK_IDENTIFIER)
+        {
+            name = tk.identifier.string;
+        }
+        else
+        {
+            status = false;
+            error("expected identifier\n");
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_IMPORT;
+        stmt->import_stmt.module_name = name;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::parse_export_stmt(Statement** ptr)
+{
+    bool status = true;
+    strptr name = {};
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_EXPORT)
+    {
+        status = false;
+        error("expected 'export'\n");
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type == TK_IDENTIFIER)
+        {
+            name = tk.identifier.string;
+        }
+        else
+        {
+            status = false;
+            error("expected identifier\n");
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_EXPORT;
+        stmt->import_stmt.module_name = name;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::parse_module_stmt(Statement** ptr)
+{
+    bool status = true;
+    
+    strptr name = {};
+    uint8_t access = ACCESS::PRIVATE;
+
+    Token tk = m_stack->peek(0);
+    if(tk.type == TK_PRIVATE)
+    {
+        m_stack->pop();
+        access = ACCESS::PRIVATE;
+    }
+    else if(tk.type == TK_PUBLIC)
+    {
+        m_stack->pop();
+        access = ACCESS::PUBLIC;
+    }
+
+    tk = m_stack->pop();
+    if(tk.type != TK_MODULE)
+    {
+        status = false;
+        error("expected 'module'\n");
+    }
+
+    if(status)
+    {
+        tk = m_stack->pop();
+        if(tk.type == TK_IDENTIFIER)
+        {
+            name = tk.identifier.string;
+        }
+        else
+        {
+            status = false;
+            error("expected identifier\n");
+        }
+    }
+
+    if(status)
+    {
+        if(m_stack->pop().type != TK_SEMICOLON)
+        {
+            status = false;
+            error("expected ';'\n");
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_MODULE;
+        stmt->module_decl.name = name;
+        stmt->module_decl.access = access;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
@@ -966,6 +1122,24 @@ bool Parser::parse_statement(Statement** ptr)
     Token tk = m_stack->peek(0);
     switch(tk.type)
     {
+        case TK_IMPORT:
+        {
+            status = parse_import_stmt(&stmt);
+            break;
+        }
+
+        case TK_EXPORT:
+        {
+            status = parse_export_stmt(&stmt);
+            break;
+        }
+
+        case TK_MODULE:
+        {
+            status = parse_module_stmt(&stmt);
+            break;
+        }
+
         case TK_BREAK:
         {
             status = parse_break_stmt(&stmt);

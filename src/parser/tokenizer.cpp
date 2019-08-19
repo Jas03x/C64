@@ -485,7 +485,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
                     }
                 }
                 case 'g': { if(_strncmp(str, "goto", 4)) { tk.type = TK_GOTO;                  } break; }
-                case 'v': { if(_strncmp(str, "void", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; } break; }
+                case 'v': { if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; } break; }
                 case 'e':
                 {
                     switch(str[1])
@@ -519,9 +519,13 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
                 {
                     switch(str[2])
                     {
+                        case 'p': { if(_strncmp(str, "export", 6)) { tk.type = TK_EXPORT; } break; }
                         case 't': { if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; } break; }
                     }
                 }
+                case 'i': { if(_strncmp(str, "import", 6)) { tk.type = TK_IMPORT; } break; }
+                case 'm': { if(_strncmp(str, "module", 6)) { tk.type = TK_MODULE; } break; }
+                case 'p': { if(_strncmp(str, "public", 6)) { tk.type = TK_PUBLIC; } break; }
                 case 'r':
                 {
                     switch(str[1])
@@ -548,6 +552,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             switch(str[0])
             {
                 case 'd': { if(_strncmp(str, "default", 7)) { tk.type = TK_DEFAULT; } break; }
+                case 'p': { if(_strncmp(str, "private", 7)) { tk.type = TK_PRIVATE; } break; }
                 case 't': { if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; } break; }
             }
             break;
