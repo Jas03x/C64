@@ -7,7 +7,7 @@ struct Person
 	U8* name;
 };
 
-VOID* jas;
+void* jas;
 
 U32 main(U32 argc, U8* argv[])
 {

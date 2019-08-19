@@ -485,7 +485,7 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
                     }
                 }
                 case 'g': { if(_strncmp(str, "goto", 4)) { tk.type = TK_GOTO;                  } break; }
-                case 'v': { if(_strncmp(str, "VOID", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; } break; }
+                case 'v': { if(_strncmp(str, "void", 4)) { tk = { TK_TYPE, { TK_TYPE_VOID } }; } break; }
                 case 'e':
                 {
                     switch(str[1])

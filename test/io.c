@@ -3,7 +3,7 @@ export io;
 
 namespace io
 {
-    VOID print(const U8* buffer)
+    void print(const U8* buffer)
     {
         for(U8* it = buffer; it != null; it++)
         {
@@ -13,11 +13,11 @@ namespace io
 
     U8 get_char();
 
-    typedef struct { VOID* handle; } FILE;
+    typedef struct { void* handle; } FILE;
 
     namespace file
     {
         FILE* open(const U8* path);
-        VOID  close(FILE* handle);
+        void  close(FILE* handle);
     }
 }
