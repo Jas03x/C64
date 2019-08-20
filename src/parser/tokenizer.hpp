@@ -40,8 +40,12 @@ private:
     bool read_character(Token& tk);
     
     bool read_escape_character(char& c);
+    bool read_word(const char*& str_ptr, unsigned int& str_len);
 
     bool read_token(Token& tk);
+    
+    bool read_preprocessor();
+    bool read_pp_include();
 
     bool process(char c, Token& tk);
     bool process(const char* str, unsigned int len, Token& tk);

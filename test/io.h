@@ -1,7 +1,5 @@
-
-public module io;
-
-import file;
+#ifndef IO_H
+#define IO_H
 
 namespace io
 {
@@ -10,3 +8,5 @@ namespace io
 
     void print(const U8* buffer);
 }
+
+#endif // IO_H

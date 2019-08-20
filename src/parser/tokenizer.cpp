@@ -5,6 +5,8 @@
 
 #include <ascii.hpp>
 
+#define _strncmp(str0, str1, num) (strncmp((str0), (str1), (num)) == 0)
+
 char Tokenizer::pop()
 {
     char c = 0;
@@ -331,9 +333,9 @@ bool Tokenizer::read_character(Token& tk)
     return status;
 }
 
-bool Tokenizer::read_token(Token& tk)
+bool Tokenizer::read_word(const char*& str_ptr, unsigned int& str_len)
 {
-    bool ret = true;
+    bool status = true;
 
     const char* ptr = current_ptr();
     unsigned int len = 0;
@@ -363,12 +365,117 @@ bool Tokenizer::read_token(Token& tk)
         }
     }
 
+    if(status)
+    {
+        str_ptr = ptr;
+        str_len = len;
+    }
+
+    return status;
+}
+
+bool Tokenizer::read_token(Token& tk)
+{
+    bool ret = true;
+
+    const char* ptr = nullptr;
+    unsigned int len = 0;
+    
+    ret = read_word(ptr, len);
     if(ret)
     {
         ret = process(ptr, len, tk);
     }
     
     return ret;
+}
+
+bool Tokenizer::read_pp_include()
+{
+    bool status = true;
+
+    while(status)
+    {
+        char c = pop();
+        if(c == '<')
+        {
+            break;
+        }
+        else if((c == 0) || (c == '\n'))
+        {
+            status = false;
+            printf("invalid preprocessor statement\n");
+        }
+    }
+
+    const char* ptr = current_ptr();
+    unsigned int len = 0;
+
+    while(true)
+    {
+        char c = pop();
+        if(c == '>')
+        {
+            break;
+        }
+        else if((c == 0) || (c == '\n'))
+        {
+            status = false;
+            printf("invalid include file name\n");
+        }
+        else
+        {
+            len ++;
+        }
+    }
+
+    printf("INCLUDE %.*s\n", len, ptr);
+
+    return status;
+}
+
+bool Tokenizer::read_preprocessor()
+{
+    bool status = true;
+    const char* ptr = nullptr;
+    unsigned int len = 0;
+
+    pop(); // pop the '#'
+
+    status = read_word(ptr, len);
+    if(status)
+    {
+        switch(len)
+        {
+            case 2: { if(_strncmp(ptr, "if",    2)) { } break; }
+            case 4: { if(_strncmp(ptr, "elif",  4)) { } break; }
+            case 5:
+            {
+                switch(ptr[0])
+                {
+                    case 'e': { if(_strncmp(ptr, "endif", 5)) { } break; }
+                    case 'i': { if(_strncmp(ptr, "ifdef", 5)) { } break; }
+                }
+                break;
+            }
+            case 6:
+            {
+                switch(ptr[0])
+                {
+                    case 'd': { if(_strncmp(ptr, "define", 6)) { } break; }
+                    case 'i': { if(_strncmp(ptr, "ifndef", 6)) { } break; }
+                }
+                break;
+            }
+            case 7: { if(_strncmp(ptr, "include", 7)) { status = read_pp_include(); } break; }
+        }
+    }
+
+    if(status)
+    {
+    }
+
+    return status;   
 }
 
 bool Tokenizer::process(char c, Token& tk)
@@ -412,7 +519,6 @@ bool Tokenizer::process(char c, Token& tk)
     return ret;
 }
 
-#define _strncmp(str0, str1, num) (strncmp((str0), (str1), (num)) == 0)
 bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 {
     bool ret = true;
@@ -519,13 +625,9 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
                 {
                     switch(str[2])
                     {
-                        case 'p': { if(_strncmp(str, "export", 6)) { tk.type = TK_EXPORT; } break; }
                         case 't': { if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; } break; }
                     }
                 }
-                case 'i': { if(_strncmp(str, "import", 6)) { tk.type = TK_IMPORT; } break; }
-                case 'm': { if(_strncmp(str, "module", 6)) { tk.type = TK_MODULE; } break; }
-                case 'p': { if(_strncmp(str, "public", 6)) { tk.type = TK_PUBLIC; } break; }
                 case 'r':
                 {
                     switch(str[1])
@@ -552,7 +654,6 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
             switch(str[0])
             {
                 case 'd': { if(_strncmp(str, "default", 7)) { tk.type = TK_DEFAULT; } break; }
-                case 'p': { if(_strncmp(str, "private", 7)) { tk.type = TK_PRIVATE; } break; }
                 case 't': { if(_strncmp(str, "typedef", 7)) { tk.type = TK_TYPEDEF; } break; }
             }
             break;
@@ -643,6 +744,12 @@ bool Tokenizer::next_token(Token& tk)
             {
                 pop();
                 status = process(c, tk) ? STATUS_SUCCESS : STATUS_ERROR;
+                break;
+            }
+
+            case '#':
+            {
+                status = read_preprocessor() ? STATUS_WORKING : STATUS_ERROR;
                 break;
             }
 

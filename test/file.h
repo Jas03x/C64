@@ -1,5 +1,5 @@
-
-public module file;
+#ifndef FILE_H
+#define FILE_H
 
 namespace file
 {
@@ -8,3 +8,5 @@ namespace file
     handle open(const U8* path);
     void   close(handle h);
 }
+
+#endif // FILE_H
