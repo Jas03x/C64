@@ -18,3 +18,5 @@
 - Classes, templates, and other object oriented concepts:
 	- These concepts will not be implemented in C64 because they conflict with the goals
 	- These concepts will be added later in an extended version of the language
+
+- Only modules can be made public or private because module headers are either released or not.
