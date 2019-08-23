@@ -28,12 +28,9 @@ bool Parser::parse(AST** ptr)
 
     while(status)
     {
-        Token tk = m_stack->peek(0);
-        
-        if(tk.type == TK_EOF)
+        if(m_stack->peek(0).type == TK_EOF)
         {
             m_stack->pop();
-
             break;
         }
         else
@@ -88,8 +85,7 @@ bool Parser::parse_identifier(Identifier** identifier)
 			
 			if(m_stack->peek(0).type == TK_COLON)
 			{
-				m_stack->pop();
-				
+                m_stack->pop();
 				if(m_stack->pop().type != TK_COLON)
 				{
 					status = false;
@@ -135,7 +131,6 @@ bool Parser::parse_body(Statement** ptr)
         if(tk.type == TK_CLOSE_CURLY_BRACKET)
         {
             m_stack->pop();
-
             break;
         }
         else
@@ -166,36 +161,35 @@ bool Parser::parse_body(Statement** ptr)
     return status;
 }
 
-bool Parser::parse_struct(Structure** ptr)
+bool Parser::parse_composite(Composite** ptr)
 {
     bool status = true;
 
     strptr name = {};
-
-    bool is_union = false;
+    uint8_t type = COMP_TYPE_INVALID;
 
     Token tk = m_stack->pop();
-    if(tk.type == TK_UNION)
+    switch(tk.type)
     {
-        is_union = true;
-    }
-    else if(tk.type != TK_STRUCT)
-    {
-        error("expected structure type\n");
-        status = false;
+        case TK_STRUCT: { type = COMP_TYPE_STRUCT; break; }
+        case TK_UNION:  { type = COMP_TYPE_UNION;  break; }
+        default:
+        {
+            status = false;
+            error("Expected 'struct' or 'union'\n");
+        }
     }
     
     if(status)
     {
-        tk = m_stack->peek(0);
-        if(tk.type == TK_IDENTIFIER)
+        if(m_stack->peek(0).type == TK_IDENTIFIER)
         {
-            m_stack->pop();
+            tk = m_stack->pop();
             name = tk.identifier.string;
         }
     }
 
-    Structure::Member *head = nullptr, *tail = nullptr;
+    Statement* body = nullptr;
 
     if(status)
     {
@@ -203,69 +197,7 @@ bool Parser::parse_struct(Structure** ptr)
 
         if(tk.type == TK_OPEN_CURLY_BRACKET)
         {
-            while(status)
-            {
-                if(m_stack->peek(0).type == TK_CLOSE_CURLY_BRACKET)
-                {
-                    m_stack->pop();
-                    break;
-                }
-
-                Statement* stmt = nullptr;
-                if(parse_statement(&stmt))
-                {
-                    if(stmt != nullptr)
-                    {
-                        Structure::Member* member = new Structure::Member();
-
-                        switch(stmt->type)
-                        {
-                            case STMT_VARIABLE_DECL:
-                            {
-                                if(stmt->variable.value != nullptr)
-                                {
-                                    delete stmt;
-                                    status = false;
-                                    error("non-const struct members cannot be assigned values\n");
-                                }
-                                else
-                                {
-                                    member->name = stmt->variable.name;
-                                    member->variable = stmt->variable.type;
-                                }
-                                break;
-                            }
-
-                            case STMT_STRUCT_DEF:
-                            {
-                                delete stmt;
-                                status = false;
-                                error("TODO: support nested structs\n");
-                                break;
-                            }
-
-                            default:
-                            {
-                                delete stmt;
-                                status = false;
-                                error("Invalid struct member\n");
-                                break;
-                            }
-                        }
-
-                        if(status)
-                        {
-                            if(tail == nullptr) { head = member; }
-                            else                { tail->next = member; }
-                            tail = member;
-                        }
-                    }
-                }
-                else
-                {
-                    status = false;
-                }
-            }
+            status = parse_body(&body);
         }
         else if(tk.type == TK_SEMICOLON)
         {
@@ -281,24 +213,24 @@ bool Parser::parse_struct(Structure** ptr)
 
     if(status)
     {
-        Structure* structure = new Structure();
-        structure->is_union = is_union;
-        structure->name = name;
-        structure->members = head;
+        Composite* composite = new Composite();
+        composite->type = type;
+        composite->name = name;
+        composite->body = body;
 
-        *ptr = structure;
+        *ptr = composite;
     }
 
     return status;
 }
 
-bool Parser::parse_struct_definition(Statement** ptr)
+bool Parser::parse_composite_definition(Statement** ptr)
 {
     Token tk = {};
-    Structure* structure = nullptr;
-    bool status = parse_struct(&structure);
+    Composite* composite = nullptr;
+    bool status = parse_composite(&composite);
 
-    if(status && (structure->name.len == 0))
+    if(status && (composite->name.len == 0))
     {
         status = false;
         error("struct name cannot be null\n");
@@ -317,9 +249,9 @@ bool Parser::parse_struct_definition(Statement** ptr)
     if(status)
     {
         Statement* statement = new Statement();
-        statement->type = STMT_STRUCT_DEF;
-        statement->struct_def.name = structure->name;
-        statement->struct_def.structure = structure;
+        statement->type = STMT_COMP_DEF;
+        statement->comp_def.name = composite->name;
+        statement->comp_def.composite = composite;
 
         *ptr = statement;
     }
@@ -331,16 +263,57 @@ bool Parser::parse_enum_definition(Statement** ptr)
 {
     bool status = true;
 
-    Token tk = {};
+    uint8_t type = STMT_INVALID;
+    strptr name = {};
     Enum* enumerator = nullptr;
-    
-    status = parse_enum(&enumerator);
+
+    Token tk = m_stack->pop();
+    if(tk.type != TK_ENUM)
+    {
+        status = false;
+        error("expected 'enum'\n");
+    }
+
     if(status)
     {
-        if(enumerator->name.len == 0)
+        if(m_stack->peek(0).type == TK_IDENTIFIER)
         {
-            status = false;
-            error("enum name cannot be null\n");
+            tk = m_stack->pop();
+            name = tk.identifier.string;
+        }
+    }
+    
+    if(status)
+    {
+        switch(m_stack->peek(0).type)
+        {
+            case ';':
+            {
+                type = STMT_ENUM_DECL;
+                break;
+            }
+
+            case '{':
+            {
+                type = STMT_ENUM_DEF;
+
+                status = parse_enum_body(&enumerator->values);
+                if(status)
+                {
+                    if(enumerator->name.len == 0)
+                    {
+                        status = false;
+                        error("enum name cannot be null\n");
+                    }
+                }
+                break;
+            }
+
+            default:
+            {
+                status = false;
+                error("unexpected token\n");
+            }
         }
     }
 
@@ -357,7 +330,7 @@ bool Parser::parse_enum_definition(Statement** ptr)
     if(status)
     {
         Statement* stmt = new Statement();
-        stmt->type = STMT_ENUM_DEF;
+        stmt->type = type;
         stmt->enum_def.name = enumerator->name;
         stmt->enum_def.enumerator = enumerator;
 
@@ -371,7 +344,7 @@ bool Parser::parse_namespace(Statement** ptr)
 {
     bool status = true;
 
-    Identifier* name = nullptr;
+    strptr name = { 0 };
     Statement*  body = nullptr;
 
     Token tk = m_stack->pop();
@@ -381,10 +354,10 @@ bool Parser::parse_namespace(Statement** ptr)
         error("expected 'namespace'\n");
     }
 
-    tk = m_stack->peek(0);
-    if(tk.type == TK_IDENTIFIER)
+    tk = m_stack->pop();
+    if(tk.type != TK_IDENTIFIER)
     {
-        status = parse_identifier(&name);
+        name = tk.identifier.string;
     }
     else
     {
@@ -401,7 +374,7 @@ bool Parser::parse_namespace(Statement** ptr)
     {
         Statement* stmt = new Statement();
         stmt->type = STMT_NAMESPACE;
-        stmt->name_space.identifier = name;
+        stmt->name_space.name       = name;
         stmt->name_space.statements = body;
 
         *ptr = stmt;
@@ -421,47 +394,45 @@ bool Parser::parse_function_pointer(strptr& name, Variable** ptr, Variable* ret_
 		status = false;
 		error("expected '('\n");
 	}
-	else
-	{
-		if (m_stack->pop().type != TK_ASTERISK)
-		{
-			status = false;
-			error("expected '*'\n");
-		}
-		else
-		{
-			Token tk = m_stack->peek(0);
-			if (tk.type == TK_IDENTIFIER)
-			{
-				m_stack->pop();
-				name = tk.identifier.string;
-			}
+    else if(m_stack->pop().type != TK_ASTERISK)
+    {
+        status = false;
+        error("expected '*'\n");
+    }
 
-			var = new Variable();
-			var->type = TYPE_FUNCTION_POINTER;
-			var->func_ptr.ret_type = ret_type;
+    if(status)
+    {
+        Token tk = m_stack->peek(0);
+        if (tk.type == TK_IDENTIFIER)
+        {
+            m_stack->pop();
+            name = tk.identifier.string;
+        }
 
-			Variable* var_ptr = var; // a copy because the parse array function will over-write the pointer
+        var = new Variable();
+        var->type = TYPE_FUNCTION_POINTER;
+        var->func_ptr.ret_type = ret_type;
 
-			if (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
-			{
-				status = parse_array(&var);
-			}
-			
-			if (status)
-			{
-				if (m_stack->pop().type == TK_CLOSE_ROUND_BRACKET)
-				{
-					status = parse_parameters(&var_ptr->func_ptr.parameters);
-				}
-				else
-				{
-					status = false;
-					error("expected ')'\n");
-				}
-			}
-		}
-	}
+        Variable* var_ptr = var; // a copy because the parse array function will over-write the pointer
+
+        if (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
+        {
+            status = parse_array(&var);
+        }
+        
+        if (status)
+        {
+            if (m_stack->pop().type == TK_CLOSE_ROUND_BRACKET)
+            {
+                status = parse_parameters(&var_ptr->func_ptr.parameters);
+            }
+            else
+            {
+                status = false;
+                error("expected ')'\n");
+            }
+        }
+    }
 
 	if (status)
 	{
@@ -475,7 +446,7 @@ bool Parser::parse_typedef(Statement** ptr)
 {
     bool status = true;
 
-    Identifier* name = nullptr;
+    strptr name = {};
     Variable* variable = nullptr;
 
     Token tk = m_stack->pop();
@@ -496,18 +467,11 @@ bool Parser::parse_typedef(Statement** ptr)
 
 		if (tk.type == TK_IDENTIFIER)
 		{
-			status = parse_identifier(&name);
+            name = tk.identifier.string;
 		}
 		else if (tk.type == TK_OPEN_ROUND_BRACKET)
 		{
-			strptr id = {};
-			status = parse_function_pointer(id, &variable, variable);
-
-			if (status)
-			{
-				name = new Identifier();
-				name->str = id;
-			}
+			status = parse_function_pointer(name, &variable, variable);
 		}
 		else
 		{
@@ -538,7 +502,7 @@ bool Parser::parse_typedef(Statement** ptr)
     {
         Statement* stmt = new Statement();
         stmt->type = STMT_TYPEDEF;
-        stmt->type_def.identifier = name;
+        stmt->type_def.name     = name;
         stmt->type_def.variable = variable;
 
         *ptr = stmt;
@@ -570,28 +534,56 @@ bool Parser::parse_compound_stmt(Statement** ptr)
     return status;
 }
 
-bool Parser::parse_enum(Enum** ptr)
+bool Parser::parse_enum_value(Enum::Value** ptr)
 {
     bool status = true;
 
-    strptr enum_name = {};
+    strptr  name = { };
+    Literal value = { };
 
     Token tk = m_stack->pop();
-    if(tk.type != TK_ENUM)
+    if(tk.type == TK_IDENTIFIER)
+    {
+        name = tk.identifier.string;
+    }
+    else
     {
         status = false;
-        error("expected 'enum'\n");
+        error("expected identifier\n");
     }
 
-    if(status)
+    if(m_stack->peek(0).type == TK_EQUAL)
     {
-        if(m_stack->peek(0).type == TK_IDENTIFIER)
+        m_stack->pop();
+        
+        if(m_stack->pop().type == TK_LITERAL)
         {
-            tk = m_stack->pop();
-            enum_name = tk.identifier.string;
+            value = tk.literal;
+        }
+        else
+        {
+            status = false;
+            error("expected literal\n");
         }
     }
+    
+    if(status)
+    {
+        Enum::Value* entry = new Enum::Value();
+        entry->name  = name;
+        entry->value = value;
 
+        *ptr = entry;
+    }
+
+    return status;
+}
+
+bool Parser::parse_enum_body(Enum::Value** ptr)
+{
+    bool status = true;
+
+    Token tk = m_stack->pop();
     if(status)
     {
         if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
@@ -603,63 +595,35 @@ bool Parser::parse_enum(Enum** ptr)
 
     Enum::Value *list_head = nullptr, *list_tail = nullptr;
 
-    if(status && (m_stack->peek(0).type != TK_CLOSE_CURLY_BRACKET))
+    if(status)
     {
-        while(status)
+        if(m_stack->peek(0).type == TK_CLOSE_CURLY_BRACKET)
         {
-            strptr  name = { };
-            Literal value = { };
-
-            tk = m_stack->pop();
-            if(tk.type == TK_IDENTIFIER)
+            m_stack->pop();
+        }
+        else
+        {
+            while(status)
             {
-                name = tk.identifier.string;
-            }
-            else
-            {
-                status = false;
-                error("expected identifier\n");
-            }
+                Enum::Value* entry = nullptr;
+                status = parse_enum_value(&entry);
 
-            tk = m_stack->peek(0);
-            if(tk.type == TK_EQUAL)
-            {
-                m_stack->pop();
-                tk = m_stack->pop();
-
-                if(tk.type == TK_LITERAL)
+                if(status)
                 {
-                    value = tk.literal;
-                }
-                else
-                {
-                    status = false;
-                    error("expected literal\n");
-                }
-            }
-            
-            if(status)
-            {
-                Enum::Value* entry = new Enum::Value();
-                entry->name  = name;
-                entry->value = value;
+                    if(list_tail == nullptr) { list_head = entry;       }
+                    else                     { list_tail->next = entry; }
+                    list_tail = entry;
 
-                if(list_tail == nullptr) { list_head = entry;       }
-                else                     { list_tail->next = entry; }
-                list_tail = entry;
-            }
-
-            if(status)
-            {
-                tk = m_stack->pop();
-                if(tk.type == TK_CLOSE_CURLY_BRACKET)
-                {
-                    break;
-                }
-                else if(tk.type != TK_COMMA)
-                {
-                    status = false;
-                    error("expected ',' or '}'\n");
+                    tk = m_stack->pop();
+                    if(tk.type == TK_CLOSE_CURLY_BRACKET)
+                    {
+                        break;
+                    }
+                    else if(tk.type != TK_COMMA)
+                    {
+                        status = false;
+                        error("expected ',' or '}'\n");
+                    }
                 }
             }
         }
@@ -667,11 +631,7 @@ bool Parser::parse_enum(Enum** ptr)
 
     if(status)
     {
-        Enum* enumerator = new Enum();
-        enumerator->name = enum_name;
-        enumerator->values = list_head;
-
-        *ptr = enumerator;
+        *ptr = list_head;
     }
 
     return status;
@@ -1031,7 +991,7 @@ bool Parser::parse_statement(Statement** ptr)
             tk = m_stack->peek(1);
             if(tk.type == TK_IDENTIFIER)
             {
-                status = parse_struct_definition(&stmt);
+                status = parse_composite_definition(&stmt);
             }
             else
             {
