@@ -199,11 +199,6 @@ bool Parser::parse_composite(Composite** ptr)
         {
             status = parse_body(&body);
         }
-        else if(tk.type == TK_SEMICOLON)
-        {
-            error("TODO: PARSE STRUCT PROTOTYPES\n");
-            status = false;
-        }
         else
         {
             error("Unexpected token %hhu\n", tk.type);
@@ -230,21 +225,7 @@ bool Parser::parse_composite_definition(Statement** ptr)
     Composite* composite = nullptr;
     bool status = parse_composite(&composite);
 
-    if(status && (composite->name.len == 0))
-    {
-        status = false;
-        error("struct name cannot be null\n");
-    }
-
-    if(status)
-    {
-        tk = m_stack->pop();
-        if(tk.type != TK_SEMICOLON)
-        {
-            status = false;
-            error("expected ';'\n");
-        }
-    }
+    // todo: handle forward declarations
 
     if(status)
     {
@@ -261,80 +242,19 @@ bool Parser::parse_composite_definition(Statement** ptr)
 
 bool Parser::parse_enum_definition(Statement** ptr)
 {
-    bool status = true;
-
-    uint8_t type = STMT_INVALID;
-    strptr name = {};
     Enum* enumerator = nullptr;
+    bool status = parse_enumerator(&enumerator);
 
-    Token tk = m_stack->pop();
-    if(tk.type != TK_ENUM)
-    {
-        status = false;
-        error("expected 'enum'\n");
-    }
+    // todo: handle forward declarations
 
     if(status)
     {
-        if(m_stack->peek(0).type == TK_IDENTIFIER)
-        {
-            tk = m_stack->pop();
-            name = tk.identifier.string;
-        }
-    }
-    
-    if(status)
-    {
-        switch(m_stack->peek(0).type)
-        {
-            case ';':
-            {
-                type = STMT_ENUM_DECL;
-                break;
-            }
+        Statement* statement = new Statement();
+        statement->type = STMT_ENUM_DEF;
+        statement->enum_def.name = enumerator->name;
+        statement->enum_def.enumerator = enumerator;
 
-            case '{':
-            {
-                type = STMT_ENUM_DEF;
-
-                status = parse_enum_body(&enumerator->values);
-                if(status)
-                {
-                    if(enumerator->name.len == 0)
-                    {
-                        status = false;
-                        error("enum name cannot be null\n");
-                    }
-                }
-                break;
-            }
-
-            default:
-            {
-                status = false;
-                error("unexpected token\n");
-            }
-        }
-    }
-
-    if(status)
-    {
-        tk = m_stack->pop();
-        if(tk.type != TK_SEMICOLON)
-        {
-            status = false;
-            error("expected ';'\n");
-        }
-    }
-
-    if(status)
-    {
-        Statement* stmt = new Statement();
-        stmt->type = type;
-        stmt->enum_def.name = enumerator->name;
-        stmt->enum_def.enumerator = enumerator;
-
-        *ptr = stmt;
+        *ptr = statement;
     }
 
     return status;
@@ -579,11 +499,28 @@ bool Parser::parse_enum_value(Enum::Value** ptr)
     return status;
 }
 
-bool Parser::parse_enum_body(Enum::Value** ptr)
+bool Parser::parse_enumerator(Enum** ptr)
 {
     bool status = true;
 
+    strptr name = {};
+
     Token tk = m_stack->pop();
+    if(tk.type != TK_ENUM)
+    {
+        status = false;
+        error("expected 'enum'\n");
+    }
+
+    if(status)
+    {
+        if(m_stack->peek(0).type == TK_IDENTIFIER)
+        {
+            tk = m_stack->pop();
+            name = tk.identifier.string;
+        }
+    }
+
     if(status)
     {
         if(m_stack->pop().type != TK_OPEN_CURLY_BRACKET)
@@ -631,7 +568,11 @@ bool Parser::parse_enum_body(Enum::Value** ptr)
 
     if(status)
     {
-        *ptr = list_head;
+        Enum* enumerator = new Enum();
+        enumerator->name = name;
+        enumerator->values = list_head;
+
+        *ptr = enumerator;
     }
 
     return status;

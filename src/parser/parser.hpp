@@ -52,12 +52,15 @@ private:
     bool parse_array(Variable** variable);
     bool parse_initializer(Expression** ptr);
 
-    bool parse_enum_body(Enum::Value** ptr);
+    bool parse_enumerator(Enum** ptr);
     bool parse_enum_value(Enum::Value** ptr);
+    bool parse_enum_definition(Statement** ptr);
+
+    bool parse_composite(Composite** composite);
+    bool parse_composite_definition(Statement** ptr);
 
 	bool parse_cast(Expression** ptr);
 	bool parse_function_pointer(strptr& name, Variable** ptr, Variable* ret_type);
-    bool parse_enum_definition(Statement** ptr);
     bool parse_switch_stmt(Statement** ptr);
     bool parse_default_stmt(Statement** ptr);
     bool parse_case_stmt(Statement** ptr);
@@ -77,8 +80,6 @@ private:
     bool parse_else_stmt(Statement** ptr);
     bool parse_return(Statement** stmt);
     bool parse_declaration(Statement** stmt);
-    bool parse_composite(Composite** composite);
-    bool parse_composite_definition(Statement** ptr);
     bool parse_function_decl(Variable* var, strptr name, Statement** ptr);
     bool parse_variable_decl(Variable* var, strptr name, Statement** ptr);
 
