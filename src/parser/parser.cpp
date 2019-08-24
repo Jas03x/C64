@@ -225,8 +225,6 @@ bool Parser::parse_composite_definition(Statement** ptr)
     Composite* composite = nullptr;
     bool status = parse_composite(&composite);
 
-    // todo: handle forward declarations
-
     if(status)
     {
         Statement* statement = new Statement();
@@ -244,8 +242,6 @@ bool Parser::parse_enum_definition(Statement** ptr)
 {
     Enum* enumerator = nullptr;
     bool status = parse_enumerator(&enumerator);
-
-    // todo: handle forward declarations
 
     if(status)
     {
@@ -928,41 +924,12 @@ bool Parser::parse_statement(Statement** ptr)
 
         case TK_UNION:
         case TK_STRUCT:
-        {
-            tk = m_stack->peek(1);
-            if(tk.type == TK_IDENTIFIER)
-            {
-                status = parse_composite_definition(&stmt);
-            }
-            else
-            {
-                goto DECLARATION;
-            }
-            
-            break;
-        }
-
         case TK_ENUM:
-        {
-            tk = m_stack->peek(1);
-            if(tk.type == TK_IDENTIFIER)
-            {
-                status = parse_enum_definition(&stmt);
-            }
-            else
-            {
-                goto DECLARATION;
-            }
-
-            break;
-        }
-
-        DECLARATION:
         case TK_TYPE:
         case TK_CONST:
         case TK_EXTERN:
         {
-            status = parse_declaration(&stmt);
+            status = parse_def_or_decl(&stmt);
             break;
         }
 
@@ -2224,19 +2191,13 @@ bool Parser::parse_variable(Variable** ptr)
             case TK_UNION:
             case TK_STRUCT:
             {
-                Structure* structure = nullptr;
-                status = parse_struct(&structure);
-
-                if(status && (structure->name.len > 0))
-                {
-                    status = false;
-                    error("inline struct cannot not have a name\n");
-                }
+                Composite* composite = nullptr;
+                status = parse_composite(&composite);
 
                 if(status)
                 {
-                    head->type = TYPE_STRUCT;
-                    head->structure = structure;
+                    head->type = TYPE_COMPOSITE;
+                    head->composite = composite;
                 }
 
                 break;
@@ -2245,7 +2206,7 @@ bool Parser::parse_variable(Variable** ptr)
             case TK_ENUM:
             {
                 Enum* enumerator = nullptr;
-                status = parse_enum(&enumerator);
+                status = parse_enumerator(&enumerator);
 
                 if(status && (enumerator->name.len > 0))
                 {
@@ -2378,12 +2339,6 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
         {
             tk = m_stack->pop();
 
-            if(var->flags.is_external_symbol && (tk.type == TK_EQUAL))
-            {
-                error("Cannot initialize an external symbol\n");
-                status = false;
-            }
-
             Statement* stmt = nullptr;
             if(status)
             {
@@ -2476,6 +2431,35 @@ bool Parser::parse_array(Variable** variable)
         if(status)
         {
             *variable = head;
+        }
+    }
+
+    return status;
+}
+
+bool Parser::parse_def_or_decl(Statement** ptr)
+{
+    bool status = true;
+
+    switch(m_stack->peek(0).type)
+    {
+        case TK_ENUM:
+        case TK_UNION:
+        case TK_STRUCT:
+        {
+            if((m_stack->peek(0).type == TK_IDENTIFIER) && (m_stack->peek(1).type == TK_SEMICOLON))
+            {
+                status = false;
+                error("TODO: DO DEM FORWARD DECLARATIONS\n");
+                break;
+            }
+
+            goto DEFAULT;
+        }
+
+        DEFAULT: default:
+        {
+            status = parse_declaration(ptr);
         }
     }
 
