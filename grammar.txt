@@ -1,0 +1,39 @@
+
+ROOT: STMT ...
+
+STMT:
+    ENUM NAME;                      |
+    UNION NAME;                     |
+    STRUCT NAME;                    |
+    STRUCT { STMT ... };            |
+    STRUCT { STMT ... } NAME;       |
+    STRUCT NAME { STMT ... } NAME;  |
+    UNION { STMT ... };             |
+    UNION { STMT ... } NAME;        |
+    UNION NAME { STMT ... } NAME;   |
+    ENUM { VALUE ... };             |
+    ENUM { VALUE ... } NAME;        |
+    ENUM NAME { VALUE ... } NAME;   |
+    TYPE NAME;                      |
+    TYPE NAME = EXPR;               |
+    TYPE NAME(ARG, ...) { ... }     |
+    RETURN EXPR;                    |
+
+EXPR:
+    ID                  |
+    LITERAL             |
+    (EXPR)              |
+    *EXPR               |
+    EXPR->NAME;         |
+    EXPR ++             |
+    EXPR --             |
+    EXPR = EXPR         |
+    EXPR += EXPR        |
+    EXPR *= EXPR        |
+    EXPR /= EXPR        |
+    EXPR = EXPR + EXPR  |
+    EXPR = EXPR - EXPR  |
+    EXPR = EXPR * EXPR  |
+    EXPR = EXPR / EXPR  |
+    EXPR(EXPR, ...)     |
+
