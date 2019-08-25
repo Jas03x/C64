@@ -2035,7 +2035,7 @@ bool Parser::parse_parameters(Parameter** params)
     bool status = true;
     Token tk = m_stack->pop();
 
-    *params = nullptr;
+    Parameter *head = nullptr, *tail = nullptr;
 
     if(tk.type != TK_OPEN_ROUND_BRACKET)
     {
@@ -2050,8 +2050,6 @@ bool Parser::parse_parameters(Parameter** params)
         }
         else
         {
-            Parameter** p_ptr = params;
-
             while (status)
             {
                 Variable* var = nullptr;
@@ -2079,11 +2077,13 @@ bool Parser::parse_parameters(Parameter** params)
 
                     if(status)
                     {
-                        Parameter* p = new Parameter();
-                        p->type = var;
-                        p->name = name;
-                        *p_ptr = p;
-                        p_ptr = &p->next;
+                        Parameter* param = new Parameter();
+                        param->type = var;
+                        param->name = name;
+                        
+                        if(head == nullptr) { head = param; }
+                        else                { tail->next = param; }
+                        tail = param;
 
                         tk = m_stack->pop();
                         if (tk.type == TK_CLOSE_ROUND_BRACKET)
@@ -2099,6 +2099,11 @@ bool Parser::parse_parameters(Parameter** params)
                 }
             }
         }
+    }
+
+    if(status)
+    {
+        *params = head;
     }
 
     return status;
@@ -2194,6 +2199,12 @@ bool Parser::parse_variable(Variable** ptr)
                 Composite* composite = nullptr;
                 status = parse_composite(&composite);
 
+                if(status && (composite->name.len == 0))
+                {
+                    status = false;
+                    error("inline structures cannot have names\n");
+                }
+
                 if(status)
                 {
                     head->type = TYPE_COMPOSITE;
@@ -2259,15 +2270,6 @@ bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
     bool status = true;
     uint8_t stmt_type = STMT_INVALID;
     Parameter* params = nullptr;
-
-    if(var->type == TYPE_STRUCT)
-    {
-        if(var->structure->name.len == 0)
-        {
-            status = false;
-            error("function cannot return unnamed struct\n");
-        }
-    }
 
     if(status)
     {
@@ -2478,41 +2480,47 @@ bool Parser::parse_declaration(Statement** ptr)
     
     if(status)
     {
-        tk = m_stack->peek(0);
-		if (tk.type == TK_IDENTIFIER)
-		{
-			m_stack->pop();
-			name = tk.identifier.string;
-		}
-		else if (tk.type == TK_OPEN_ROUND_BRACKET)
-		{
-			status = parse_function_pointer(name, &var, var);
-		}
-		else
+        switch(m_stack->peek(0).type)
         {
-            error("Expected identifier\n");
-            status = false;
+            case TK_IDENTIFIER:
+            {
+                tk = m_stack->pop();
+			    name = tk.identifier.string;
+                break;
+            }
+
+            case TK_OPEN_ROUND_BRACKET:
+            {
+                status = parse_function_pointer(name, &var, var);
+                break;
+            }
+
+            default:
+            {
+                error("unexpected token\n");
+                status = false;
+            }
         }
     }
 
     if(status)
     {
-        tk = m_stack->peek(0);
-
-        if(tk.type == TK_OPEN_ROUND_BRACKET)
+        switch(m_stack->peek(0).type)
         {
-            status = parse_function_decl(var, name, ptr);
-        }
-        else
-        {
-            if(tk.type == TK_OPEN_SQUARE_BRACKET)
+            case TK_OPEN_ROUND_BRACKET:
             {
-                status = parse_array(&var);
+                status = parse_function_decl(var, name, ptr);
+                break;
             }
 
-            if(status)
+            case TK_OPEN_SQUARE_BRACKET:
             {
-                status = parse_variable_decl(var, name, ptr);
+                status = parse_array(&var);
+                if(status)
+                {
+                    status = parse_variable_decl(var, name, ptr);
+                }
+                break;
             }
         }
     }
