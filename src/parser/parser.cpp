@@ -946,47 +946,25 @@ bool Parser::parse_statement(Statement** ptr)
 
         case TK_IDENTIFIER:
         {
-            if((m_stack->peek(1).type == TK_COLON) && (m_stack->peek(2).type != TK_COLON))
+            SymbolTable::Entry* entry = nullptr;
+            status = scan_identifier(&entry);
+            
+            if(status)
             {
-                status = parse_label(&stmt);
-            }
-            else
-            {
-                int offset = 1;
-                while(status)
+                uint8_t type = entry->type;
+                switch(entry->type)
                 {
-                    if(m_stack->peek(offset + 0).type == TK_COLON)
+                    case SymbolTable::Entry::TYPE_TYPEDEF:
+                    case SymbolTable::Entry::TYPE_COMPOSITE:
+                    case SymbolTable::Entry::TYPE_ENUMERATOR:
                     {
-                        if((m_stack->peek(offset + 1).type == TK_COLON) && (m_stack->peek(offset + 2).type == TK_IDENTIFIER))
-                        {
-                            offset += 3;
-                        }
-                        else
-                        {
-                            status = false;
-                            error("unexpected token sequence\n");
-                        }
-                    }
-                    else
-                    {
+                        status = parse_declaration(ptr);
                         break;
                     }
-                }
-                
-                if(status)
-                {
-                    switch(m_stack->peek(1).type)
-                    {
-                        case TK_IDENTIFIER:
-                        case TK_ASTERISK:
-                        {
-                            goto DECLARATION;
-                        }
 
-                        default:
-                        {
-                            goto EXPRESSION;
-                        }
+                    default:
+                    {
+                        goto EXPRESSION;
                     }
                 }
             }
@@ -1021,6 +999,67 @@ bool Parser::parse_statement(Statement** ptr)
     if(status)
     {
         *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::scan_identifier(SymbolTable::Entry** ptr)
+{
+    bool status = true;
+    SymbolTable::Entry* entry = m_symbols.current_scope();
+
+    int offset = 0;
+    while(status)
+    {
+        Token tk = m_stack->peek(offset);
+
+        if(tk.type == TK_IDENTIFIER)
+        {
+            entry = entry->search(tk.identifier.string);
+
+            if(entry == nullptr)
+            {
+                status = false;
+                error("unknown identifier\n");
+            }
+            else
+            {
+                if((m_stack->peek(offset + 1).type == TK_COLON) && (m_stack->peek(offset + 2).type == TK_COLON))
+                {
+                    switch(entry->type)
+                    {
+                        case SymbolTable::Entry::TYPE_NAMESPACE:
+                        case SymbolTable::Entry::TYPE_COMPOSITE:
+                        {
+                            offset += 3;
+                            break;
+                        }
+
+                        default:
+                        {
+                            status = false;
+                            error("invalid scope accessor\n");
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            status = false;
+            error("expected 'identifier'\n");
+        }
+    }
+
+    if(status)
+    {
+        *ptr = entry;
     }
 
     return status;
@@ -2449,11 +2488,20 @@ bool Parser::parse_def_or_decl(Statement** ptr)
         case TK_UNION:
         case TK_STRUCT:
         {
-            if((m_stack->peek(0).type == TK_IDENTIFIER) && (m_stack->peek(1).type == TK_SEMICOLON))
+            if(m_stack->peek(0).type == TK_IDENTIFIER)
             {
-                status = false;
-                error("TODO: DO DEM FORWARD DECLARATIONS\n");
-                break;
+                Token tk = m_stack->peek(1);
+                if(tk.type == TK_OPEN_CURLY_BRACKET)
+                {
+                    status = parse_definition(ptr);
+                    break;
+                }
+                else if(tk.type == TK_SEMICOLON)
+                {
+                    status = false;
+                    error("TODO: DO DEM FORWARD DECLARATIONS\n");
+                    break;
+                }
             }
 
             goto DEFAULT;
@@ -2463,6 +2511,34 @@ bool Parser::parse_def_or_decl(Statement** ptr)
         {
             status = parse_declaration(ptr);
         }
+    }
+
+    return status;
+}
+
+bool Parser::parse_definition(Statement** ptr)
+{
+    bool status = true;
+
+    switch(m_stack->peek(0).type)
+    {
+        case TK_ENUM:
+        {
+            status = parse_enum_definition(ptr);
+            break;
+        }
+
+        default:
+        {
+            status = parse_composite_definition(ptr);
+            break;
+        }
+    }
+
+    if(m_stack->pop().type != TK_SEMICOLON)
+    {
+        status = false;
+        error("expected ';'\n");
     }
 
     return status;

@@ -3,8 +3,7 @@
 
 #include <string>
 
-#include <symbol.hpp>
-#include <symbol_map.hpp>
+#include <symbol_table.hpp>
 #include <token_stack.hpp>
 #include <expression_list.hpp>
 
@@ -28,6 +27,7 @@ private:
     };
 
 private:
+    SymbolTable    m_symbols;
     TokenStack*    m_stack;
     ExpressionList m_list;
 
@@ -35,6 +35,7 @@ private:
     Parser(TokenStack* stack);
     ~Parser();
 
+    bool scan_identifier(SymbolTable::Entry** ptr)
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
     bool parse(AST** ptr);
@@ -61,6 +62,7 @@ private:
 
     bool parse_def_or_decl(Statement** ptr);
     bool parse_declaration(Statement** stmt);
+    bool parse_definition(Statement** stmt);
 
 	bool parse_cast(Expression** ptr);
 	bool parse_function_pointer(strptr& name, Variable** ptr, Variable* ret_type);
