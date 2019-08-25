@@ -35,7 +35,7 @@ private:
     Parser(TokenStack* stack);
     ~Parser();
 
-    bool scan_identifier(SymbolTable::Entry** ptr)
+    bool scan_identifier(SymbolTable::Entry** ptr);
     bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
     bool parse(AST** ptr);
