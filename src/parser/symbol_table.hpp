@@ -35,7 +35,7 @@ public:
         ~Entry();
 
         bool   insert(Entry* entry);
-        Entry* search(const strptr& name);
+        Entry* search(const strptr& sym_name);
     };
 
     Entry* m_global;
@@ -45,8 +45,8 @@ public:
     SymbolTable();
     ~SymbolTable();
 
-    void pop_scope();
-    void push_scope();
+    bool pop_scope();
+    bool push_scope(Entry* entry);
 
     Entry* current_scope();
 };

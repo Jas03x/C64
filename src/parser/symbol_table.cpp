@@ -18,149 +18,143 @@ int _strncmp(const char* str0, const char* str1, unsigned int len)
     return ret;
 }
 
-Symbol* SymbolMap::search_entry(SymbolMap::Entry* entry, const strptr& name)
+SymbolTable::Entry::Entry()
 {
-    Symbol* sym = nullptr;
+    name = {};
+    type = SymbolTable::Entry::TYPE_INVALID;
+    
+    value  = nullptr;
+    child  = nullptr;
+    parent = nullptr;
+    left   = nullptr;
+    right  = nullptr;
+}
 
-    if(entry != nullptr)
+SymbolTable::Entry::~Entry()
+{
+    if(value != nullptr) delete value;
+    if(child != nullptr) delete child;
+    if(left  != nullptr) delete left;
+    if(right != nullptr) delete right;
+}
+
+SymbolTable::Entry* SymbolTable::Entry::search(const strptr& sym_name)
+{
+    SymbolTable::Entry* entry = nullptr;
+
+    if(this->name.len > sym_name.len)
     {
-        if(entry->name.len > name.len)
+        if(this->right != nullptr) this->right->search(sym_name);
+    }
+    else if(this->name.len < sym_name.len)
+    {
+        if(this->left != nullptr) this->left->search(sym_name);
+    }
+    else
+    {
+        int dif = _strncmp(sym_name.ptr, this->name.ptr, sym_name.len);
+
+        if(dif == 0)
         {
-            sym = search_entry(entry->right, name);
+            entry = this;
         }
-        else if(entry->name.len < name.len)
+        else if(dif < 0)
         {
-            sym = search_entry(entry->left, name);
+            if(this->left != nullptr) this->left->search(sym_name);
         }
         else
         {
-            int dif = _strncmp(name.ptr, entry->name.ptr, name.len);
-
-            if(dif == 0)
-            {
-                sym = entry->symbol;
-            }
-            else if(dif < 0)
-            {
-                sym = search_entry(entry->left, name);
-            }
-            else
-            {
-                sym = search_entry(entry->right, name);
-            }
+            if(this->right != nullptr) this->right->search(sym_name);
         }
     }
 
-    return sym;
+    return entry;
 }
 
-bool SymbolMap::insert_entry(SymbolMap::Entry* entry, SymbolMap::Entry* symbol)
+bool SymbolTable::Entry::insert(SymbolTable::Entry* entry)
 {
     bool ret = false;
 
-    if(entry != nullptr)
+    if(this->name.len > entry->name.len)
     {
-        if(entry->name.len > symbol->name.len)
+        if(this->right == nullptr) { this->right = entry; ret = true;  }
+        else                       { ret = this->right->insert(entry); }
+    }
+    else if(this->name.len < entry->name.len)
+    {
+        if(this->left == nullptr) { this->left = entry; ret = true;  }
+        else                      { ret = this->left->insert(entry); }
+    }
+    else
+    {
+        int dif = _strncmp(entry->name.ptr, this->name.ptr, entry->name.len);
+
+        if(dif == 0)
         {
-            if(entry->right == nullptr) { entry->right = symbol; ret = true;        }
-            else                        { ret = insert_entry(entry->right, symbol); }
+            ret = false;
         }
-        else if(entry->name.len < symbol->name.len)
+        else if(dif < 0)
         {
-            if(entry->left == nullptr) { entry->left = symbol; ret = true;        }
-            else                       { ret = insert_entry(entry->left, symbol); }
+            if(this->left == nullptr) { this->left = entry; ret = true;  }
+            else                      { ret = this->left->insert(entry); }
         }
         else
         {
-            int dif = _strncmp(symbol->name.ptr, entry->name.ptr, symbol->name.len);
-
-            if(dif == 0)
-            {
-                ret = false;
-            }
-            else if(dif < 0)
-            {
-                if(entry->left == nullptr) { entry->left = symbol; ret = true;        }
-                else                       { ret = insert_entry(entry->left, symbol); }
-            }
-            else
-            {
-                if(entry->right == nullptr) { entry->right = symbol; ret = true; }
-                else                        { ret = insert_entry(entry->right, symbol); }
-            }
+            if(this->right == nullptr) { this->right = entry; ret = true;  }
+            else                       { ret = this->right->insert(entry); }
         }
     }
 
     return ret;
 }
 
-void SymbolMap::delete_entry(SymbolMap::Entry* entry)
+SymbolTable::SymbolTable()
 {
-    if(entry->left  != nullptr) delete entry->left;
-    if(entry->right != nullptr) delete entry->right;
-    delete entry;
+    m_global = new SymbolTable::Entry();
+    m_global->type = SymbolTable::Entry::TYPE_NAMESPACE;
 }
 
-SymbolMap::SymbolMap()
+SymbolTable::~SymbolTable()
 {
-    m_index = 0;
-    memset(m_stack, 0, sizeof(m_stack));
+    delete m_global;
+    
+    m_global  = nullptr;
+    m_current = nullptr;
 }
 
-SymbolMap::~SymbolMap()
+bool SymbolTable::push_scope(SymbolTable::Entry* entry)
 {
-    for(int i = m_index; i >= 0; i--)
+    bool status = m_current->insert(entry);
+    
+    if(status)
     {
-        delete_entry(m_stack[i]);
-        m_stack[i] = nullptr;
-    }
-}
-
-bool SymbolMap::insert(const strptr& name, Symbol* symbol)
-{
-    bool status = false;
-
-    SymbolMap::Entry* entry = new SymbolMap::Entry();
-    entry->name = name;
-    entry->symbol = symbol;
-
-    if(m_stack[m_index] == nullptr)
-    {
-        m_stack[m_index] = entry;
-        status = true;
-    }
-    else
-    {
-        status = insert_entry(m_stack[m_index], entry);
+        m_current = entry;
     }
 
     return status;
 }
 
-Symbol* SymbolMap::search(const strptr& name)
+bool SymbolTable::pop_scope()
 {
-    Symbol* sym = nullptr;
+    bool status = m_current->parent != nullptr;
 
-    for(int i = m_index; i >= 0; i--)
+    if(status)
     {
-        sym = search_entry(m_stack[i], name);
+        SymbolTable::Entry* entry = m_current;
+        m_current = m_current->parent;
 
-        if(sym != nullptr) { break; }
+        switch(entry->type)
+        {
+            case SymbolTable::Entry::TYPE_SCOPE:
+            case SymbolTable::Entry::TYPE_FUNCTION:
+            {
+                delete entry;
+            }
+        }
     }
-
-    return sym;
 }
 
-void SymbolMap::push_level()
+SymbolTable::Entry* SymbolTable::current_scope()
 {
-    m_index ++;
-}
-
-void SymbolMap::pop_level()
-{
-    if(m_stack[m_index] != nullptr)
-    {
-        delete_entry(m_stack[m_index]);
-        m_stack[m_index] = nullptr;
-    }
+    return m_current;
 }
