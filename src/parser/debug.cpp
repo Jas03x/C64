@@ -35,17 +35,16 @@ void debug_print_expr(Expression* expr, unsigned int level)
 
     switch(expr->type)
     {
+		case EXPR_SUB_EXPR:
+		{
+			printf("SUB_EXPR:\n");
+			debug_print_expr(expr->sub_expr, level + 1);
+			break;
+		}
         case EXPR_OPERATION:
         {
 			switch (expr->operation.op)
 			{
-				case EXPR_SUB_EXPR:
-				{
-					printf("SUB_EXPR:\n");
-					debug_print_expr(expr->sub_expr, level + 1);
-					break;
-				}
-
 				case EXPR_OP_AUTO_CAST:
 				{
 					printf("AUTO CAST:\n");

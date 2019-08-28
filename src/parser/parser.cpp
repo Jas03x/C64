@@ -172,27 +172,32 @@ bool Parser::parse_operator(Expression** ptr)
 	{
 		case TK_PLUS:
 		{
-			expr->type = EXPR_OP_ADD;
+			expr->type = EXPR_OPERATION;
+			expr->operation.op = EXPR_OP_ADD;
 			break;
 		}
 		case TK_MINUS:
 		{
-			expr->type = EXPR_OP_SUB;
+			expr->type = EXPR_OPERATION;
+			expr->operation.op = EXPR_OP_SUB;
 			break;
 		}
 		case TK_ASTERISK:
 		{
-			expr->type = EXPR_OP_MUL;
+			expr->type = EXPR_OPERATION;
+			expr->operation.op = EXPR_OP_MUL;
 			break;
 		}
 		case TK_FORWARD_SLASH:
 		{
-			expr->type = EXPR_OP_DIV;
+			expr->type = EXPR_OPERATION;
+			expr->operation.op = EXPR_OP_DIV;
 			break;
 		}
 		case TK_EQUAL:
 		{
-			expr->type = EXPR_ASSIGN;
+			expr->type = EXPR_OPERATION;
+			expr->operation.op = EXPR_ASSIGN;
 			break;
 		}
 		default:
