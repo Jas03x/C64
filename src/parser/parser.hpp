@@ -3,48 +3,29 @@
 
 #include <string>
 
+#include <ast.hpp>
 #include <symbol_table.hpp>
 #include <token_stack.hpp>
-#include <expression_list.hpp>
 
 class Parser
 {
 private:
-    enum
-    {
-        PRECEDENCE_LEVEL_INVALID =  0,
-        PRECEDENCE_LEVEL_1       =  1,
-        PRECEDENCE_LEVEL_2       =  2,
-        PRECEDENCE_LEVEL_3       =  3,
-        PRECEDENCE_LEVEL_4       =  4,
-        PRECEDENCE_LEVEL_5       =  5,
-        PRECEDENCE_LEVEL_6       =  6,
-        PRECEDENCE_LEVEL_7       =  7,
-        PRECEDENCE_LEVEL_8       =  8,
-        PRECEDENCE_LEVEL_9       =  9,
-		PRECEDENCE_LEVEL_10      = 10,
-        PRECEDENCE_LEVEL_MAX     = 11
-    };
-
-private:
     SymbolTable    m_symbols;
     TokenStack*    m_stack;
-    ExpressionList m_list;
 
 private:
     Parser(TokenStack* stack);
     ~Parser();
 
     bool scan_identifier(SymbolTable::Entry** ptr);
-    bool check_operator_precedence(unsigned int precedence_level, uint8_t op);
 
     bool parse(AST** ptr);
 
-    bool process_expression(ExpressionList::Entry* list, Expression** expr);
-
     bool parse_statement(Statement** ptr);
     bool parse_value(Expression** ptr);
-    bool parse_operator(Expression** ptr);
+    
+	bool parse_operator(Expression** ptr);
+	bool parse_sub_expr(Expression** ptr);
     bool parse_expression(Expression** ptr);
 
     bool parse_modifiers(VariableFlags& flags);

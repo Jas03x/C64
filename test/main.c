@@ -1,22 +1,13 @@
 
-#include <io.h>
-
-// #define print_str(str) io::print(str)
-
-struct Person
-{
-	U8  age;
-	U8* name;
-};
-
-void* jas;
+#include <io>
 
 U32 main(U32 argc, U8* argv[])
 {
-	jas = new_person();
-	// ((Person*) jas)->age = 0;
+	U32 a = 1;
+	U32 b = 2;
+	U32 c = 3;
 
-	print_str("Hello world\n");
+	U32 d = a + b * c;
 
     return 0;
 }

@@ -184,24 +184,31 @@ void debug_print_expr(Expression* expr, unsigned int level)
     }
 }
 
-void debug_print_struct(const Structure* structure, unsigned level)
+void debug_print_composite(const Composite* composite, unsigned level)
 {
     debug_indent(level);
-    const char* type = structure->is_union ? "UNION" : "STRUCT";
-    if(structure->name.len == 0)
+    
+	const char* type = "INVALID";
+	switch (composite->type)
+	{
+		case COMP_TYPE_STRUCT: { type = "STRUCT"; break; }
+		case COMP_TYPE_UNION:  { type = "UNION";  break; }
+		default: { break; }
+	}
+
+    if(composite->name.len == 0)
     {
         printf("%s:\n", type);
     }
     else
     {
-        printf("%s %.*s:\n", type, structure->name.len, structure->name.ptr);
+        printf("%s: %.*s\n", type, composite->name.len, composite->name.ptr);
     }
 
-    for(Structure::Member* m = structure->members; m != nullptr; m = m->next)
+    for(Statement* stmt = composite->body; stmt != nullptr; stmt = stmt->next)
     {
         debug_indent(level + 1);
-        printf("VARIABLE: %.*s\n", m->name.len, m->name.ptr);
-        debug_print_variable(m->variable, level + 2);
+		debug_print_stmt(stmt, level + 1);
     }
 }
 
@@ -230,16 +237,16 @@ void debug_print_variable(const Variable* var, unsigned int level)
             debug_print_identifier(var->identifier);
         }
     }
-    else if(var->type == TYPE_STRUCT)
+    else if(var->type == COMP_TYPE_STRUCT)
     {
-        if(var->structure->name.len > 0)
+        if(var->composite->name.len > 0)
         {
-            printf("%s: %.*s\n", var->structure->is_union ? "UNION" : "STRUCT", var->structure->name.len, var->structure->name.ptr);
+            printf("%s: %.*s\n", var->composite->type == COMP_TYPE_UNION ? "UNION" : "STRUCT", var->composite->name.len, var->composite->name.ptr);
         }
         else
         {
             printf("UNNAMED STRUCT:\n");
-            debug_print_struct(var->structure, level + 1);
+            debug_print_composite(var->composite, level + 1);
         }
     }
     else if(var->type == TYPE_ENUM)
@@ -251,19 +258,19 @@ void debug_print_variable(const Variable* var, unsigned int level)
         const char* type_str = "UNKNOWN";
         switch(var->type)
         {
-            case TYPE_U8:     { type_str = "U8";     break; }
-            case TYPE_U16:    { type_str = "U16";    break; }
-            case TYPE_U32:    { type_str = "U32";    break; }
-            case TYPE_U64:    { type_str = "U64";    break; }
-            case TYPE_I8:     { type_str = "I8";     break; }
-            case TYPE_I16:    { type_str = "I16";    break; }
-            case TYPE_I32:    { type_str = "I32";    break; }
-            case TYPE_I64:    { type_str = "I64";    break; }
-            case TYPE_F32:    { type_str = "I64";    break; }
-            case TYPE_F64:    { type_str = "I64";    break; }
-            case TYPE_VOID:   { type_str = "VOID";   break; }
-            case TYPE_PTR:    { type_str = "PTR";    break; }
-            case TYPE_STRUCT: { type_str = "STRUCT"; break; }
+            case TYPE_U8:        { type_str = "U8";     break; }
+            case TYPE_U16:       { type_str = "U16";    break; }
+            case TYPE_U32:       { type_str = "U32";    break; }
+            case TYPE_U64:       { type_str = "U64";    break; }
+            case TYPE_I8:        { type_str = "I8";     break; }
+            case TYPE_I16:       { type_str = "I16";    break; }
+            case TYPE_I32:       { type_str = "I32";    break; }
+            case TYPE_I64:       { type_str = "I64";    break; }
+            case TYPE_F32:       { type_str = "I64";    break; }
+            case TYPE_F64:       { type_str = "I64";    break; }
+            case TYPE_VOID:      { type_str = "VOID";   break; }
+            case TYPE_PTR:       { type_str = "PTR";    break; }
+            case TYPE_COMPOSITE: { type_str = "STRUCT"; break; }
 			case TYPE_FUNCTION_POINTER:     { type_str = "FUNCTION POINTER";     break; }
             case TYPE_CONSTANT_SIZED_ARRAY: { type_str = "CONSTANT SIZED ARRAY"; break; }
             case TYPE_VARIABLE_SIZED_ARRAY: { type_str = "VARIABLE SIZED ARRAY"; break; }
@@ -315,24 +322,16 @@ void debug_print_variable(const Variable* var, unsigned int level)
                 break;
             }
 
-            case TYPE_STRUCT:
+            case TYPE_COMPOSITE:
             {
-                for(Structure::Member* it = var->structure->members; it != nullptr; it = it->next)
+                for(Statement* it = var->composite->body; it != nullptr; it = it->next)
                 {
-                    debug_print_variable(it->variable, level + 1);
+                    debug_print_stmt(it, level + 1);
                 }
                 break;
             }
         }
     }
-}
-
-void debug_print_struct_member(Structure::Member* member, unsigned int level)
-{
-    debug_indent(level);
-    printf("MEMBER: %.*s\n", member->name.len, member->name.ptr);
-
-    debug_print_variable(member->variable, level + 1);
 }
 
 void debug_print_stmt(Statement* stmt, unsigned int level)
@@ -463,21 +462,10 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
             break;
         }
 
-        case STMT_STRUCT_DEF:
+        case STMT_COMP_DEF:
         {
-            printf("%s\n", stmt->struct_def.structure->is_union ? "UNION" : "STRUCT");
-
-            debug_indent(level + 1);
-            printf("NAME: %.*s\n", stmt->struct_def.name.len, stmt->struct_def.name.ptr);
-
-            debug_indent(level + 1);
-            printf("MEMBERS:\n");
-
-            for(Structure::Member* m = stmt->struct_def.structure->members; m != nullptr; m = m->next)
-            {
-                debug_print_struct_member(m, level + 2);
-            }
-
+			printf("COMPOSITE:\n");
+			debug_print_composite(stmt->comp_def.composite, level + 1);
             break;
         }
 
@@ -788,8 +776,7 @@ void debug_print_namespace(const Statement* statement, unsigned int level)
     printf("NAMESPACE:\n");
 
     debug_indent(level + 1);
-    printf("NAME: ");
-    debug_print_identifier(statement->name_space.identifier);
+    printf("NAME: %.*s\n", statement->name_space.name.len, statement->name_space.name.ptr);
 
     debug_indent(level + 1);
     printf("BODY:\n");
@@ -805,8 +792,7 @@ void debug_print_typedef(const Statement* statement, unsigned int level)
     printf("TYPEDEF: \n");
     
     debug_indent(level + 1);
-    printf("NAME: ");
-    debug_print_identifier(statement->type_def.identifier);
+    printf("NAME: %.*s\n", statement->type_def.name.len, statement->type_def.name.ptr);
 
     debug_indent(level + 1);
     printf("VARIABLE:\n");

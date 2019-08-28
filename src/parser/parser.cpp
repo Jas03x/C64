@@ -161,6 +161,186 @@ bool Parser::parse_body(Statement** ptr)
     return status;
 }
 
+bool Parser::parse_operator(Expression** ptr)
+{
+	bool status = true;
+
+	Expression* expr = new Expression();
+
+	Token tk = m_stack->pop();
+	switch (tk.type)
+	{
+		case TK_PLUS:
+		{
+			expr->type = EXPR_OP_ADD;
+			break;
+		}
+		case TK_MINUS:
+		{
+			expr->type = EXPR_OP_SUB;
+			break;
+		}
+		case TK_ASTERISK:
+		{
+			expr->type = EXPR_OP_MUL;
+			break;
+		}
+		case TK_FORWARD_SLASH:
+		{
+			expr->type = EXPR_OP_DIV;
+			break;
+		}
+		case TK_EQUAL:
+		{
+			expr->type = EXPR_ASSIGN;
+			break;
+		}
+		default:
+		{
+			status = false;
+			error("expected operator\n");
+		}
+	}
+
+	if (status)
+	{
+		*ptr = expr;
+	}
+
+	return status;
+}
+
+bool Parser::parse_sub_expr(Expression** ptr)
+{
+    bool status = true;
+
+    Expression* expr = nullptr;
+
+    switch(m_stack->peek(0).type)
+    {
+        case TK_IDENTIFIER:
+        {
+            Identifier* id = nullptr;
+            status = parse_identifier(&id);
+
+            if(status)
+            {
+				expr = new Expression();
+				expr->type = EXPR_IDENTIFIER;
+				expr->identifier = id;
+            }
+
+            break;
+        }
+
+		case TK_OPEN_ROUND_BRACKET:
+		{
+			m_stack->pop();
+			status = parse_expression(&expr);
+
+			if (status)
+			{
+				if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+				{
+					status = false;
+					error("expected ')'\n");
+				}
+			}
+
+			break;
+		}
+
+		case TK_LITERAL:
+		{
+			Token tk = m_stack->pop();
+
+			expr = new Expression();
+			expr->type = EXPR_LITERAL;
+			expr->literal = tk.literal;
+
+			break;
+		}
+
+		default:
+		{
+			status = false;
+			error("unexpected token\n");
+		}
+    }
+
+	if (status)
+	{
+		if (m_stack->peek(0).type == TK_OPEN_CURLY_BRACKET)
+		{
+			Argument* args = nullptr;
+			status = parse_arguments(&args);
+
+			if (status)
+			{
+				Expression* f_call = new Expression();
+				f_call->type = EXPR_OP_FUNCTION_CALL;
+				f_call->operation.call.function = expr;
+				f_call->operation.call.arguments = args;
+
+				expr = f_call;
+			}
+		}
+	}
+
+	if (status)
+	{
+		*ptr = expr;
+	}
+
+    return status;
+}
+
+bool Parser::parse_expression(Expression** ptr)
+{
+    bool status = true;
+
+    Expression* expr = nullptr;
+	status = parse_sub_expr(&expr);
+	
+	switch (m_stack->peek(0).type)
+	{
+		case TK_SEMICOLON:
+		case TK_COMMA:
+		case TK_CLOSE_ROUND_BRACKET:
+		{
+			break;
+		}
+
+		default:
+		{
+			Expression* op = nullptr;
+			status = parse_operator(&op);
+
+			if (status)
+			{
+				Expression* rhs = nullptr;
+				status = parse_expression(&rhs);
+
+				if (status)
+				{
+					op->operation.lhs = expr;
+					op->operation.rhs = rhs;
+					expr = op;
+				}
+			}
+
+			break;
+		}
+	}
+
+	if (status)
+	{
+		*ptr = expr;
+	}
+
+    return status;
+}
+
 bool Parser::parse_composite(Composite** ptr)
 {
     bool status = true;
@@ -1445,563 +1625,6 @@ bool Parser::parse_cast(Expression** ptr)
 	return status;
 }
 
-bool Parser::parse_expression(Expression** ptr)
-{
-    bool status = true;
-
-    ExpressionList::Entry* list_head = nullptr;
-    ExpressionList::Entry* list_tail = nullptr;
-
-    bool reading = true;
-    while(status && reading)
-    {
-        Token tk = m_stack->peek(0);
-
-        Expression* expr = nullptr;
-
-        switch(tk.type)
-        {
-            case TK_OPEN_ROUND_BRACKET:
-            {
-                bool is_func_call = false;
-                if(list_tail != nullptr)
-				{
-					if (list_tail->expr->type != EXPR_OPERATION)
-					{
-						is_func_call = true;
-					}
-					else
-					{
-						is_func_call = list_tail->expr->operation.op == EXPR_OP_INDEX;
-					}
-				}
-
-                if(!is_func_call)
-                {
-					bool is_cast = false;
-					switch (m_stack->peek(1).type)
-					{
-						case TK_TYPE:
-						case TK_CONST:
-						{
-							is_cast = true;
-							break;
-						}
-
-						default: break;
-					}
-
-					if (is_cast)
-					{
-						goto PARSE_CAST;
-					}
-					else
-					{
-						m_stack->pop();
-
-						Expression* sub_expr = nullptr;
-						status = parse_expression(&sub_expr);
-
-						if (status)
-						{
-							if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
-							{
-								error("Invalid expression, expected close bracket\n");
-								status = false;
-							}
-							else
-							{
-								expr = new Expression();
-								expr->type = EXPR_SUB_EXPR;
-								expr->sub_expr = sub_expr;
-							}
-						}
-					}
-                }
-                else
-                {
-                    Argument* args = nullptr;
-                    status = parse_arguments(&args);
-
-                    if(status)
-                    {
-                        expr = new Expression();
-                        expr->type = EXPR_OPERATION;
-						expr->operation.op = EXPR_OP_FUNCTION_CALL;
-                        expr->operation.call.arguments = args;
-                    }
-                }
-                
-                break;
-            }
-
-			PARSE_CAST:
-			case TK_STATIC_CAST:
-			case TK_REINTERPRET_CAST:
-			{
-				status = parse_cast(&expr);
-				break;
-			}
-
-            case TK_COMMA:
-            case TK_SEMICOLON:
-            case TK_CLOSE_ROUND_BRACKET:
-            case TK_CLOSE_SQUARE_BRACKET:
-            case TK_CLOSE_CURLY_BRACKET:
-            {
-                reading = false;
-                break;
-            }
-
-            case TK_OPEN_CURLY_BRACKET:
-            {
-                status = parse_initializer(&expr);
-                break;
-            }
-
-            case TK_LITERAL:
-            case TK_IDENTIFIER:
-            {
-                if(!parse_value(&expr))
-                {
-                    status = false;
-                }
-                break;
-            }
-
-            case TK_ASTERISK:
-            case TK_AMPERSAND:
-            {
-                bool is_ptr_operator = false;
-                if(list_tail == nullptr) { is_ptr_operator = true;                                    }
-                else                     { is_ptr_operator = list_tail->expr->type == EXPR_OPERATION; }
-
-                if(!is_ptr_operator)
-                {
-                    goto OPERATOR;
-                }
-                else
-                {
-                    m_stack->pop();
-                }
-                
-
-                uint8_t op = 0;
-                if(tk.type == TK_ASTERISK)       { op = EXPR_OP_DEREFERENCE; }
-                else if(tk.type == TK_AMPERSAND) { op = EXPR_OP_REFERENCE;   }
-
-                expr = new Expression();
-                expr->type = EXPR_OPERATION;
-                expr->operation.op = op;
-                
-                break;
-            }
-
-            case TK_OPEN_SQUARE_BRACKET:
-            {
-                m_stack->pop();
-                Expression* index = nullptr;
-                if(parse_expression(&index))
-                {
-                    if(m_stack->pop().type == TK_CLOSE_SQUARE_BRACKET)
-                    {
-                        expr = new Expression();
-                        expr->type = EXPR_OPERATION;
-                        expr->operation.op = EXPR_OP_INDEX;
-                        expr->operation.rhs = index;
-                    }
-                    else
-                    {
-                        status = false;
-                        error("Expected ']'\n");
-                    }
-                }
-                else
-                {
-                    status = false;
-                }
-
-                break;
-            }
-
-            OPERATOR:
-            case TK_PLUS: case TK_MINUS: case TK_PERCENT:
-            case TK_FORWARD_SLASH: case TK_CARET:
-            case TK_RIGHT_ARROW_HEAD: case TK_LEFT_ARROW_HEAD:
-            case TK_EQUAL: case TK_DOT: case TK_EXPLANATION_MARK:
-            {
-                if(!parse_operator(&expr))
-                {
-                    status = false;
-                }
-                break;
-            }
-
-            default:
-            {
-                error("Unexpected token %hhu in expression\n", tk.type);
-                status = false;
-                break;
-            }
-        }
-
-        if(status && reading)
-        {
-            if(expr != nullptr)
-            {
-                ExpressionList::Entry* entry = m_list.get_entry();
-                entry->expr = expr;
-                entry->next = nullptr;
-
-                if(list_head == nullptr)
-                {
-                    list_head = entry;
-                }
-                else
-                {
-                    list_tail->next = entry;
-                    entry->prev = list_tail;
-                }
-
-                list_tail = entry;
-            }
-        }
-    }
-
-    if(list_head == nullptr)
-    {
-        error("A fatal error occured while parsing\n");
-        status = false;
-    }
-
-    if(status)
-    {
-        status = process_expression(list_head, ptr);
-    }
-
-    return status;
-}
-
-bool Parser::check_operator_precedence(unsigned int precedence_level, uint8_t op)
-{
-    // operator to precedence level map
-    const static uint8_t TABLE[] =
-    {
-        PRECEDENCE_LEVEL_INVALID, // EXPR_OP_INVALID
-        PRECEDENCE_LEVEL_6, // EXPR_OP_ADD
-        PRECEDENCE_LEVEL_6, // EXPR_OP_SUB
-        PRECEDENCE_LEVEL_5, // EXPR_OP_MUL
-        PRECEDENCE_LEVEL_5, // EXPR_OP_DIV,
-        PRECEDENCE_LEVEL_9, // EXPR_OP_LOGICAL_NOT
-        PRECEDENCE_LEVEL_9, // EXPR_OP_LOGICAL_AND
-        PRECEDENCE_LEVEL_9, // EXPR_OP_LOGICAL_OR
-        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_COMPLEMENT
-        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_XOR
-        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_AND
-        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_OR
-        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_L_SHIFT
-        PRECEDENCE_LEVEL_7, // EXPR_OP_BITWISE_R_SHIFT
-        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_EQUAL
-        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_NOT_EQUAL
-        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_LESS_THAN
-        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_MORE_THAN
-        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
-        PRECEDENCE_LEVEL_8, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
-        PRECEDENCE_LEVEL_4, // EXPR_OP_REFERENCE
-        PRECEDENCE_LEVEL_4, // EXPR_OP_DEREFERENCE
-        PRECEDENCE_LEVEL_9, // EXPR_OP_ASSIGN
-        PRECEDENCE_LEVEL_1, // EXPR_OP_ACCESS_FIELD
-        PRECEDENCE_LEVEL_1, // EXPR_OP_ARROW
-        PRECEDENCE_LEVEL_2, // EXPR_OP_INDEX
-		PRECEDENCE_LEVEL_3, // EXPR_OP_FUNCTION_CALL
-		PRECEDENCE_LEVEL_4, // EXPR_OP_STATIC_CAST
-		PRECEDENCE_LEVEL_4  // EXPR_OP_REINTERPRET_CAST
-    };
-
-    bool ret = false;
-
-    if((op > 0) && (op < sizeof(TABLE)))
-    {
-        ret = (precedence_level == TABLE[op]);
-    }
-
-    return ret;
-}
-
-bool Parser::process_expression(ExpressionList::Entry* list, Expression** expr)
-{
-    bool status = true;
-    ExpressionList::Entry* head = list;
-
-    if(head->next != nullptr)
-    {
-        for(unsigned int i = PRECEDENCE_LEVEL_1; i < PRECEDENCE_LEVEL_MAX; i++)
-        {
-            for(ExpressionList::Entry* it = head; it != nullptr; it = it->next)
-            {
-                if((it->expr->type == EXPR_OPERATION) && check_operator_precedence(i, it->expr->operation.op))
-                {
-                    ExpressionList::Entry* prev = nullptr;
-                    ExpressionList::Entry* next = nullptr;
-                    uint8_t op = it->expr->operation.op;
-
-                    switch(op)
-                    {
-                        case EXPR_OP_REFERENCE:
-                        case EXPR_OP_DEREFERENCE:
-                        {
-                            next = it->next;
-                            Expression* rhs = next == nullptr ? nullptr : next->expr;
-
-                            if(rhs == nullptr)
-                            {
-                                status = false;
-                                error("No RHS for pointer operation\n");
-                            }
-                            else
-                            {
-                                it->expr->operation.rhs = rhs;
-                            }
-
-                            break;
-                        }
-
-						case EXPR_OP_STATIC_CAST:
-						case EXPR_OP_REINTERPRET_CAST:
-						{
-							break;
-						}
-
-						case EXPR_OP_AUTO_CAST:
-						{
-							next = it->next;
-							Expression* rhs = next == nullptr ? nullptr : next->expr;
-
-							if (rhs == nullptr)
-							{
-								status = false;
-								error("rhs null in cast\n");
-							}
-							else
-							{
-								it->expr->operation.cast.expr = rhs;
-							}
-							break;
-						}
-
-                        case EXPR_OP_INDEX:
-                        {
-                            prev = it->prev;
-                            Expression* lhs = prev == nullptr ? nullptr : prev->expr;
-
-                            if(lhs == nullptr)
-                            {
-                                status = false;
-                                error("no lhs for index operation\n");
-                            }
-                            else
-                            {
-                                it->expr->operation.lhs = lhs;
-                            }
-                            
-                            break;
-                        }
-
-						case EXPR_OP_FUNCTION_CALL:
-						{
-							prev = it->prev;
-							Expression* lhs = prev == nullptr ? nullptr : prev->expr;
-
-							if (lhs == nullptr)
-							{
-								status = false;
-								error("no lhs for function call\n");
-							}
-							else
-							{
-								it->expr->operation.call.function = lhs;
-							}
-
-							break;
-						}
-
-                        default:
-                        {
-                            next = it->next;
-                            prev = it->prev;
-                            Expression* rhs = next == nullptr ? nullptr : next->expr;
-                            Expression* lhs = prev == nullptr ? nullptr : prev->expr;
-
-                            if((rhs == nullptr) || (lhs == nullptr))
-                            {
-                                status = false;
-                                error("rhs or lhs null in operation\n");
-                            }
-                            else
-                            {
-                                switch(op)
-                                {
-                                    case EXPR_OP_ACCESS_FIELD:
-                                    {
-                                        //bool valid = false;
-                                        //valid |= rhs->type == EXPR_IDENTIFIER;
-                                        //valid |= rhs->type == EXPR_OPERATION && rhs->operation.op == EXPR_OP_FUNCTION_CALL;
-
-                                        //if(!valid)
-                                        //{
-                                            error("RHS of accessor must be an identifier\n");
-                                            status = false;
-                                        //}
-                                        
-                                        break;
-                                    }
-
-                                    default: { break; }
-                                }
-
-                                if(status)
-                                {
-                                    it->expr->operation.rhs = rhs;
-                                    it->expr->operation.lhs = lhs;
-                                }
-                            }
-
-                            break;
-                        }
-                    }
-
-                    if(status)
-                    {
-                        if(next != nullptr)
-                        {
-                            if(next->next != nullptr) { next->next->prev = it; }
-                            it->next = next->next;
-                            m_list.ret_entry(next);
-                        }
-
-                        if(prev != nullptr)
-                        {
-                            if(prev->prev != nullptr) { prev->prev->next = it; }
-                            it->prev = prev->prev;
-
-                            if(head == prev)
-                            {
-                                head = it;
-                            }
-
-                            m_list.ret_entry(prev);
-                        }
-                    }
-
-                }
-            }
-        }
-    }
-
-    // once the expression has been fully simplified, we should only have one expression left
-    if(head->next != nullptr)
-    {
-        error("Invalid expression\n");
-        status = false;
-    }
-    else
-    {
-        m_list.ret_entry(head);
-    }
-
-    // debug_print_expression(head->expr);
-
-    if(status)
-    {
-        *expr = head->expr;
-    }
-
-    return status;
-}
-
-bool Parser::parse_operator(Expression** ptr)
-{
-    bool status = true;
-
-    Token tk = m_stack->pop();
-    
-    uint8_t op = EXPR_OP_INVALID;
-    switch(tk.type)
-    {
-        case TK_PLUS:          { op = EXPR_OP_ADD;          break; }
-        case TK_ASTERISK:      { op = EXPR_OP_MUL;          break; }
-        case TK_FORWARD_SLASH: { op = EXPR_OP_DIV;          break; }
-        case TK_AND:           { op = EXPR_OP_LOGICAL_AND;  break; }
-        case TK_OR:            { op = EXPR_OP_LOGICAL_OR;   break; }
-        case TK_CARET:         { op = EXPR_OP_BITWISE_XOR;  break; }
-        case TK_DOT:           { op = EXPR_OP_ACCESS_FIELD; break; }
-        case TK_MINUS:
-        {
-            op = EXPR_OP_SUB;
-
-            tk = m_stack->peek(0);
-            if(tk.type == TK_RIGHT_ARROW_HEAD) { m_stack->pop(); op = EXPR_OP_ARROW; }
-
-            break;
-        }
-        case TK_LEFT_ARROW_HEAD:
-        {
-            op = EXPR_OP_CMP_LESS_THAN;
-            
-            tk = m_stack->peek(0);
-            if(tk.type == TK_LEFT_ARROW_HEAD) { m_stack->pop(); op = EXPR_OP_BITWISE_L_SHIFT;        }
-            else if(tk.type == TK_EQUAL)      { m_stack->pop(); op = EXPR_OP_CMP_LESS_THAN_OR_EQUAL; }
-
-            break;
-        }
-        case TK_RIGHT_ARROW_HEAD:
-        {
-            op = EXPR_OP_CMP_MORE_THAN;
-            
-            tk = m_stack->peek(0);
-            if(tk.type == TK_RIGHT_ARROW_HEAD) { m_stack->pop(); op = EXPR_OP_BITWISE_R_SHIFT;        }
-            else if(tk.type == TK_EQUAL)       { m_stack->pop(); op = EXPR_OP_CMP_MORE_THAN_OR_EQUAL; }
-
-            break;
-        }
-        case TK_EXPLANATION_MARK:
-        {
-            op = EXPR_OP_LOGICAL_NOT;
-
-            tk = m_stack->peek(0);
-            if(tk.type == TK_EQUAL) { m_stack->pop(); op = EXPR_OP_CMP_NOT_EQUAL; }
-
-            break;
-        }
-        case TK_EQUAL:
-        {
-            op = EXPR_OP_ASSIGN;
-
-            tk = m_stack->peek(0);
-            if(tk.type == TK_EQUAL) { m_stack->pop(); op = EXPR_OP_CMP_EQUAL; }
-
-            break;
-        }
-        default:
-        {
-            error("Unknown operator");
-            status = false;
-            break;
-        }
-    }
-    
-    if(status)
-    {
-        Expression* expr = new Expression();
-        expr->type = EXPR_OPERATION;
-        expr->operation.op = op;
-
-        *ptr = expr;
-    }
-
-    return status;
-}
-
 bool Parser::parse_arguments(Argument** args)
 {
     bool status = true;
@@ -2581,24 +2204,23 @@ bool Parser::parse_declaration(Statement** ptr)
 
     if(status)
     {
-        switch(m_stack->peek(0).type)
-        {
-            case TK_OPEN_ROUND_BRACKET:
-            {
-                status = parse_function_decl(var, name, ptr);
-                break;
-            }
+		tk = m_stack->peek(0);
+		if (tk.type == TK_OPEN_ROUND_BRACKET)
+		{
+			status = parse_function_decl(var, name, ptr);
+		}
+		else
+		{
+			if (tk.type == TK_OPEN_SQUARE_BRACKET)
+			{
+				status = parse_array(&var);
+			}
 
-            case TK_OPEN_SQUARE_BRACKET:
-            {
-                status = parse_array(&var);
-                if(status)
-                {
-                    status = parse_variable_decl(var, name, ptr);
-                }
-                break;
-            }
-        }
+			if (status)
+			{
+				status = parse_variable_decl(var, name, ptr);
+			}
+		}
     }
 
     return status;

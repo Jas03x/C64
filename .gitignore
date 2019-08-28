@@ -4,3 +4,5 @@
 *.exe
 .vscode/*
 .vs/*
+C64.sln
+C64/*

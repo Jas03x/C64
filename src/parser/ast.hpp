@@ -185,6 +185,8 @@ enum COMPOSITE_TYPE
     COMP_TYPE_UNION   = 2
 };
 
+struct Statement;
+
 struct Composite
 {
     uint8_t type;

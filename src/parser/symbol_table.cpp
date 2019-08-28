@@ -152,6 +152,8 @@ bool SymbolTable::pop_scope()
             }
         }
     }
+
+	return status;
 }
 
 SymbolTable::Entry* SymbolTable::current_scope()

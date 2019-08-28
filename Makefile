@@ -56,3 +56,4 @@ clean:
 	/bin/rm -f $(BIN)/parser/*.o
 	/bin/rm -f $(BIN)/$(EXE)
 	/bin/rm -f $(BIN)/$(PDB)
+	/bin/rm -f $(BIN)/*.ilk
