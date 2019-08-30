@@ -6,12 +6,14 @@
 #include <ast.hpp>
 #include <symbol_table.hpp>
 #include <token_stack.hpp>
+#include <expression_list.hpp>
 
 class Parser
 {
 private:
     SymbolTable    m_symbols;
-    TokenStack*    m_stack;
+	TokenStack*    m_stack;
+	ExpressionList m_list;
 
 private:
     Parser(TokenStack* stack);
@@ -27,6 +29,7 @@ private:
 	bool parse_operator(Expression** ptr);
 	bool parse_sub_expr(Expression** ptr);
     bool parse_expression(Expression** ptr);
+	uint8_t get_operator_precedence(uint8_t op);
 
     bool parse_modifiers(VariableFlags& flags);
     bool parse_arguments(Argument** args);

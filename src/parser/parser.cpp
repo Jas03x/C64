@@ -1,5 +1,7 @@
 #include <parser.hpp>
 
+#include <expression_stack.hpp>
+
 #define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
 
 Parser::Parser(TokenStack* stack)
@@ -215,6 +217,52 @@ bool Parser::parse_operator(Expression** ptr)
 	return status;
 }
 
+uint8_t Parser::get_operator_precedence(uint8_t op)
+{
+	const static uint8_t TABLE[] =
+	{
+		0, // EXPR_OP_INVALID
+		1, // EXPR_OP_ADD
+		1, // EXPR_OP_SUB
+		2, // EXPR_OP_MUL
+		2, // EXPR_OP_DIV
+		0, // EXPR_OP_LOGICAL_NOT
+		0, // EXPR_OP_LOGICAL_AND
+		0, // EXPR_OP_LOGICAL_OR
+		0, // EXPR_OP_BITWISE_COMPLEMENT
+		0, // EXPR_OP_BITWISE_XOR
+		0, // EXPR_OP_BITWISE_AND
+		0, // EXPR_OP_BITWISE_OR
+		0, // EXPR_OP_BITWISE_L_SHIFT
+		0, // EXPR_OP_BITWISE_R_SHIFT
+		3, // EXPR_OP_CMP_EQUAL
+		0, // EXPR_OP_CMP_NOT_EQUAL
+		0, // EXPR_OP_CMP_LESS_THAN
+		0, // EXPR_OP_CMP_MORE_THAN
+		0, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
+		0, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
+		0, // EXPR_OP_REFERENCE
+		0, // EXPR_OP_DEREFERENCE
+		0, // EXPR_OP_ASSIGN
+		0, // EXPR_OP_ACCESS_FIELD
+		0, // EXPR_OP_ARROW
+		0, // EXPR_OP_INDEX
+		0, // EXPR_OP_FUNCTION_CALL
+		0, // EXPR_OP_AUTO_CAST
+		0, // EXPR_OP_STATIC_CAST
+		0, // EXPR_OP_REINTERPRET_CAST
+	};
+
+	bool ret = 0;
+
+	if ((op > 0) && (op < sizeof(TABLE)))
+	{
+		ret = TABLE[op];
+	}
+
+	return ret;
+}
+
 bool Parser::parse_sub_expr(Expression** ptr)
 {
     bool status = true;
@@ -302,48 +350,51 @@ bool Parser::parse_sub_expr(Expression** ptr)
 
 bool Parser::parse_expression(Expression** ptr)
 {
-    bool status = true;
+	bool status = true;
+	ExpressionStack stack = ExpressionStack(&m_list);
 
-    Expression* expr = nullptr;
-	status = parse_sub_expr(&expr);
-	
-	switch (m_stack->peek(0).type)
+	bool scanning = true;
+	while (status && scanning)
 	{
-		case TK_SEMICOLON:
-		case TK_COMMA:
-		case TK_CLOSE_ROUND_BRACKET:
-		{
-			break;
-		}
+		Expression* expr = nullptr;
+		status = parse_sub_expr(&expr);
 
-		default:
+		if (status)
 		{
-			Expression* op = nullptr;
-			status = parse_operator(&op);
+			stack.push(expr);
 
-			if (status)
+			switch (m_stack->peek(0).type)
 			{
-				Expression* rhs = nullptr;
-				status = parse_expression(&rhs);
-
-				if (status)
+				case TK_SEMICOLON:
+				case TK_COMMA:
+				case TK_CLOSE_ROUND_BRACKET:
 				{
-					op->operation.lhs = expr;
-					op->operation.rhs = rhs;
-					expr = op;
+					scanning = false;
+					break;
+				}
+
+				default:
+				{
+					Expression* op = nullptr;
+					status = parse_operator(&op);
+
+					if (status)
+					{
+						stack.push(op);
+					}
+
+					break;
 				}
 			}
-
-			break;
 		}
 	}
 
 	if (status)
 	{
-		*ptr = expr;
+
 	}
 
-    return status;
+	return status;
 }
 
 bool Parser::parse_composite(Composite** ptr)
