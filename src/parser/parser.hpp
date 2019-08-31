@@ -7,6 +7,7 @@
 #include <symbol_table.hpp>
 #include <token_stack.hpp>
 #include <expression_list.hpp>
+#include <expression_stack.hpp>
 
 class Parser
 {
@@ -29,7 +30,9 @@ private:
 	bool parse_operator(Expression** ptr);
 	bool parse_sub_expr(Expression** ptr);
     bool parse_expression(Expression** ptr);
+	
 	uint8_t get_operator_precedence(uint8_t op);
+	bool process_expression(Expression** lhs, ExpressionStack* stack, uint8_t minimum_precedence);
 
     bool parse_modifiers(VariableFlags& flags);
     bool parse_arguments(Argument** args);

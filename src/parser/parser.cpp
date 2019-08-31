@@ -1,7 +1,5 @@
 #include <parser.hpp>
 
-#include <expression_stack.hpp>
-
 #define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
 
 Parser::Parser(TokenStack* stack)
@@ -222,10 +220,10 @@ uint8_t Parser::get_operator_precedence(uint8_t op)
 	const static uint8_t TABLE[] =
 	{
 		0, // EXPR_OP_INVALID
-		1, // EXPR_OP_ADD
-		1, // EXPR_OP_SUB
-		2, // EXPR_OP_MUL
-		2, // EXPR_OP_DIV
+		2, // EXPR_OP_ADD
+		2, // EXPR_OP_SUB
+		3, // EXPR_OP_MUL
+		3, // EXPR_OP_DIV
 		0, // EXPR_OP_LOGICAL_NOT
 		0, // EXPR_OP_LOGICAL_AND
 		0, // EXPR_OP_LOGICAL_OR
@@ -235,7 +233,7 @@ uint8_t Parser::get_operator_precedence(uint8_t op)
 		0, // EXPR_OP_BITWISE_OR
 		0, // EXPR_OP_BITWISE_L_SHIFT
 		0, // EXPR_OP_BITWISE_R_SHIFT
-		3, // EXPR_OP_CMP_EQUAL
+		1, // EXPR_OP_CMP_EQUAL
 		0, // EXPR_OP_CMP_NOT_EQUAL
 		0, // EXPR_OP_CMP_LESS_THAN
 		0, // EXPR_OP_CMP_MORE_THAN
@@ -253,7 +251,7 @@ uint8_t Parser::get_operator_precedence(uint8_t op)
 		0, // EXPR_OP_REINTERPRET_CAST
 	};
 
-	bool ret = 0;
+	uint8_t ret = 0;
 
 	if ((op > 0) && (op < sizeof(TABLE)))
 	{
@@ -348,6 +346,45 @@ bool Parser::parse_sub_expr(Expression** ptr)
     return status;
 }
 
+bool Parser::process_expression(Expression** lhs, ExpressionStack* stack, uint8_t minimum_precedence)
+{
+	bool status = true;
+
+	while (status)
+	{
+		Expression* op = stack->peek();
+		if (op == nullptr) { break; }
+
+		uint8_t precedence = get_operator_precedence(op->operation.op);
+		if (precedence < minimum_precedence) { break; }
+
+		stack->pop(); // consume the operator
+
+		Expression* rhs = stack->pop();
+		if (rhs == nullptr) { status = false; }
+
+		while (status)
+		{
+			Expression* _op = stack->peek();
+			if (_op == nullptr) { break; }
+
+			uint8_t _precedence = get_operator_precedence(_op->operation.op);
+			if (_precedence <= precedence) { break; }
+			
+			status = process_expression(&rhs, stack, _precedence);
+		}
+
+		if (status)
+		{
+			op->operation.lhs = *lhs;
+			op->operation.rhs =  rhs;
+			*lhs = op;
+		}
+	}
+
+	return status;
+}
+
 bool Parser::parse_expression(Expression** ptr)
 {
 	bool status = true;
@@ -391,7 +428,11 @@ bool Parser::parse_expression(Expression** ptr)
 
 	if (status)
 	{
-
+		*ptr = stack.pop();
+		if (stack.peek() != nullptr)
+		{
+			status = process_expression(ptr, &stack, 0);
+		}
 	}
 
 	return status;
