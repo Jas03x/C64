@@ -21,13 +21,16 @@ struct Identifier
 
 enum
 {
-    EXPR_INVALID     = 0x0,
-    EXPR_SUB_EXPR    = 0x1,
-    EXPR_LITERAL     = 0x2,
-    EXPR_IDENTIFIER  = 0x3,
-    EXPR_ASSIGN      = 0x4,
-    EXPR_OPERATION   = 0x5,
-    EXPR_INITIALIZER = 0x6
+    EXPR_INVALID          = 0x0,
+    EXPR_SUB_EXPR         = 0x1,
+    EXPR_LITERAL          = 0x2,
+    EXPR_IDENTIFIER       = 0x3,
+    EXPR_ASSIGN           = 0x4,
+    EXPR_OPERATION        = 0x5,
+    EXPR_INITIALIZER      = 0x6,
+	EXPR_FUNCTION_CALL    = 0x7,
+	EXPR_STATIC_CAST      = 0x8,
+	EXPR_REINTERPRET_CAST = 0x9
 };
 
 enum
@@ -37,31 +40,30 @@ enum
     EXPR_OP_SUB                    = 0x02,
     EXPR_OP_MUL                    = 0x03,
     EXPR_OP_DIV                    = 0x04,
-    EXPR_OP_LOGICAL_NOT            = 0x05,
-    EXPR_OP_LOGICAL_AND            = 0x06,
-    EXPR_OP_LOGICAL_OR             = 0x07,
-    EXPR_OP_BITWISE_COMPLEMENT     = 0x08,
-    EXPR_OP_BITWISE_XOR            = 0x09,
-    EXPR_OP_BITWISE_AND            = 0x0A,
-    EXPR_OP_BITWISE_OR             = 0x0B,
-    EXPR_OP_BITWISE_L_SHIFT        = 0x0C,
-    EXPR_OP_BITWISE_R_SHIFT        = 0x0D,
-    EXPR_OP_CMP_EQUAL              = 0x0E,
-    EXPR_OP_CMP_NOT_EQUAL          = 0x0F,
-    EXPR_OP_CMP_LESS_THAN          = 0x10,
-    EXPR_OP_CMP_MORE_THAN          = 0x11,
-    EXPR_OP_CMP_LESS_THAN_OR_EQUAL = 0x12,
-    EXPR_OP_CMP_MORE_THAN_OR_EQUAL = 0x13,
-    EXPR_OP_REFERENCE              = 0x14,
-    EXPR_OP_DEREFERENCE            = 0x15,
-    EXPR_OP_ASSIGN                 = 0x16,
-    EXPR_OP_ACCESS_FIELD           = 0x17,
-    EXPR_OP_ARROW                  = 0x18,
-    EXPR_OP_INDEX                  = 0x19,
-	EXPR_OP_FUNCTION_CALL          = 0x1A,
-	EXPR_OP_AUTO_CAST              = 0x1B,
-	EXPR_OP_STATIC_CAST            = 0x1C,
-	EXPR_OP_REINTERPRET_CAST       = 0x1D
+	EXPR_OP_MOD                    = 0x05,
+	EXPR_OP_INCREMENT              = 0x06,
+	EXPR_OP_DECREMENT			   = 0x07,
+    EXPR_OP_LOGICAL_NOT            = 0x08,
+    EXPR_OP_LOGICAL_AND            = 0x09,
+    EXPR_OP_LOGICAL_OR             = 0x0A,
+    EXPR_OP_BITWISE_COMPLEMENT     = 0x0B,
+    EXPR_OP_BITWISE_XOR            = 0x0C,
+    EXPR_OP_BITWISE_AND            = 0x0D,
+    EXPR_OP_BITWISE_OR             = 0x0E,
+    EXPR_OP_BITWISE_L_SHIFT        = 0x0F,
+    EXPR_OP_BITWISE_R_SHIFT        = 0x10,
+    EXPR_OP_CMP_EQUAL              = 0x11,
+    EXPR_OP_CMP_NOT_EQUAL          = 0x12,
+    EXPR_OP_CMP_LESS_THAN          = 0x13,
+    EXPR_OP_CMP_MORE_THAN          = 0x14,
+    EXPR_OP_CMP_LESS_THAN_OR_EQUAL = 0x15,
+    EXPR_OP_CMP_MORE_THAN_OR_EQUAL = 0x16,
+    EXPR_OP_REFERENCE              = 0x17,
+    EXPR_OP_DEREFERENCE            = 0x18,
+    EXPR_OP_ASSIGN                 = 0x19,
+    EXPR_OP_ACCESS_FIELD           = 0x1A,
+    EXPR_OP_ARROW                  = 0x1B,
+    EXPR_OP_INDEX                  = 0x1C
 };
 
 struct Initializer
@@ -103,20 +105,20 @@ struct Expression
 					Expression* lhs;
 					Expression* rhs;
 				};
-
-				struct
-				{
-					Variable*   type;
-					Expression* expr;
-				} cast;
-
-				struct
-				{
-					Expression* function;
-					Argument*   arguments;
-				} call;
 			};
         } operation;
+		
+		struct
+		{
+			Variable* type;
+			Expression* expr;
+		} cast;
+
+		struct
+		{
+			Expression* function;
+			Argument*   arguments;
+		} call;
 
         Initializer initializer;
     };

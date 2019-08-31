@@ -219,36 +219,35 @@ uint8_t Parser::get_operator_precedence(uint8_t op)
 {
 	const static uint8_t TABLE[] =
 	{
-		0, // EXPR_OP_INVALID
-		2, // EXPR_OP_ADD
-		2, // EXPR_OP_SUB
-		3, // EXPR_OP_MUL
-		3, // EXPR_OP_DIV
-		0, // EXPR_OP_LOGICAL_NOT
-		0, // EXPR_OP_LOGICAL_AND
-		0, // EXPR_OP_LOGICAL_OR
-		0, // EXPR_OP_BITWISE_COMPLEMENT
-		0, // EXPR_OP_BITWISE_XOR
-		0, // EXPR_OP_BITWISE_AND
-		0, // EXPR_OP_BITWISE_OR
-		0, // EXPR_OP_BITWISE_L_SHIFT
-		0, // EXPR_OP_BITWISE_R_SHIFT
-		1, // EXPR_OP_CMP_EQUAL
-		0, // EXPR_OP_CMP_NOT_EQUAL
-		0, // EXPR_OP_CMP_LESS_THAN
-		0, // EXPR_OP_CMP_MORE_THAN
-		0, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
-		0, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
-		0, // EXPR_OP_REFERENCE
-		0, // EXPR_OP_DEREFERENCE
-		0, // EXPR_OP_ASSIGN
-		0, // EXPR_OP_ACCESS_FIELD
-		0, // EXPR_OP_ARROW
-		0, // EXPR_OP_INDEX
-		0, // EXPR_OP_FUNCTION_CALL
-		0, // EXPR_OP_AUTO_CAST
-		0, // EXPR_OP_STATIC_CAST
-		0, // EXPR_OP_REINTERPRET_CAST
+		 0, // EXPR_OP_INVALID
+		10, // EXPR_OP_ADD
+		10, // EXPR_OP_SUB
+		11, // EXPR_OP_MUL
+		11, // EXPR_OP_DIV
+		11, // EXPR_OP_MOD
+		12, // EXPR_OP_INCREMENT
+		12, // EXPR_OP_DECREMENT
+		12, // EXPR_OP_LOGICAL_NOT
+		 3, // EXPR_OP_LOGICAL_AND
+		 2, // EXPR_OP_LOGICAL_OR
+		 0, // EXPR_OP_BITWISE_COMPLEMENT
+		 5, // EXPR_OP_BITWISE_XOR
+		 6, // EXPR_OP_BITWISE_AND
+		 4, // EXPR_OP_BITWISE_OR
+		 9, // EXPR_OP_BITWISE_L_SHIFT
+		 9, // EXPR_OP_BITWISE_R_SHIFT
+		 7, // EXPR_OP_CMP_EQUAL
+		 7, // EXPR_OP_CMP_NOT_EQUAL
+		 8, // EXPR_OP_CMP_LESS_THAN
+		 8, // EXPR_OP_CMP_MORE_THAN
+		 8, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
+		 8, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
+		12, // EXPR_OP_REFERENCE
+		12, // EXPR_OP_DEREFERENCE
+		 1, // EXPR_OP_ASSIGN
+		13, // EXPR_OP_ACCESS_FIELD
+		13, // EXPR_OP_ARROW
+		13  // EXPR_OP_INDEX
 	};
 
 	uint8_t ret = 0;
@@ -329,9 +328,9 @@ bool Parser::parse_sub_expr(Expression** ptr)
 			if (status)
 			{
 				Expression* f_call = new Expression();
-				f_call->type = EXPR_OP_FUNCTION_CALL;
-				f_call->operation.call.function = expr;
-				f_call->operation.call.arguments = args;
+				f_call->type = EXPR_FUNCTION_CALL;
+				f_call->call.function = expr;
+				f_call->call.arguments = args;
 
 				expr = f_call;
 			}
@@ -1653,20 +1652,28 @@ bool Parser::parse_cast(Expression** ptr)
 	Token tk = m_stack->peek(0);
 	switch(tk.type)
 	{
-		case TK_OPEN_ROUND_BRACKET:
+		case TK_STRUCT:
+		case TK_CONST:
+		case TK_TYPE:
 		{
-			m_stack->pop();
-
-			cast_type = EXPR_OP_AUTO_CAST;
+			cast_type = EXPR_STATIC_CAST;
 			status = parse_variable(&type);
+
+			if (status && (m_stack->pop().type != TK_OPEN_ROUND_BRACKET))
+			{
+				status = false;
+				error("expected '('\n");
+			}
 
 			if (status)
 			{
-				if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
-				{
-					status = false;
-					error("expected ')'\n");
-				}
+				status = parse_expression(&expr);
+			}
+
+			if (status && (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET))
+			{
+				status = false;
+				error("expected ')'\n");
 			}
 
 			break;
@@ -1676,7 +1683,7 @@ bool Parser::parse_cast(Expression** ptr)
 		case TK_REINTERPRET_CAST:
 		{
 			tk = m_stack->pop();
-			cast_type = tk.type == TK_STATIC_CAST ? EXPR_OP_STATIC_CAST : EXPR_OP_REINTERPRET_CAST;
+			cast_type = tk.type == TK_STATIC_CAST ? EXPR_STATIC_CAST : EXPR_REINTERPRET_CAST;
 
 			if (m_stack->pop().type != TK_LEFT_ARROW_HEAD) { status = false; error("expected '<'\n"); }
 			else { status = parse_variable(&type); }
@@ -1711,10 +1718,9 @@ bool Parser::parse_cast(Expression** ptr)
 	if (status)
 	{
 		Expression* expression = new Expression();
-		expression->type = EXPR_OPERATION;
-		expression->operation.op = cast_type;
-		expression->operation.cast.type = type;
-		expression->operation.cast.expr = expr;
+		expression->type = cast_type;
+		expression->cast.type = type;
+		expression->cast.expr = expr;
 
 		*ptr = expression;
 	}
@@ -2318,79 +2324,6 @@ bool Parser::parse_declaration(Statement** ptr)
 				status = parse_variable_decl(var, name, ptr);
 			}
 		}
-    }
-
-    return status;
-}
-
-bool Parser::parse_value(Expression** ptr)
-{
-    bool status = true;
-    
-    Expression* expr = nullptr;
-    Token tk = m_stack->peek(0);
-    
-    switch(tk.type)
-    {
-        case TK_LITERAL:
-        {
-			m_stack->pop();
-			
-            expr = new Expression();
-            expr->type = EXPR_LITERAL;
-            expr->literal = tk.literal;
-            break;
-        }
-
-        case TK_IDENTIFIER:
-        {
-			Identifier* identifier = nullptr;
-			status = parse_identifier(&identifier);	
-
-            tk = m_stack->peek(0);
-            if(tk.type == TK_OPEN_ROUND_BRACKET)
-            {
-                Argument* args = nullptr;
-
-                if(!parse_arguments(&args))
-                {
-                    error("Failed to read arguments\n");
-                    status = false;
-                }
-                else
-                {
-                    Expression* func_name = new Expression();
-                    func_name->type = EXPR_IDENTIFIER;
-                    func_name->identifier = identifier;
-
-                    expr = new Expression();
-                    expr->type = EXPR_OPERATION;
-					expr->operation.op = EXPR_OP_FUNCTION_CALL;
-                    expr->operation.call.function = func_name;
-                    expr->operation.call.arguments = args;
-                }
-            }
-            else
-            {
-                expr = new Expression();
-                expr->type = EXPR_IDENTIFIER;
-                expr->identifier = identifier;
-            }
-
-            break;
-        }
-
-        default:
-        {
-            error("Unexpected tokens in expression\n");
-            status = false;
-            break;
-        }
-    }
-
-    if(status)
-    {
-        *ptr = expr;
     }
 
     return status;

@@ -25,7 +25,6 @@ private:
     bool parse(AST** ptr);
 
     bool parse_statement(Statement** ptr);
-    bool parse_value(Expression** ptr);
     
 	bool parse_operator(Expression** ptr);
 	bool parse_sub_expr(Expression** ptr);
