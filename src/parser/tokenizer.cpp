@@ -385,8 +385,12 @@ bool Tokenizer::process(const char* str, unsigned int len)
         tk.identifier.string.len = len;
     }
 
-    printf("%.*s => %hhu\n", len, str, tk.type);
+	if (ret)
+	{
+		m_stack->push(tk);
+	}
 
+    printf("%.*s => %hhu\n", len, str, tk.type);
     return ret;
 }
 

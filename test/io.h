@@ -1,5 +1,5 @@
-#ifndef IO_H
-#define IO_H
+// #ifndef IO_H
+// #define IO_H
 
 namespace io
 {
@@ -9,4 +9,4 @@ namespace io
     void print(const U8*);
 }
 
-#endif // IO_H
+// #endif // IO_H

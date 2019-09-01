@@ -547,7 +547,7 @@ bool Parser::parse_namespace(Statement** ptr)
     }
 
     tk = m_stack->pop();
-    if(tk.type != TK_IDENTIFIER)
+    if(tk.type == TK_IDENTIFIER)
     {
         name = tk.identifier.string;
     }
