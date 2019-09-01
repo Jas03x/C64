@@ -11,11 +11,10 @@ bool process(const char* path)
 {
     bool status = true;
 
-    Tokenizer tokenizer = Tokenizer(path);
-        
-    if(tokenizer.tokenize())
+	TokenStack tokens;    
+    if(Tokenizer::Process(path, tokens))
     {
-        AST* ast = Parser::Parse(&tokenizer.get_tokens());
+        AST* ast = Parser::Parse(&tokens);
         if(ast != nullptr)
         {
             printf("Successfully parsed!\n");

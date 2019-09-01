@@ -13,20 +13,19 @@
 class Tokenizer
 {
 private:
-    const char*  m_buffer;
-    unsigned int m_buffer_size;
+    const char*  m_source;
+    unsigned int m_source_size;
 
     unsigned int m_read_ptr;
 
-    std::vector<char> m_string_buffer;
+    std::vector<char> m_buffer;
 
-    TokenStack m_tokens;
+    TokenStack* m_stack;
 
 private:
     char pop();
     char peek(unsigned int offset);
-    
-    const char* current_ptr();
+	const char* current_position();
 
     bool read_single_line_comment();
     bool read_multi_line_comment();
@@ -36,31 +35,29 @@ private:
     
     bool read_value(Token& tk);
     bool read_string(Token& tk);
-    bool read_literal(Token& tk);
-    bool read_character(Token& tk);
     
     bool read_escape_character(char& c);
     bool read_word(const char*& str_ptr, unsigned int& str_len);
 
-    bool read_token(Token& tk);
+	bool read_token();
+	bool read_literal();
+	bool read_identifier();
+	bool read_character();
     
 	bool skip_spaces();
-	bool is_alpha_or_num(char c);
 
     bool read_preprocessor();
     bool read_pp_include();
 
-    bool process(char c, Token& tk);
-    bool process(const char* str, unsigned int len, Token& tk);
+	bool process(char c);
+	bool process(const char* str, unsigned int len);
 
-    bool next_token(Token& tk);
+	bool process(const char* source, unsigned int source_size, TokenStack* stack);
 
-	Tokenizer(const char* buffer, long size);
+	Tokenizer();
 
 public:
-    
-    bool tokenize();
-    TokenStack& get_tokens();
+	static bool Process(const char* path, TokenStack& stack);
 };
 
 #endif // TOKENIZER_HPP

@@ -1,5 +1,7 @@
 #include <tokenizer.hpp>
 
+#include <string.h>
+
 #include <string>
 #include <vector>
 
@@ -8,415 +10,162 @@
 
 #define _strncmp(str0, str1, num) (strncmp((str0), (str1), (num)) == 0)
 
+inline bool is_num(char c) {
+	return (c >= '0') && (c <= '9');
+}
+
+inline bool is_alpha(char c) {
+	return ((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z'));
+}
+
+inline bool is_alpha_or_num(char c) {
+	return is_alpha(c) || is_num(c);
+}
+
+inline bool is_hex(char c) {
+	return is_num(c) || (((c >= 'a') && (c <= 'f')) && ((c >= 'A') && (c <= 'F')));
+}
+
+bool Tokenizer::Process(const char* path, TokenStack& stack)
+{
+	bool status = true;
+
+	unsigned int source_size = 0;
+	char* source = File::Read(path, source_size);
+
+	status = source != nullptr;
+	if (status)
+	{
+		Tokenizer tokenizer;
+		status = tokenizer.process(source, source_size, &stack);
+	}
+
+	delete[] source;
+	return status;
+}
+
+Tokenizer::Tokenizer()
+{
+	m_source = nullptr;
+	m_source_size = 0;
+	m_read_ptr = 0;
+	m_stack = nullptr;
+}
+
 char Tokenizer::pop()
 {
-    char c = 0;
-    if(m_read_ptr < m_buffer_size)
-    {
-        c = m_buffer[m_read_ptr++];
-    }
-    return c;
+	char c = 0;
+	if (m_read_ptr < m_source_size)
+	{
+		c = m_source[m_read_ptr++];
+	}
+	return c;
 }
 
 char Tokenizer::peek(unsigned int offset)
 {
-    char c = 0;
-    if(m_read_ptr + offset < m_buffer_size)
-    {
-        c = m_buffer[m_read_ptr + offset];
-    }
-    return c;
-}
-
-const char* Tokenizer::current_ptr()
-{
-    return &m_buffer[m_read_ptr];
-}
-
-bool Tokenizer::read_single_line_comment()
-{
-    bool ret = true;
-
-    while(true)
-    {
-        char c = pop();
-
-        if(c == 0)
-        {
-            ret = false;
-            break;
-        }
-        else if(c == '\n')
-        {
-            break;
-        }
-    }
-
-    return ret;
-}
-
-bool Tokenizer::read_multi_line_comment()
-{
-    bool ret = true;
-
-    while(true)
-    {
-        char c = pop();
-        if(c == 0)
-        {
-            ret = false;
-            break;
-        }
-        else if(c == '*')
-        {
-            c = pop();
-            if(c == '/')
-            {
-                break;
-            }
-        }
-    }
-
-    return ret;
-}
-
-bool Tokenizer::read_hex_value(Token& tk)
-{  
-    const char* ptr = current_ptr();
-    unsigned int len = 0;
-
-    bool ret = (pop() == '0') && (pop() == 'x');
-    
-    if(ret)
-    {
-        while(true)
-        {
-            char c = pop();
-            if(((c >= '0') && (c <= '9')) && ((c >= 'A') && (c <= 'F')))
-            {
-                len ++;
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
-    if(ret)
-    {
-        tk.type = TK_LITERAL;
-        tk.literal.type = LITERAL_INTEGER;
-        tk.literal.integer.value = strtoul(ptr, nullptr, 16);
-    }
-
-    printf("%.*s => %hhu %hhu\n", len, ptr, tk.type, tk.literal.type);
-
-    return ret;
-}
-
-bool Tokenizer::read_dec_value(Token& tk)
-{
-    bool ret = true;
-
-    const char* ptr = current_ptr();
-    unsigned int len = 0;
-
-    bool is_decimal = false;
-    
-    while(true)
-    {
-        char c = peek(0);
-        if((c >= '0') && (c <= '9'))
-        {
-            pop();
-            len ++;
-        }
-        else if(c == '.')
-        {
-            pop();
-            len ++;
-
-            if(!is_decimal)
-            {
-                is_decimal = true;
-            }
-            else
-            {
-                printf("Error: Duplicated decimal operator\n");
-                ret = false;
-                break;
-            }
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    if(ret)
-    {
-        tk.type = TK_LITERAL;
-
-        if(is_decimal)
-        {
-            tk.literal.type = LITERAL_DECIMAL;
-            tk.literal.decimal.value = strtod(ptr, nullptr);
-            
-            printf("%.*s => %hhu %hhu\n", len, ptr, tk.type, tk.literal.type);
-        }
-        else
-        {
-            tk.literal.type = LITERAL_INTEGER;
-            tk.literal.integer.value = strtoul(ptr, nullptr, 10);
-            
-            printf("%.*s => %hhu %hhu\n", len, ptr, tk.type, tk.literal.type);
-        }
-    }
-
-    return ret;
-}
-
-bool Tokenizer::read_value(Token& tk)
-{
-    bool ret = true;
-
-    if((peek(0) == '0') && (peek(1) == 'x'))
-    {
-        ret = read_hex_value(tk);
-    }
-    else
-    {
-        ret = read_dec_value(tk);
-    }
-
-    return ret;
-}
-
-bool Tokenizer::read_literal(Token& tk)
-{
-    bool ret = true;
-
-    char c = peek(0);
-    if (c == '"')
-    {
-        ret = read_string(tk);
-    }
-    else
-    {
-        ret = read_value(tk);
-    }
-
-    return ret;
-}
-
-bool Tokenizer::read_string(Token& tk)
-{
-    bool status = (pop() == '"');
-
-    m_string_buffer.clear();
-
-    while(status)
-    {
-        char c = pop();
-        if(c == 0)
-        {
-            printf("Error: Unexpected EOF\n");
-            status = false;
-            break;
-        }
-        else if(c == '"')
-        {
-            break;
-        }
-        else
-        {
-            if(c == '\\')
-            {
-                status = read_escape_character(c);
-            }
-            
-            if(status)
-            {
-                m_string_buffer.push_back(c);
-            }
-        }
-    }
-
-    m_string_buffer.push_back(0); // insert the null terminator
-
-    if(status)
-    {
-        tk.type = TK_LITERAL;
-        tk.literal.type = LITERAL_STRING;
-        tk.literal.string.ptr = strdup(m_string_buffer.data());
-        tk.literal.string.len = m_string_buffer.size();
-
-        printf("%.*s => %hhu\n", tk.literal.string.len, tk.literal.string.ptr, tk.type);
-    }
-
-    return status;
-}
-
-bool Tokenizer::read_escape_character(char& character)
-{
-    bool status = true;
-
-    char c = pop();
-    switch(c)
-    {
-        case 'n':  { character = ASCII_NEWLINE;         break; }
-        case 'r':  { character = ASCII_CARRIAGE_RETURN; break; }
-        case 't':  { character = ASCII_TAB;             break; }
-        case '"':  { character = ASCII_DOUBLE_QUOTE;    break; }
-        case '\'': { character = ASCII_SINGLE_QUOTE;    break; }
-        case '\\': { character = ASCII_BACK_SLASH;      break; }
-
-        case 'x':
-        {
-            char buf[3];
-            for(unsigned int i = 0; i < 2; i++)
-            {
-                buf[i] = pop();
-                if(!(((buf[i] >= '0') && (buf[i] <= '9')) || ((buf[i] >= 'A') && (buf[i] <= 'F'))))
-                {
-                    status = false;
-                    printf("invalid character in escape sequence\n");
-                }
-            }
-            buf[2] = 0;
-            
-            if(status)
-            {
-                long value = strtol(buf, nullptr, 16);
-                
-                character = static_cast<char>(value);
-            }
-            
-            break;
-        }
-
-        default:
-        {
-            status = false;
-            printf("unknown character escape sequence\n");
-        }
-    }
-
-    return status;
-}
-
-bool Tokenizer::read_character(Token& tk)
-{
-    bool status = true;
-
-    pop(); // pop the '
-
-    char c = pop();
-    if(c == '\\')
-    {
-        status = read_escape_character(c);
-    }
-
-    if(pop() != '\'')
-    {
-        status = false;
-        printf("invalid character sequence\n");
-    }
-
-    if(status)
-    {
-        tk.type = TK_LITERAL;
-        tk.literal.type = LITERAL_CHAR;
-        tk.literal.character = c;
-    }
-
-    return status;
-}
-
-bool Tokenizer::is_alpha_or_num(char c)
-{
-	bool v = false;
-	v |= ((c >= '0') && (c <= '9'));
-	v |= ((c >= 'a') && (c <= 'z'));
-	v |= ((c >= 'A') && (c <= 'Z'));
-
-	if (!v) // check for any special characters
+	char c = 0;
+	if (m_read_ptr + offset < m_source_size)
 	{
-		v = (c == '_');
+		c = m_source[m_read_ptr + offset];
 	}
-
-	return v;
+	return c;
 }
 
-bool Tokenizer::read_word(const char*& str_ptr, unsigned int& str_len)
+const char* Tokenizer::current_position()
 {
-    bool status = true;
-
-    const char* ptr = current_ptr();
-    unsigned int len = 0;
-
-    while(true)
-    {
-        char c = peek(0);
-        
-        bool valid = is_alpha_or_num(c);
-
-        if(valid)
-        {
-            pop();
-            len ++;
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    if(status)
-    {
-        str_ptr = ptr;
-        str_len = len;
-    }
-
-    return status;
+	return &m_source[m_read_ptr];
 }
 
-bool Tokenizer::read_token(Token& tk)
-{
-    bool ret = true;
-
-    const char* ptr = nullptr;
-    unsigned int len = 0;
-    
-    ret = read_word(ptr, len);
-    if(ret)
-    {
-        ret = process(ptr, len, tk);
-    }
-    
-    return ret;
-}
-
-bool Tokenizer::skip_spaces()
+bool Tokenizer::process(const char* source, unsigned int source_size, TokenStack* stack)
 {
 	bool status = true;
+
+	m_source = source;
+	m_source_size = source_size;
+	m_read_ptr = 0;
+	m_stack = stack;
 
 	while (status)
 	{
 		char c = peek(0);
 		if (c == 0)
 		{
-			status = false;
-			printf("unexpected eof\n");
+			break;
 		}
-		else if ((c == ' ') || (c == '\t'))
+
+		switch (c)
+		{
+			case ' ': case '\n': case '\t':
+			{
+				pop();
+				continue;
+			}
+
+			case '/':
+			{
+				if (peek(1) == '/') status = read_single_line_comment();
+				else if (peek(1) == '*') status = read_multi_line_comment();
+				else goto DEFAULT;
+				break;
+			}
+
+			case '#':
+			{
+				status = read_preprocessor();
+				break;
+			}
+
+			DEFAULT: default:
+			{
+				status = read_token();
+				break;
+			}
+		}
+	}
+
+	return status;
+}
+
+bool Tokenizer::read_token()
+{
+	bool status = true;
+
+	char c = peek(0);
+	switch (c)
+	{
+		FORWARD_SLASH:
+		case '+': case '-': case '*': case ':':
+		case '=': case '<': case '>': case ';':
+		case '(': case ')': case '[': case ']':
+		case '{': case '}': case ',': case '.':
+		case '&': case '!':
 		{
 			pop();
-			continue;
+			status = process(c);
+			break;
 		}
-		else
+
+		case '\'':
 		{
+			status = read_character();
+		}
+
+		default:
+		{
+			if (is_num(c) || (c == '"'))
+			{
+				status = read_literal();
+			}
+			else if (is_alpha(c) || (c == '_'))
+			{
+				status = read_identifier();
+			}
+			else
+			{
+				status = false;
+				printf("Error: Unknown token '%c'\n", c);
+			}
 			break;
 		}
 	}
@@ -424,123 +173,11 @@ bool Tokenizer::skip_spaces()
 	return status;
 }
 
-bool Tokenizer::read_pp_include()
-{
-    bool status = true;
-
-	bool is_relative = false;
-
-	status = skip_spaces();
-	if (status)
-	{
-		char c = pop();
-		if (c == '<') { }
-		else if (c == '"') { is_relative = true; }
-		else
-		{
-			status = false;
-			printf("invalid include preprocessor\n");
-		}
-	}
-
-    const char* ptr = current_ptr();
-    unsigned int len = 0;
-
-    while(status)
-    {
-        char c = pop();
-        
-		if (c == '>' || c == '"')
-		{
-			if ((is_relative && (c == '>')) || (!is_relative && (c == '"')))
-			{
-				status = false;
-				printf("invalid include preprocessor\n");
-			}
-
-			break;
-		}
-		else if(is_alpha_or_num(c))
-		{
-			len++;
-		}
-		else
-		{
-			status = false;
-			printf("invalid include preprocessor\n");
-		}
-    }
-
-	if (status)
-	{
-		status = skip_spaces();
-	}
-
-	if (status)
-	{
-		if (pop() != '\n')
-		{
-			status = false;
-			printf("invalid include preprocessor\n");
-		}
-	}
-
-	if (status)
-	{
-		printf("INCLUDE %.*s\n", len, ptr);
-	}
-
-    return status;
-}
-
-bool Tokenizer::read_preprocessor()
-{
-    bool status = true;
-    const char* ptr = nullptr;
-    unsigned int len = 0;
-
-    pop(); // pop the '#'
-
-    status = read_word(ptr, len);
-    if(status)
-    {
-        switch(len)
-        {
-            case 2: { if(_strncmp(ptr, "if",    2)) { } break; }
-            case 4: { if(_strncmp(ptr, "elif",  4)) { } break; }
-            case 5:
-            {
-                switch(ptr[0])
-                {
-                    case 'e': { if(_strncmp(ptr, "endif", 5)) { } break; }
-                    case 'i': { if(_strncmp(ptr, "ifdef", 5)) { } break; }
-                }
-                break;
-            }
-            case 6:
-            {
-                switch(ptr[0])
-                {
-                    case 'd': { if(_strncmp(ptr, "define", 6)) { } break; }
-                    case 'i': { if(_strncmp(ptr, "ifndef", 6)) { } break; }
-                }
-                break;
-            }
-            case 7: { if(_strncmp(ptr, "include", 7)) { status = read_pp_include(); } break; }
-        }
-    }
-
-    if(status)
-    {
-    }
-
-    return status;   
-}
-
-bool Tokenizer::process(char c, Token& tk)
+bool Tokenizer::process(char c)
 {
     bool ret = true;
 
+	Token tk = {};
     switch(c)
     {
         case '<': { tk.type = TK_LEFT_ARROW_HEAD;      break; }
@@ -567,21 +204,27 @@ bool Tokenizer::process(char c, Token& tk)
 
         default:
         {
+			ret = false;
             printf("Error: Unknown character '%c'\n", c);
-            ret = false;
             break;
         }
     }
 
     printf("%c => %hhu\n", c, tk.type);
 
+	if (ret)
+	{
+		m_stack->push(tk);
+	}
+
     return ret;
 }
 
-bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
+bool Tokenizer::process(const char* str, unsigned int len)
 {
     bool ret = true;
 
+	Token tk = {};
     switch(len)
     {
         case 2:
@@ -733,8 +376,12 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
 
     if(tk.type == TK_INVALID)
     {
+		char* str_ptr = reinterpret_cast<char*>(malloc(len + 1));
+		strncpy(str_ptr, str, len);
+		str_ptr[len] = 0;
+
         tk.type = TK_IDENTIFIER;
-        tk.identifier.string.ptr = str;
+		tk.identifier.string.ptr = str_ptr;
         tk.identifier.string.len = len;
     }
 
@@ -743,135 +390,479 @@ bool Tokenizer::process(const char* str, unsigned int len, Token& tk)
     return ret;
 }
 
-bool Tokenizer::next_token(Token& tk)
+bool Tokenizer::read_identifier()
 {
-    enum
-    {
-        STATUS_ERROR    = 0,
-        STATUS_WORKING  = 1,
-        STATUS_FINISHED = 2,
-        STATUS_SUCCESS  = 3
-    } status = STATUS_WORKING;
+	const char* str = nullptr;
+	unsigned int len = 0;
 
-    while(status == STATUS_WORKING)
-    {
-        char c = peek(0);
+	bool status = read_word(str, len);
+	if (status)
+	{
+		status = process(str, len);
+	}
 
-        switch(c)
+	return status;
+}
+
+bool Tokenizer::read_word(const char*& str_ptr, unsigned int& str_len)
+{
+	bool status = true;
+
+	const char* str = current_position();
+	unsigned int len = 0;
+
+	while (status)
+	{
+		char c = peek(0);
+		if (is_alpha_or_num(c) || c == '_')
+		{
+			pop();
+			len++;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	if (status)
+	{
+		str_ptr = str;
+		str_len = len;
+	}
+
+	return status;
+}
+
+bool Tokenizer::read_single_line_comment()
+{
+    bool ret = true;
+
+    while(true)
+    {
+        char c = pop();
+        if((c == 0) || (c == '\n')) { break; }
+    }
+
+    return ret;
+}
+
+bool Tokenizer::read_multi_line_comment()
+{
+    bool ret = true;
+
+    while(true)
+    {
+        char c = pop();
+        if(c == 0)
         {
-            case 0:
+			ret = false;
+			printf("unterminated multi-line comment\n");
+            break;
+        }
+        else if(c == '*')
+        {
+            c = pop();
+            if(c == '/')
             {
-                tk.type = TK_EOF;
-                status = STATUS_SUCCESS;
-                break;
-            }
-
-            case ' ': case '\n': case '\t':
-            {
-                pop();
-                break;
-            }
-
-            case '/':
-            {
-                pop();
-
-                char n = peek(0);
-                if(n == '/')
-                {
-                    pop();
-                    status = read_single_line_comment() ? STATUS_WORKING : STATUS_ERROR;
-                }
-                else if(n == '*')
-                {
-                    pop();
-                    status = read_multi_line_comment() ? STATUS_WORKING : STATUS_ERROR;
-                }
-                else
-                {
-                    goto FORWARD_SLASH;
-                }
-                break;
-            }
-
-            FORWARD_SLASH:
-            case '+': case '-': case '*': case ':':
-            case '=': case '<': case '>': case ';':
-            case '(': case ')': case '[': case ']':
-            case '{': case '}': case ',': case '.':
-			case '&': case '!':
-            {
-                pop();
-                status = process(c, tk) ? STATUS_SUCCESS : STATUS_ERROR;
-                break;
-            }
-
-            case '#':
-            {
-                status = read_preprocessor() ? STATUS_WORKING : STATUS_ERROR;
-                break;
-            }
-
-            case '\'':
-            {
-                status = read_character(tk) ? STATUS_SUCCESS : STATUS_ERROR;
-                break;
-            }
-
-            default:
-            {
-                if(((c >= '0') && (c <= '9')) || (c == '"'))
-                {
-                    status = read_literal(tk) ? STATUS_SUCCESS : STATUS_ERROR;
-                }
-                else if(((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')) || (c == '_'))
-                {
-                    status = read_token(tk) ? STATUS_SUCCESS : STATUS_ERROR;
-                }
-                else
-                {
-                    printf("Error: Unknown token '%c'\n", c);
-                    status = STATUS_ERROR;
-                }
                 break;
             }
         }
     }
 
-    return (status == STATUS_SUCCESS);
+    return ret;
 }
 
-Tokenizer::Tokenizer(const char* buffer, long size)
+bool Tokenizer::read_literal()
 {
-    m_buffer = buffer;
-    m_buffer_size = size;
+	bool ret = true;
 
-    m_read_ptr = 0;
+	Token tk = {};
+
+	char c = peek(0);
+	if (c == '"') {
+		ret = read_string(tk);
+	}
+	else {
+		ret = read_value(tk);
+	}
+
+	if (ret) {
+		m_stack->push(tk);
+	}
+
+	return ret;
 }
 
-bool Tokenizer::tokenize()
+bool Tokenizer::read_string(Token& tk)
 {
-    while(true)
+	bool status = (pop() == '"');
+
+	m_buffer.clear();
+	while (status)
+	{
+		char c = pop();
+		if (c == 0)
+		{
+			printf("Error: Unexpected EOF\n");
+			status = false;
+			break;
+		}
+		else if (c == '"')
+		{
+			break;
+		}
+		else
+		{
+			if (c == '\\') {
+				status = read_escape_character(c);
+			}
+
+			if (status) {
+				m_buffer.push_back(c);
+			}
+		}
+	}
+
+	m_buffer.push_back(0); // insert the null terminator
+
+	if (status)
+	{
+		tk.type = TK_LITERAL;
+		tk.literal.type = LITERAL_STRING;
+		tk.literal.string.ptr = strdup(m_buffer.data());
+		tk.literal.string.len = m_buffer.size();
+
+		printf("%.*s => %hhu\n", tk.literal.string.len, tk.literal.string.ptr, tk.type);
+	}
+
+	return status;
+}
+
+bool Tokenizer::read_character()
+{
+	bool status = true;
+
+	pop(); // pop the '
+
+	char c = pop();
+	if (c == '\\')
+	{
+		status = read_escape_character(c);
+	}
+
+	if (pop() != '\'')
+	{
+		status = false;
+		printf("invalid character sequence\n");
+	}
+
+	if (status)
+	{
+		Token tk = {};
+		tk.type = TK_LITERAL;
+		tk.literal.type = LITERAL_CHAR;
+		tk.literal.character = c;
+
+		m_stack->push(tk);
+	}
+
+	return status;
+}
+
+bool Tokenizer::read_hex_value(Token& tk)
+{  
+    const char* ptr = current_position();
+    unsigned int len = 0;
+
+    bool ret = (pop() == '0') && (pop() == 'x');
+    if(ret)
     {
-        Token tk = { 0 };
-        if(next_token(tk))
+        while(true)
         {
-            m_tokens.push(tk);
-            if(tk.type == TK_EOF)
+            char c = pop();
+            if(is_hex(c))
             {
+                len ++;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    if(ret)
+    {
+        tk.type = TK_LITERAL;
+        tk.literal.type = LITERAL_INTEGER;
+        tk.literal.integer.value = strtoul(ptr, nullptr, 16);
+    }
+
+    printf("%.*s => %hhu %hhu\n", len, ptr, tk.type, tk.literal.type);
+
+    return ret;
+}
+
+bool Tokenizer::read_dec_value(Token& tk)
+{
+    bool ret = true;
+
+    const char* ptr = current_position();
+    unsigned int len = 0;
+
+    bool is_decimal = false;
+    while(ret)
+    {
+        char c = peek(0);
+        if(is_num(c))
+        {
+            pop();
+            len ++;
+        }
+        else if(c == '.')
+        {
+            pop();
+            len ++;
+
+            if(!is_decimal) {
+				is_decimal = true;
+			} else {
+				ret = false;
+                printf("error: repeated decimal place\n");
                 break;
             }
         }
         else
-        {
-            return false;
+		{
+            break;
         }
     }
 
-    return true;
+    if(ret)
+    {
+        tk.type = TK_LITERAL;
+
+        if(is_decimal)
+        {
+            tk.literal.type = LITERAL_DECIMAL;
+            tk.literal.decimal.value = strtod(ptr, nullptr);
+            
+            printf("%.*s => %hhu %hhu\n", len, ptr, tk.type, tk.literal.type);
+        }
+        else
+        {
+            tk.literal.type = LITERAL_INTEGER;
+            tk.literal.integer.value = strtoul(ptr, nullptr, 10);
+            
+            printf("%.*s => %hhu %hhu\n", len, ptr, tk.type, tk.literal.type);
+        }
+    }
+
+    return ret;
 }
 
-TokenStack& Tokenizer::get_tokens()
+bool Tokenizer::read_value(Token &tk)
 {
-    return m_tokens;
+    bool ret = true;
+
+    if((peek(0) == '0') && (peek(1) == 'x'))
+    {
+        ret = read_hex_value(tk);
+    }
+    else
+    {
+        ret = read_dec_value(tk);
+    }
+
+    return ret;
+}
+
+bool Tokenizer::skip_spaces()
+{
+	bool status = true;
+
+	while (status)
+	{
+		char c = peek(0);
+		if (c == 0)
+		{
+			status = false;
+			printf("unexpected eof\n");
+		}
+		else if ((c == ' ') || (c == '\t'))
+		{
+			pop();
+			continue;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	return status;
+}
+
+bool Tokenizer::read_pp_include()
+{
+    bool status = true;
+
+	bool is_relative = false;
+
+	status = skip_spaces();
+	if (status)
+	{
+		char c = pop();
+		if (c == '<') { }
+		else if (c == '"') { is_relative = true; }
+		else
+		{
+			status = false;
+			printf("invalid include preprocessor\n");
+		}
+	}
+
+    const char* ptr = current_position();
+    unsigned int len = 0;
+
+    while(status)
+    {
+        char c = pop();
+        
+		if (c == '>' || c == '"')
+		{
+			if ((is_relative && (c == '>')) || (!is_relative && (c == '"')))
+			{
+				status = false;
+				printf("invalid include preprocessor\n");
+			}
+
+			break;
+		}
+		else if(is_alpha_or_num(c) || c == '_' || c == '.')
+		{
+			len++;
+		}
+		else
+		{
+			status = false;
+			printf("invalid include preprocessor\n");
+		}
+    }
+
+	if (status)
+	{
+		status = skip_spaces();
+	}
+
+	if (status)
+	{
+		if (pop() != '\n')
+		{
+			status = false;
+			printf("invalid include preprocessor\n");
+		}
+	}
+
+	if (status)
+	{
+		char file_path[1024] = {};
+		snprintf(file_path, 1024, "C:/Users/Jas/Documents/C64/test/%.*s", len, ptr);
+		
+		printf("INCLUDE: %s\n", file_path);
+		status = Process(file_path, *m_stack);
+	}
+
+    return status;
+}
+
+bool Tokenizer::read_preprocessor()
+{
+    bool status = true;
+    const char* ptr = nullptr;
+    unsigned int len = 0;
+
+    pop(); // pop the '#'
+
+    status = read_word(ptr, len);
+    if(status)
+    {
+        switch(len)
+        {
+            case 2: { if(_strncmp(ptr, "if",    2)) { } break; }
+            case 4: { if(_strncmp(ptr, "elif",  4)) { } break; }
+            case 5:
+            {
+                switch(ptr[0])
+                {
+                    case 'e': { if(_strncmp(ptr, "endif", 5)) { } break; }
+                    case 'i': { if(_strncmp(ptr, "ifdef", 5)) { } break; }
+                }
+                break;
+            }
+            case 6:
+            {
+                switch(ptr[0])
+                {
+                    case 'd': { if(_strncmp(ptr, "define", 6)) { } break; }
+                    case 'i': { if(_strncmp(ptr, "ifndef", 6)) { } break; }
+                }
+                break;
+            }
+            case 7: { if(_strncmp(ptr, "include", 7)) { status = read_pp_include(); } break; }
+        }
+    }
+
+    if(status)
+    {
+    }
+
+    return status;   
+}
+
+bool Tokenizer::read_escape_character(char& character)
+{
+	bool status = true;
+
+	char c = pop();
+	switch (c)
+	{
+		case 'n': { character = ASCII_NEWLINE;         break; }
+		case 'r': { character = ASCII_CARRIAGE_RETURN; break; }
+		case 't': { character = ASCII_TAB;             break; }
+		case '"': { character = ASCII_DOUBLE_QUOTE;    break; }
+		case '\'': { character = ASCII_SINGLE_QUOTE;    break; }
+		case '\\': { character = ASCII_BACK_SLASH;      break; }
+
+		case 'x':
+		{
+			char buf[3];
+			buf[0] = pop();
+			buf[1] = pop();
+			buf[2] = 0;
+
+			if (!is_alpha_or_num(buf[0]) || !is_alpha_or_num(buf[1]))
+			{
+				status = false;
+				printf("invalid character in escape sequence\n");
+			}
+
+			if (status)
+			{
+				long value = strtol(buf, nullptr, 16);
+				character = static_cast<char>(value);
+			}
+
+			break;
+		}
+
+		default:
+		{
+			status = false;
+			printf("unknown character escape sequence\n");
+		}
+	}
+
+	return status;
 }
