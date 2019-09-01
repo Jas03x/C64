@@ -112,6 +112,8 @@ SymbolTable::SymbolTable()
 {
     m_global = new SymbolTable::Entry();
     m_global->type = SymbolTable::Entry::TYPE_NAMESPACE;
+
+	m_current = m_global;
 }
 
 SymbolTable::~SymbolTable()

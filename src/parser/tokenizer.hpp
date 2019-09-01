@@ -44,6 +44,9 @@ private:
 
     bool read_token(Token& tk);
     
+	bool skip_spaces();
+	bool is_alpha_or_num(char c);
+
     bool read_preprocessor();
     bool read_pp_include();
 
@@ -52,8 +55,9 @@ private:
 
     bool next_token(Token& tk);
 
+	Tokenizer(const char* buffer, long size);
+
 public:
-    Tokenizer(const char* buffer, long size);
     
     bool tokenize();
     TokenStack& get_tokens();

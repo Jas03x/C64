@@ -3,7 +3,6 @@
 #include "parser.hpp"
 #include "tokenizer.hpp"
 
-#include <file.hpp>
 #include <parser.hpp>
 
 #include <debug.hpp>
@@ -12,21 +11,15 @@ bool process(const char* path)
 {
     bool status = true;
 
-    unsigned int source_size = 0;
-    char* source_code = File::Read(path, source_size);
-
-    if(source_code != nullptr)
-    {
-        Tokenizer tokenizer = Tokenizer(source_code, source_size);
+    Tokenizer tokenizer = Tokenizer(path);
         
-        if(tokenizer.tokenize())
+    if(tokenizer.tokenize())
+    {
+        AST* ast = Parser::Parse(&tokenizer.get_tokens());
+        if(ast != nullptr)
         {
-            AST* ast = Parser::Parse(&tokenizer.get_tokens());
-            if(ast != nullptr)
-            {
-                printf("Successfully parsed!\n");
-                debug_print_ast(ast);
-            }
+            printf("Successfully parsed!\n");
+            debug_print_ast(ast);
         }
     }
 
@@ -50,4 +43,3 @@ int main(int argc, char* argv[])
 
     return 0;
 }
-

@@ -4,9 +4,9 @@
 namespace io
 {
     U8   get_char();
-    void put_char(const U8 c);
+    void put_char(const U8);
 
-    void print(const U8* buffer);
+    void print(const U8*);
 }
 
 #endif // IO_H

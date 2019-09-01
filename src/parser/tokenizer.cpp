@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <ascii.hpp>
+#include <file.hpp>
 
 #define _strncmp(str0, str1, num) (strncmp((str0), (str1), (num)) == 0)
 
@@ -333,6 +334,21 @@ bool Tokenizer::read_character(Token& tk)
     return status;
 }
 
+bool Tokenizer::is_alpha_or_num(char c)
+{
+	bool v = false;
+	v |= ((c >= '0') && (c <= '9'));
+	v |= ((c >= 'a') && (c <= 'z'));
+	v |= ((c >= 'A') && (c <= 'Z'));
+
+	if (!v) // check for any special characters
+	{
+		v = (c == '_');
+	}
+
+	return v;
+}
+
 bool Tokenizer::read_word(const char*& str_ptr, unsigned int& str_len)
 {
     bool status = true;
@@ -344,17 +360,9 @@ bool Tokenizer::read_word(const char*& str_ptr, unsigned int& str_len)
     {
         char c = peek(0);
         
-        bool v = false;
-        v |= ((c >= '0') && (c <= '9'));
-        v |= ((c >= 'a') && (c <= 'z'));
-        v |= ((c >= 'A') && (c <= 'Z'));
-        
-        if(!v) // check for any special characters
-        {
-            v = (c == '_');
-        }
+        bool valid = is_alpha_or_num(c);
 
-        if(v)
+        if(valid)
         {
             pop();
             len ++;
@@ -390,46 +398,97 @@ bool Tokenizer::read_token(Token& tk)
     return ret;
 }
 
+bool Tokenizer::skip_spaces()
+{
+	bool status = true;
+
+	while (status)
+	{
+		char c = peek(0);
+		if (c == 0)
+		{
+			status = false;
+			printf("unexpected eof\n");
+		}
+		else if ((c == ' ') || (c == '\t'))
+		{
+			pop();
+			continue;
+		}
+		else
+		{
+			break;
+		}
+	}
+
+	return status;
+}
+
 bool Tokenizer::read_pp_include()
 {
     bool status = true;
 
-    while(status)
-    {
-        char c = pop();
-        if(c == '<')
-        {
-            break;
-        }
-        else if((c == 0) || (c == '\n'))
-        {
-            status = false;
-            printf("invalid preprocessor statement\n");
-        }
-    }
+	bool is_relative = false;
+
+	status = skip_spaces();
+	if (status)
+	{
+		char c = pop();
+		if (c == '<') { }
+		else if (c == '"') { is_relative = true; }
+		else
+		{
+			status = false;
+			printf("invalid include preprocessor\n");
+		}
+	}
 
     const char* ptr = current_ptr();
     unsigned int len = 0;
 
-    while(true)
+    while(status)
     {
         char c = pop();
-        if(c == '>')
-        {
-            break;
-        }
-        else if((c == 0) || (c == '\n'))
-        {
-            status = false;
-            printf("invalid include file name\n");
-        }
-        else
-        {
-            len ++;
-        }
+        
+		if (c == '>' || c == '"')
+		{
+			if ((is_relative && (c == '>')) || (!is_relative && (c == '"')))
+			{
+				status = false;
+				printf("invalid include preprocessor\n");
+			}
+
+			break;
+		}
+		else if(is_alpha_or_num(c))
+		{
+			len++;
+		}
+		else
+		{
+			status = false;
+			printf("invalid include preprocessor\n");
+		}
     }
 
-    printf("INCLUDE %.*s\n", len, ptr);
+	if (status)
+	{
+		status = skip_spaces();
+	}
+
+	if (status)
+	{
+		if (pop() != '\n')
+		{
+			status = false;
+			printf("invalid include preprocessor\n");
+		}
+	}
+
+	if (status)
+	{
+		printf("INCLUDE %.*s\n", len, ptr);
+	}
 
     return status;
 }
