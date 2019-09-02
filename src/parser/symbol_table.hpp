@@ -25,7 +25,6 @@ public:
         strptr name;
         void*  value;
 
-        Entry* child;
         Entry* parent;
         
         Entry* left;

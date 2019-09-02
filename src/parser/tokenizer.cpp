@@ -26,6 +26,17 @@ inline bool is_hex(char c) {
 	return is_num(c) || (((c >= 'a') && (c <= 'f')) && ((c >= 'A') && (c <= 'F')));
 }
 
+bool Tokenizer::Tokenize(const char* path, TokenStack& stack)
+{
+	bool status = Process(path, stack);
+	if (status)
+	{
+		Token eof = { TK_EOF };
+		stack.push(eof);
+	}
+	return status;
+}
+
 bool Tokenizer::Process(const char* path, TokenStack& stack)
 {
 	bool status = true;

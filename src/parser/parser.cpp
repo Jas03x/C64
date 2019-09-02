@@ -320,7 +320,7 @@ bool Parser::parse_sub_expr(Expression** ptr)
 
 	if (status)
 	{
-		if (m_stack->peek(0).type == TK_OPEN_CURLY_BRACKET)
+		if (m_stack->peek(0).type == TK_OPEN_ROUND_BRACKET)
 		{
 			Argument* args = nullptr;
 			status = parse_arguments(&args);
@@ -537,7 +537,6 @@ bool Parser::parse_namespace(Statement** ptr)
     bool status = true;
 
     strptr name = { 0 };
-    Statement*  body = nullptr;
 
     Token tk = m_stack->pop();
     if(tk.type != TK_NAMESPACE)
@@ -559,17 +558,29 @@ bool Parser::parse_namespace(Statement** ptr)
 
     if(status)
     {
-        status = parse_body(&body);
-    }
-
-    if(status)
-    {
         Statement* stmt = new Statement();
         stmt->type = STMT_NAMESPACE;
-        stmt->name_space.name       = name;
-        stmt->name_space.statements = body;
+        stmt->name_space.name = name;
 
-        *ptr = stmt;
+		SymbolTable::Entry* entry = new SymbolTable::Entry();
+		entry->type = SymbolTable::Entry::TYPE_NAMESPACE;
+		entry->name = name;
+		entry->value = stmt;
+
+		status = m_symbols.push_scope(entry);
+		if (status)
+		{
+			status = parse_body(&stmt->name_space.statements);
+			if (status)
+			{
+				status = m_symbols.pop_scope();
+			}
+		}
+
+		if (status)
+		{
+			*ptr = stmt;
+		}
     }
 
     return status;
@@ -1234,7 +1245,7 @@ bool Parser::parse_statement(Statement** ptr)
                     case SymbolTable::Entry::TYPE_COMPOSITE:
                     case SymbolTable::Entry::TYPE_ENUMERATOR:
                     {
-                        status = parse_declaration(ptr);
+                        status = parse_declaration(&stmt);
                         break;
                     }
 
@@ -2080,14 +2091,32 @@ bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
         stmt->function.name  = name;
         stmt->function.ptr   = function;
 
-        if((stmt->type == STMT_FUNCTION_DEF) && !parse_body(&function->body))
-        {
-            status = false;
-        }
-        else
-        {
-            *ptr = stmt;
-        }
+		SymbolTable::Entry* entry = new SymbolTable::Entry();
+		entry->type = SymbolTable::Entry::TYPE_FUNCTION;
+		entry->name = name;
+		entry->value = stmt;
+
+		if (stmt->type == STMT_FUNCTION_DEF) {
+			status = m_symbols.push_scope(entry);
+		} else {
+			status = m_symbols.current_scope()->insert(entry);
+		}
+
+		if (status)
+		{
+			if (stmt->type == STMT_FUNCTION_DEF)
+			{
+				status = parse_body(&function->body);
+				if (status) {
+					status = m_symbols.pop_scope();
+				}
+			}
+			
+			if (status)
+			{
+				*ptr = stmt;
+			}
+		}
     }
 
     return status;
@@ -2145,7 +2174,16 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
 
             if(status)
             {
-                *ptr = stmt;
+				SymbolTable::Entry* entry = new SymbolTable::Entry();
+				entry->type = SymbolTable::Entry::TYPE_VARIABLE;
+				entry->name = name;
+				entry->value = stmt;
+				
+				status = m_symbols.current_scope()->insert(entry);
+				if (status)
+				{
+					*ptr = stmt;
+				}
             }
 
             break;

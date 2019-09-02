@@ -223,7 +223,7 @@ void debug_print_variable(const Variable* var, unsigned int level)
             debug_print_identifier(var->identifier);
         }
     }
-    else if(var->type == COMP_TYPE_STRUCT)
+    else if(var->type == TYPE_COMPOSITE)
     {
         if(var->composite->name.len > 0)
         {

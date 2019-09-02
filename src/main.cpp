@@ -12,7 +12,7 @@ bool process(const char* path)
     bool status = true;
 
 	TokenStack tokens;    
-    if(Tokenizer::Process(path, tokens))
+    if(Tokenizer::Tokenize(path, tokens))
     {
         AST* ast = Parser::Parse(&tokens);
         if(ast != nullptr)

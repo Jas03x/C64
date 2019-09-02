@@ -56,8 +56,10 @@ private:
 
 	Tokenizer();
 
-public:
 	static bool Process(const char* path, TokenStack& stack);
+
+public:
+	static bool Tokenize(const char* path, TokenStack& stack);
 };
 
 #endif // TOKENIZER_HPP

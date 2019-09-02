@@ -20,6 +20,7 @@ private:
     Parser(TokenStack* stack);
     ~Parser();
 
+	bool process_symbol(Statement* stmt);
     bool scan_identifier(SymbolTable::Entry** ptr);
 
     bool parse(AST** ptr);
