@@ -18,7 +18,10 @@ struct Person
 
 U32 main(U32 argc, U8* argv[])
 {
-	Person jas = { 21, "Jas", 6.0 };
+	Person jas = { };
+	jas.name = "Jas";
+	jas.age = 21;
+	jas.height = 6.0;
 
     return 0;
 }

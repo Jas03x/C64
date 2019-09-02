@@ -25,12 +25,11 @@ enum
     EXPR_SUB_EXPR         = 0x1,
     EXPR_LITERAL          = 0x2,
     EXPR_IDENTIFIER       = 0x3,
-    EXPR_ASSIGN           = 0x4,
-    EXPR_OPERATION        = 0x5,
-    EXPR_INITIALIZER      = 0x6,
-	EXPR_FUNCTION_CALL    = 0x7,
-	EXPR_STATIC_CAST      = 0x8,
-	EXPR_REINTERPRET_CAST = 0x9
+    EXPR_OPERATION        = 0x4,
+    EXPR_INITIALIZER      = 0x5,
+	EXPR_FUNCTION_CALL    = 0x6,
+	EXPR_STATIC_CAST      = 0x7,
+	EXPR_REINTERPRET_CAST = 0x8
 };
 
 enum

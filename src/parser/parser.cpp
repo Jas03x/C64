@@ -197,13 +197,20 @@ bool Parser::parse_operator(Expression** ptr)
 		case TK_EQUAL:
 		{
 			expr->type = EXPR_OPERATION;
-			expr->operation.op = EXPR_ASSIGN;
+			expr->operation.op = EXPR_OP_ASSIGN;
+			break;
+		}
+		case TK_DOT:
+		{
+			expr->type = EXPR_OPERATION;
+			expr->operation.op = EXPR_OP_ACCESS_FIELD;
 			break;
 		}
 		default:
 		{
 			status = false;
 			error("expected operator\n");
+			break;
 		}
 	}
 
