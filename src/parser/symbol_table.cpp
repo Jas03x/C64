@@ -28,50 +28,42 @@ SymbolTable::Entry::Entry()
     parent = nullptr;
     left   = nullptr;
     right  = nullptr;
+	children = nullptr;
 }
 
 SymbolTable::Entry::~Entry()
 {
-    if(left  != nullptr) delete left;
-    if(right != nullptr) delete right;
+    if(left      != nullptr) delete left;
+    if(right     != nullptr) delete right;
+	if (children != nullptr) delete children;
 }
 
 SymbolTable::Entry* SymbolTable::Entry::search(const strptr& sym_name)
 {
-    SymbolTable::Entry* entry = nullptr;
+	printf("search for %.*s\n", sym_name.len, sym_name.ptr);
+	SymbolTable::Entry* entry = nullptr;
+	SymbolTable::Entry* it = this;
 
-    if(this->name.len > sym_name.len)
-    {
-        if(this->right != nullptr) entry = this->right->search(sym_name);
-    }
-    else if(this->name.len < sym_name.len)
-    {
-        if(this->left != nullptr) entry = this->left->search(sym_name);
-    }
-    else
-    {
-        int dif = _strncmp(sym_name.ptr, this->name.ptr, sym_name.len);
-
-        if(dif == 0)
-        {
-            entry = this;
-        }
-        else if(dif < 0)
-        {
-            if(this->left != nullptr) entry = this->left->search(sym_name);
-        }
-        else
-        {
-            if(this->right != nullptr) entry = this->right->search(sym_name);
-        }
-    }
-
-	if (!entry)
+	while(it != nullptr)
 	{
-		if (this->parent != nullptr)
+		entry = it->children;
+
+		while (entry != nullptr)
 		{
-			entry = this->parent->search(sym_name);
+			if      (entry->name.len > sym_name.len) { entry = entry->right; }
+			else if (entry->name.len < sym_name.len) { entry = entry->left;  }
+			else
+			{
+				int dif = _strncmp(sym_name.ptr, entry->name.ptr, sym_name.len);
+			
+				if (dif == 0)     { break;                }
+				else if (dif < 0) { entry = entry->left;  }
+				else              { entry = entry->right; }
+			}
 		}
+
+		if (entry != nullptr) { break;           }
+		else                  { it = it->parent; }
 	}
 
     return entry;
@@ -79,39 +71,58 @@ SymbolTable::Entry* SymbolTable::Entry::search(const strptr& sym_name)
 
 bool SymbolTable::Entry::insert(SymbolTable::Entry* entry)
 {
-	bool ret = false;
+	printf("insert %.*s\n", entry->name.len, entry->name.ptr);
+	bool status = true;
+	SymbolTable::Entry** target = nullptr;
 
-    if(this->name.len > entry->name.len)
-    {
-        if(this->right == nullptr) { this->right = entry; ret = true;  }
-        else                       { ret = this->right->insert(entry); }
-    }
-    else if(this->name.len < entry->name.len)
-    {
-        if(this->left == nullptr) { this->left = entry; ret = true;  }
-        else                      { ret = this->left->insert(entry); }
-    }
-    else
-    {
-        int dif = _strncmp(entry->name.ptr, this->name.ptr, entry->name.len);
+	if (children == nullptr)
+	{
+		target = &children;
+	}
+	else
+	{
+		Entry* it = this->children;
+		while (status && (it != nullptr) && (target == nullptr))
+		{
+			if (it->name.len > entry->name.len)
+			{
+				if (it->right == nullptr) { target = &it->right; }
+				else                      { it = it->right;      }
+			}
+			else if (this->name.len < entry->name.len)
+			{
+				if (it->left == nullptr) { target = &it->left; }
+				else                     { it = it->left;      }
+			}
+			else
+			{
+				int dif = _strncmp(entry->name.ptr, it->name.ptr, entry->name.len);
+				if (dif == 0)
+				{
+					status = false;
+					printf("error: duplicated definition of identifier \"%.*s\"\n", entry->name.len, entry->name.ptr);
+				}
+				else if (dif < 0)
+				{
+					if (it->left == nullptr) { target = &it->left; }
+				    else                     { it = it->left;      }
+				}
+				else
+				{
+					if (it->right == nullptr) { target = &it->right; }
+					else                      { it = it->right;      }
+				}
+			}
+		}
+	}
 
-        if(dif == 0)
-        {
-			printf("error: duplicated definition of identifier \"%.*s\"\n", entry->name.len, entry->name.ptr);
-        }
-        else if(dif < 0)
-        {
-            if(this->left == nullptr) { this->left = entry; ret = true;  }
-            else                      { ret = this->left->insert(entry); }
-        }
-        else
-        {
-            if(this->right == nullptr) { this->right = entry; ret = true;  }
-            else                       { ret = this->right->insert(entry); }
-        }
-    }
+	if(status)
+	{
+		if (target == nullptr) { status = false;  }
+		else                   { *target = entry; }
+	}
 
-    return ret;
+    return status;
 }
 
 SymbolTable::SymbolTable()
@@ -132,15 +143,15 @@ SymbolTable::~SymbolTable()
 
 bool SymbolTable::push_scope(SymbolTable::Entry* entry)
 {
-    bool status = m_current->insert(entry);
-    
-    if(status)
-    {
-		entry->parent = m_current;
-        m_current = entry;
-    }
+	bool status = m_current->insert(entry);
 
-    return status;
+	if (status)
+	{
+		entry->parent = m_current;
+		m_current = entry;
+	}
+
+	return status;
 }
 
 bool SymbolTable::pop_scope()

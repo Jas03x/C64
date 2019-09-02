@@ -311,6 +311,12 @@ bool Parser::parse_sub_expr(Expression** ptr)
 			break;
 		}
 
+		case TK_OPEN_CURLY_BRACKET:
+		{
+			status = parse_initializer(&expr);
+			break;
+		}
+
 		default:
 		{
 			status = false;
@@ -404,6 +410,7 @@ bool Parser::parse_expression(Expression** ptr)
 				case TK_SEMICOLON:
 				case TK_COMMA:
 				case TK_CLOSE_ROUND_BRACKET:
+				case TK_CLOSE_CURLY_BRACKET:
 				{
 					scanning = false;
 					break;
@@ -456,30 +463,19 @@ bool Parser::parse_composite(Composite** ptr)
         }
     }
     
-    if(status)
-    {
-        if(m_stack->peek(0).type == TK_IDENTIFIER)
-        {
-            tk = m_stack->pop();
-            name = tk.identifier.string;
-        }
-    }
+	if (status)
+	{
+		if (m_stack->peek(0).type == TK_IDENTIFIER)
+		{
+			tk = m_stack->pop();
+			name = tk.identifier.string;
+		}
+	}
 
     Statement* body = nullptr;
-
     if(status)
     {
-        tk = m_stack->pop();
-
-        if(tk.type == TK_OPEN_CURLY_BRACKET)
-        {
-            status = parse_body(&body);
-        }
-        else
-        {
-            error("Unexpected token %hhu\n", tk.type);
-            status = false;
-        }
+		status = parse_body(&body);
     }
 
     if(status)
@@ -497,18 +493,67 @@ bool Parser::parse_composite(Composite** ptr)
 
 bool Parser::parse_composite_definition(Statement** ptr)
 {
-    Token tk = {};
-    Composite* composite = nullptr;
-    bool status = parse_composite(&composite);
+    bool status = true;
+
+    strptr name = {};
+    uint8_t type = COMP_TYPE_INVALID;
+	Composite* composite = nullptr;
+	Statement* stmt = nullptr;
+
+    Token tk = m_stack->pop();
+    switch(tk.type)
+    {
+        case TK_STRUCT: { type = COMP_TYPE_STRUCT; break; }
+        case TK_UNION:  { type = COMP_TYPE_UNION;  break; }
+        default:
+        {
+            status = false;
+            error("Expected 'struct' or 'union'\n");
+        }
+    }
+    
+	if (status)
+	{
+		if (m_stack->peek(0).type == TK_IDENTIFIER)
+		{
+			tk = m_stack->pop();
+			name = tk.identifier.string;
+		}
+	}
 
     if(status)
     {
-        Statement* statement = new Statement();
-        statement->type = STMT_COMP_DEF;
-        statement->comp_def.name = composite->name;
-        statement->comp_def.composite = composite;
+		composite = new Composite();
+        composite->type = type;
+        composite->name = name;
 
-        *ptr = statement;
+		Statement* statement = new Statement();
+		statement->type = STMT_COMP_DEF;
+		statement->comp_def.name = composite->name;
+		statement->comp_def.composite = composite;
+    }
+
+	if (status)
+	{
+		SymbolTable::Entry* entry = new SymbolTable::Entry();
+		entry->type = SymbolTable::Entry::TYPE_COMPOSITE;
+		entry->name = name;
+		entry->value = stmt;
+		
+		status = m_symbols.push_scope(entry);
+		if (status)
+		{
+			status = parse_body(&composite->body);
+			if (status)
+			{
+				status = m_symbols.pop_scope();
+			}
+		}
+	}
+
+    if(status)
+    {
+		*ptr = stmt;
     }
 
     return status;
@@ -566,8 +611,9 @@ bool Parser::parse_namespace(Statement** ptr)
 		entry->type = SymbolTable::Entry::TYPE_NAMESPACE;
 		entry->name = name;
 		entry->value = stmt;
-
+		
 		status = m_symbols.push_scope(entry);
+
 		if (status)
 		{
 			status = parse_body(&stmt->name_space.statements);
@@ -2252,9 +2298,9 @@ bool Parser::parse_def_or_decl(Statement** ptr)
         case TK_UNION:
         case TK_STRUCT:
         {
-            if(m_stack->peek(0).type == TK_IDENTIFIER)
+            if(m_stack->peek(1).type == TK_IDENTIFIER)
             {
-                Token tk = m_stack->peek(1);
+                Token tk = m_stack->peek(2);
                 if(tk.type == TK_OPEN_CURLY_BRACKET)
                 {
                     status = parse_definition(ptr);

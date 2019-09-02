@@ -26,6 +26,7 @@ public:
         void*  value;
 
         Entry* parent;
+		Entry* children;
         
         Entry* left;
         Entry* right;
