@@ -475,7 +475,20 @@ bool Parser::parse_composite(Composite** ptr)
     Statement* body = nullptr;
     if(status)
     {
-		status = parse_body(&body);
+		SymbolTable::Entry* entry = new SymbolTable::Entry();
+		entry->type = SymbolTable::Entry::TYPE_COMPOSITE;
+		entry->name = name;
+
+		status = m_symbols.push_scope(entry);
+		if (status)
+		{
+			status = parse_body(&body);
+
+			if (status)
+			{
+				status = m_symbols.pop_scope();
+			}
+		}
     }
 
     if(status)
@@ -493,70 +506,21 @@ bool Parser::parse_composite(Composite** ptr)
 
 bool Parser::parse_composite_definition(Statement** ptr)
 {
-    bool status = true;
-
-    strptr name = {};
-    uint8_t type = COMP_TYPE_INVALID;
+	Token tk = {};
 	Composite* composite = nullptr;
-	Statement* stmt = nullptr;
+	bool status = parse_composite(&composite);
 
-    Token tk = m_stack->pop();
-    switch(tk.type)
-    {
-        case TK_STRUCT: { type = COMP_TYPE_STRUCT; break; }
-        case TK_UNION:  { type = COMP_TYPE_UNION;  break; }
-        default:
-        {
-            status = false;
-            error("Expected 'struct' or 'union'\n");
-        }
-    }
-    
 	if (status)
 	{
-		if (m_stack->peek(0).type == TK_IDENTIFIER)
-		{
-			tk = m_stack->pop();
-			name = tk.identifier.string;
-		}
-	}
-
-    if(status)
-    {
-		composite = new Composite();
-        composite->type = type;
-        composite->name = name;
-
 		Statement* statement = new Statement();
 		statement->type = STMT_COMP_DEF;
 		statement->comp_def.name = composite->name;
 		statement->comp_def.composite = composite;
-    }
 
-	if (status)
-	{
-		SymbolTable::Entry* entry = new SymbolTable::Entry();
-		entry->type = SymbolTable::Entry::TYPE_COMPOSITE;
-		entry->name = name;
-		entry->value = stmt;
-		
-		status = m_symbols.push_scope(entry);
-		if (status)
-		{
-			status = parse_body(&composite->body);
-			if (status)
-			{
-				status = m_symbols.pop_scope();
-			}
-		}
+		*ptr = statement;
 	}
 
-    if(status)
-    {
-		*ptr = stmt;
-    }
-
-    return status;
+	return status;
 }
 
 bool Parser::parse_enum_definition(Statement** ptr)
@@ -610,7 +574,6 @@ bool Parser::parse_namespace(Statement** ptr)
 		SymbolTable::Entry* entry = new SymbolTable::Entry();
 		entry->type = SymbolTable::Entry::TYPE_NAMESPACE;
 		entry->name = name;
-		entry->value = stmt;
 		
 		status = m_symbols.push_scope(entry);
 
@@ -2140,7 +2103,6 @@ bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
 		SymbolTable::Entry* entry = new SymbolTable::Entry();
 		entry->type = SymbolTable::Entry::TYPE_FUNCTION;
 		entry->name = name;
-		entry->value = stmt;
 
 		if (stmt->type == STMT_FUNCTION_DEF) {
 			status = m_symbols.push_scope(entry);
@@ -2223,7 +2185,6 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
 				SymbolTable::Entry* entry = new SymbolTable::Entry();
 				entry->type = SymbolTable::Entry::TYPE_VARIABLE;
 				entry->name = name;
-				entry->value = stmt;
 				
 				status = m_symbols.current_scope()->insert(entry);
 				if (status)

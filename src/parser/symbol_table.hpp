@@ -23,7 +23,6 @@ public:
         } type;
 
         strptr name;
-        void*  value;
 
         Entry* parent;
 		Entry* children;

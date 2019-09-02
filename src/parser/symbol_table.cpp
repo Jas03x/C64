@@ -24,7 +24,6 @@ SymbolTable::Entry::Entry()
     name = {};
     type = SymbolTable::Entry::TYPE_INVALID;
     
-    value  = nullptr;
     parent = nullptr;
     left   = nullptr;
     right  = nullptr;
