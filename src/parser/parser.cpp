@@ -1991,7 +1991,7 @@ bool Parser::parse_variable(Variable** ptr)
                 Composite* composite = nullptr;
                 status = parse_composite(&composite);
 
-                if(status && (composite->name.len == 0))
+                if(status && (composite->name.len != 0))
                 {
                     status = false;
                     error("inline structures cannot have names\n");

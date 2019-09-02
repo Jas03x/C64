@@ -23,5 +23,8 @@ U32 main(U32 argc, U8* argv[])
 	jas.age = 21;
 	jas.height = 6.0;
 
+	struct {} abc;
+	struct {} def;
+
     return 0;
 }
