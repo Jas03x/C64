@@ -142,7 +142,11 @@ SymbolTable::~SymbolTable()
 
 bool SymbolTable::push_scope(SymbolTable::Entry* entry)
 {
-	bool status = m_current->insert(entry);
+	bool status = true;
+	
+	if (entry->name.len > 0) {
+		status = m_current->insert(entry);
+	}
 
 	if (status)
 	{
