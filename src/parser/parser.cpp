@@ -1,6 +1,8 @@
 #include <parser.hpp>
 
-#define error(str, ...) printf("[%s]: " str, __FUNCTION__, __VA_ARGS__)
+#include <stdio.h>
+
+#define error(str, ...) printf("[%s]: " str, __FUNCTION__, ##__VA_ARGS__);
 
 Parser::Parser(TokenStack* stack)
 {
@@ -513,7 +515,6 @@ bool Parser::parse_composite(Composite** ptr)
 
 bool Parser::parse_composite_definition(Statement** ptr)
 {
-	Token tk = {};
 	Composite* composite = nullptr;
 	bool status = parse_composite(&composite);
 
@@ -1254,7 +1255,6 @@ bool Parser::parse_statement(Statement** ptr)
             
             if(status)
             {
-                uint8_t type = entry->type;
                 switch(entry->type)
                 {
                     case SymbolTable::Entry::TYPE_TYPEDEF:

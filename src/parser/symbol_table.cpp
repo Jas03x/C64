@@ -163,7 +163,6 @@ bool SymbolTable::pop_scope()
 
     if(status)
     {
-        SymbolTable::Entry* entry = m_current;
         m_current = m_current->parent;
     }
 

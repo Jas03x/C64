@@ -145,7 +145,6 @@ bool Tokenizer::read_token()
 	char c = peek(0);
 	switch (c)
 	{
-		FORWARD_SLASH:
 		case '+': case '-': case '*': case ':':
 		case '=': case '<': case '>': case ';':
 		case '(': case ')': case '[': case ']':
@@ -783,7 +782,7 @@ bool Tokenizer::read_pp_include()
 	if (status)
 	{
 		char file_path[1024] = {};
-		snprintf(file_path, 1024, "C:/Users/Jas/Documents/C64/test/%.*s", len, ptr);
+		snprintf(file_path, 1024, "/Users/Jas/Documents/C64/test/%.*s", len, ptr);
 		
 		printf("INCLUDE: %s\n", file_path);
 		status = Process(file_path, *m_stack);

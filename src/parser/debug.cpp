@@ -672,7 +672,7 @@ void debug_print_token(const Token& tk)
 
                 case LITERAL_STRING:
                 {
-                    printf("- string (\"%.*\")\n", tk.literal.string.len, tk.literal.string.ptr);
+                    printf("- string (\"%.*s\")\n", tk.literal.string.len, tk.literal.string.ptr);
                     break;
                 }
 
