@@ -1,30 +1,26 @@
 
-#include <io.h>
+const BOOTLOADER_SIZE = 512;
 
-struct Person
+asm BOOTLOADER
 {
-	U8  age;
-	U8* name;
+BOOTLOADER_START:
+    // read the kernel from the disk
+    MOV(R01,   2); // operation = 2 (read)
+    MOV(R02,   9); // start at sector 9 since the first 8 sectors are the bootloader
+    MOV(R03,   8); // read 8 sectors, which is 512 bytes (the kernel is 512 bytes at the moment)
+    MOV(R04, 512); // the kernel will be loaded into the location right after the bootloader
 
-	F32 height;
+    JMP(kernel_entry);
 
-	void print()
-	{
-		io::print("name = %s\n", name);
-		io::print("age = %u\n",  age);
-		io::print("height = %f\n", height);
-	}
-};
-
-U32 main(U32 argc, U8* argv[])
-{
-	Person jas = { };
-	jas.name = "Jas";
-	jas.age = 21;
-	jas.height = 6.0;
-
-	struct {} abc = {};
-	struct {} def = {};
-
-    return 0;
+BOOTLOADER_END:
+    PAD(BOOTLOADER_SIZE - (BOOTLOADER_END - BOOTLOADER_START));
 }
+
+void kernel_entry()
+{
+    // infinite loop
+    while(1)
+    {
+    }
+}
+
