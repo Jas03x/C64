@@ -27,12 +27,14 @@ void print_person_name(Person* p)
     io::print("\n");
 }
 
+void free();
+
 U32 main(U32 argc, U8* argv[])
 {
     io::print("hello world");
 
     io::file* file = io::open("~/test.txt");
-    U32 size = get_size(file);
+    U32 size = io::get_size(file);
     U8* buffer = malloc(size);
     if(read(file, size, buffer) != size)
     {

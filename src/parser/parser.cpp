@@ -163,67 +163,6 @@ bool Parser::parse_body(Statement** ptr)
     return status;
 }
 
-bool Parser::parse_operator(Expression** ptr)
-{
-	bool status = true;
-
-	Expression* expr = new Expression();
-
-	Token tk = m_stack->pop();
-	switch (tk.type)
-	{
-		case TK_PLUS:
-		{
-			expr->type = EXPR_OPERATION;
-			expr->operation.op = EXPR_OP_ADD;
-			break;
-		}
-		case TK_MINUS:
-		{
-			expr->type = EXPR_OPERATION;
-			expr->operation.op = EXPR_OP_SUB;
-			break;
-		}
-		case TK_ASTERISK:
-		{
-			expr->type = EXPR_OPERATION;
-			expr->operation.op = EXPR_OP_MUL;
-			break;
-		}
-		case TK_FORWARD_SLASH:
-		{
-			expr->type = EXPR_OPERATION;
-			expr->operation.op = EXPR_OP_DIV;
-			break;
-		}
-		case TK_EQUAL:
-		{
-			expr->type = EXPR_OPERATION;
-			expr->operation.op = EXPR_OP_ASSIGN;
-			break;
-		}
-		case TK_DOT:
-		{
-			expr->type = EXPR_OPERATION;
-			expr->operation.op = EXPR_OP_ACCESS_FIELD;
-			break;
-		}
-		default:
-		{
-			status = false;
-			error("expected operator\n");
-			break;
-		}
-	}
-
-	if (status)
-	{
-		*ptr = expr;
-	}
-
-	return status;
-}
-
 uint8_t Parser::get_operator_precedence(uint8_t op)
 {
 	const static uint8_t TABLE[] =
@@ -267,97 +206,6 @@ uint8_t Parser::get_operator_precedence(uint8_t op)
 	}
 
 	return ret;
-}
-
-bool Parser::parse_sub_expr(Expression** ptr)
-{
-    bool status = true;
-
-    Expression* expr = nullptr;
-
-    switch(m_stack->peek(0).type)
-    {
-        case TK_IDENTIFIER:
-        {
-            Identifier* id = nullptr;
-            status = parse_identifier(&id);
-
-            if(status)
-            {
-				expr = new Expression();
-				expr->type = EXPR_IDENTIFIER;
-				expr->identifier = id;
-            }
-
-            break;
-        }
-
-		case TK_OPEN_ROUND_BRACKET:
-		{
-			m_stack->pop();
-			status = parse_expression(&expr);
-
-			if (status)
-			{
-				if (m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
-				{
-					status = false;
-					error("expected ')'\n");
-				}
-			}
-
-			break;
-		}
-
-		case TK_LITERAL:
-		{
-			Token tk = m_stack->pop();
-
-			expr = new Expression();
-			expr->type = EXPR_LITERAL;
-			expr->literal = tk.literal;
-
-			break;
-		}
-
-		case TK_OPEN_CURLY_BRACKET:
-		{
-			status = parse_initializer(&expr);
-			break;
-		}
-
-		default:
-		{
-			status = false;
-			error("unexpected token\n");
-		}
-    }
-
-	if (status)
-	{
-		if (m_stack->peek(0).type == TK_OPEN_ROUND_BRACKET)
-		{
-			Argument* args = nullptr;
-			status = parse_arguments(&args);
-
-			if (status)
-			{
-				Expression* f_call = new Expression();
-				f_call->type = EXPR_FUNCTION_CALL;
-				f_call->call.function = expr;
-				f_call->call.arguments = args;
-
-				expr = f_call;
-			}
-		}
-	}
-
-	if (status)
-	{
-		*ptr = expr;
-	}
-
-    return status;
 }
 
 bool Parser::process_expression(Expression** lhs, ExpressionStack* stack, uint8_t minimum_precedence)
@@ -404,42 +252,231 @@ bool Parser::parse_expression(Expression** ptr)
 	bool status = true;
 	ExpressionStack stack = ExpressionStack(&m_list);
 
+    enum
+    {
+        state_error = 0,
+        state_start = 1,
+        state_expr  = 2,
+        state_op    = 3
+    } state = state_start;
+
 	bool scanning = true;
 	while (status && scanning)
 	{
-		Expression* expr = nullptr;
-		status = parse_sub_expr(&expr);
+        Token tk = m_stack->peek(0);
+        Expression* expr = nullptr;
 
-		if (status)
-		{
-			stack.push(expr);
+        switch(state)
+        {
+            case state_start:
+            {
+                state = ((tk.type == TK_AMPERSAND) || (tk.type == TK_ASTERISK)) ? state_op : state_expr;
+                break;
+            }
 
-			switch (m_stack->peek(0).type)
-			{
-				case TK_SEMICOLON:
-				case TK_COMMA:
-				case TK_CLOSE_ROUND_BRACKET:
-				case TK_CLOSE_CURLY_BRACKET:
-				{
-					scanning = false;
-					break;
-				}
+            case state_expr:
+            {
+                bool transition = true;
+                switch(tk.type)
+                {
+                    case TK_IDENTIFIER:
+                    {
+                        Identifier* id = nullptr;
+                        status = parse_identifier(&id);
 
-				default:
-				{
-					Expression* op = nullptr;
-					status = parse_operator(&op);
+                        if(status)
+                        {
+                            expr = new Expression();
+                            expr->type = EXPR_IDENTIFIER;
+                            expr->identifier = id;
+                        }
 
-					if (status)
-					{
-						stack.push(op);
-					}
+                        break;
+                    }
 
-					break;
-				}
-			}
-		}
-	}
+                    case TK_OPEN_ROUND_BRACKET:
+                    {
+                        m_stack->pop();
+                        status = parse_expression(&expr);
+
+                        if(status)
+                        {
+                            if(m_stack->pop().type != TK_CLOSE_ROUND_BRACKET)
+                            {
+                                status = false;
+                                error("expected ')'\n");
+                            }
+                        }
+                        break;
+                    }
+
+                    case TK_LITERAL:
+                    {
+                        Token tk = m_stack->pop();
+
+                        expr = new Expression();
+                        expr->type = EXPR_LITERAL;
+                        expr->literal = tk.literal;
+                        break;
+                    }
+
+                    case TK_OPEN_CURLY_BRACKET:
+                    {
+                        status = parse_initializer(&expr);
+                        break;
+                    }
+
+                    case TK_ASTERISK:
+                    {
+                        expr = new Expression();
+                        expr->type = EXPR_OPERATION;
+                        expr->operation.op = EXPR_OP_DEREFERENCE;
+
+                        transition = false;
+                        break;
+                    }
+
+                    case TK_AMPERSAND:
+                    {
+                        expr = new Expression();
+                        expr->type = EXPR_OPERATION;
+                        expr->operation.op = EXPR_OP_REFERENCE;
+
+                        transition = false;
+                        break;
+                    }
+
+                    default:
+                    {
+                        status = false;
+                        error("expected expression\n");
+                        break;
+                    }
+                }
+                
+                if(transition) { state = state_op; }
+                break;
+            }
+
+            case state_op:
+            {
+                bool transition = true;
+                switch(tk.type)
+                {
+                    case TK_SEMICOLON:
+                    case TK_COMMA:
+                    case TK_CLOSE_ROUND_BRACKET:
+                    {
+                        scanning = false;
+                        break;
+                    }
+
+                    case TK_OPEN_ROUND_BRACKET:
+                    {
+                        Argument* args = nullptr;
+                        status = parse_arguments(&args);
+
+                        if(status)
+                        {
+                            Expression* f_call = new Expression();
+                            f_call->type = EXPR_FUNCTION_CALL;
+                            f_call->call.function = expr;
+                            f_call->call.arguments = args;
+
+                            expr = f_call;
+                        }
+
+                        transition = false;
+                        break;
+                    }
+
+                    case TK_PLUS:
+                    {
+                        expr->type = EXPR_OPERATION;
+                        expr->operation.op = EXPR_OP_ADD;
+                        break;
+                    }
+
+                    case TK_MINUS:
+                    {
+                        expr->type = EXPR_OPERATION;
+                        if(m_stack->peek(0).type == TK_RIGHT_ARROW_HEAD){
+                            m_stack->pop();
+                            expr->operation.op = EXPR_OP_ARROW;
+                        } else {
+                            expr->operation.op = EXPR_OP_SUB;
+                        }
+                        break;
+                    }
+
+                    case TK_EXPLANATION_MARK:
+                    {
+                        expr->type = EXPR_OPERATION;
+                        if(m_stack->peek(0).type == TK_EQUAL)
+                        {
+                            m_stack->pop();
+                            expr->operation.op = EXPR_OP_CMP_NOT_EQUAL;
+                        }
+                        else
+                        {
+                            expr->operation.op = EXPR_OP_LOGICAL_NOT;
+                        }
+                        break;
+                    }
+
+                    case TK_ASTERISK:
+                    {
+                        expr->type = EXPR_OPERATION;
+                        expr->operation.op = EXPR_OP_MUL;
+                        break;
+                    }
+
+                    case TK_FORWARD_SLASH:
+                    {
+                        expr->type = EXPR_OPERATION;
+                        expr->operation.op = EXPR_OP_DIV;
+                        break;
+                    }
+
+                    case TK_EQUAL:
+                    {
+                        expr->type = EXPR_OPERATION;
+                        expr->operation.op = EXPR_OP_ASSIGN;
+                        break;
+                    }
+
+                    case TK_DOT:
+                    {
+                        expr->type = EXPR_OPERATION;
+                        expr->operation.op = EXPR_OP_ACCESS_FIELD;
+                        break;
+                    }
+
+                    default:
+                    {
+                        status = false;
+                        error("expected operator\n");
+                        break;
+                    }
+                }
+
+                if(transition) { state = state_expr; }
+                break;
+            }
+
+            default:
+            {
+                status = false;
+                error("error encountered while parsing expression\n");
+                break;
+            }
+        }
+
+        if(expr != nullptr)
+        {
+            stack.push(expr);
+        }
+    }
 
 	if (status)
 	{
@@ -449,7 +486,8 @@ bool Parser::parse_expression(Expression** ptr)
 			status = process_expression(ptr, &stack, 0);
 		}
 	}
-
+    
+    printf("parse_expression: %s\n", status ? "true" : "false");
 	return status;
 }
 
