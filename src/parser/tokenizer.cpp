@@ -547,7 +547,7 @@ bool Tokenizer::read_string(Token& tk)
 		tk.literal.string.ptr = strdup(m_buffer.data());
 		tk.literal.string.len = m_buffer.size();
 
-		printf("%.*s => %hhu\n", tk.literal.string.len, tk.literal.string.ptr, tk.type);
+		printf("\"%.*s\" => %hhu\n", tk.literal.string.len, tk.literal.string.ptr, tk.type);
 	}
 
 	return status;

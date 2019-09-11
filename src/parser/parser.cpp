@@ -222,26 +222,50 @@ bool Parser::process_expression(Expression** lhs, ExpressionStack* stack, uint8_
 
 		stack->pop(); // consume the operator
 
-		Expression* rhs = stack->pop();
-		if (rhs == nullptr) { status = false; }
+        if(op->type == EXPR_FUNCTION_CALL)
+        {
+            op->call.function = *lhs;
+            *lhs = op;
+        }
+        else if(op->operation.op == EXPR_OP_REFERENCE)
+        {
+            Expression* _lhs = stack->pop();
+            if(_lhs == nullptr)
+            {
+                status = false;
+                error("expression missing lhs operand\n");
+            }
+            else
+            {
+                op->cast.expr = _lhs;
+                *lhs = _lhs;
+            }
+        }
+        else
+        {
+    		Expression* rhs = stack->pop();
+    		if (rhs == nullptr) { error("expression missing rhs operand\n"); status = false; }
 
-		while (status)
-		{
-			Expression* _op = stack->peek();
-			if (_op == nullptr) { break; }
+	    	while (status)
+    		{
+	    		Expression* _op = stack->peek();
+		    	if (_op == nullptr) { break; } // no more operators
+    
+	    		uint8_t _precedence = get_operator_precedence(_op->operation.op);
+		    	if (_precedence > precedence) {            
+    			    status = process_expression(&rhs, stack, _precedence);
+                } else {
+                    break;
+                }
+	    	}
 
-			uint8_t _precedence = get_operator_precedence(_op->operation.op);
-			if (_precedence <= precedence) { break; }
-			
-			status = process_expression(&rhs, stack, _precedence);
-		}
-
-		if (status)
-		{
-			op->operation.lhs = *lhs;
-			op->operation.rhs =  rhs;
-			*lhs = op;
-		}
+    		if (status)
+	    	{
+		    	op->operation.lhs = *lhs;
+	    		op->operation.rhs =  rhs;
+    			*lhs = op;
+    		}
+        }
 	}
 
 	return status;
@@ -255,10 +279,9 @@ bool Parser::parse_expression(Expression** ptr)
     enum
     {
         state_error = 0,
-        state_start = 1,
-        state_expr  = 2,
-        state_op    = 3
-    } state = state_start;
+        state_expr  = 1,
+        state_op    = 2
+    } state = state_expr;
 
 	bool scanning = true;
 	while (status && scanning)
@@ -268,12 +291,6 @@ bool Parser::parse_expression(Expression** ptr)
 
         switch(state)
         {
-            case state_start:
-            {
-                state = ((tk.type == TK_AMPERSAND) || (tk.type == TK_ASTERISK)) ? state_op : state_expr;
-                break;
-            }
-
             case state_expr:
             {
                 bool transition = true;
@@ -310,6 +327,12 @@ bool Parser::parse_expression(Expression** ptr)
                         break;
                     }
 
+                    case TK_CONST:
+                    {
+                        status = parse_cast(&expr);
+                        break;
+                    }
+
                     case TK_LITERAL:
                     {
                         Token tk = m_stack->pop();
@@ -328,6 +351,7 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_ASTERISK:
                     {
+                        m_stack->pop();
                         expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         expr->operation.op = EXPR_OP_DEREFERENCE;
@@ -338,6 +362,7 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_AMPERSAND:
                     {
+                        m_stack->pop();
                         expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         expr->operation.op = EXPR_OP_REFERENCE;
@@ -366,6 +391,7 @@ bool Parser::parse_expression(Expression** ptr)
                     case TK_SEMICOLON:
                     case TK_COMMA:
                     case TK_CLOSE_ROUND_BRACKET:
+                    case TK_CLOSE_CURLY_BRACKET:
                     {
                         scanning = false;
                         break;
@@ -392,6 +418,8 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_PLUS:
                     {
+                        m_stack->pop();
+                        expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         expr->operation.op = EXPR_OP_ADD;
                         break;
@@ -399,6 +427,8 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_MINUS:
                     {
+                        m_stack->pop();
+                        expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         if(m_stack->peek(0).type == TK_RIGHT_ARROW_HEAD){
                             m_stack->pop();
@@ -411,6 +441,8 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_EXPLANATION_MARK:
                     {
+                        m_stack->pop();
+                        expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         if(m_stack->peek(0).type == TK_EQUAL)
                         {
@@ -426,6 +458,8 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_ASTERISK:
                     {
+                        m_stack->pop();
+                        expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         expr->operation.op = EXPR_OP_MUL;
                         break;
@@ -433,6 +467,8 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_FORWARD_SLASH:
                     {
+                        m_stack->pop();
+                        expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         expr->operation.op = EXPR_OP_DIV;
                         break;
@@ -440,6 +476,8 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_EQUAL:
                     {
+                        m_stack->pop();
+                        expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         expr->operation.op = EXPR_OP_ASSIGN;
                         break;
@@ -447,6 +485,8 @@ bool Parser::parse_expression(Expression** ptr)
 
                     case TK_DOT:
                     {
+                        m_stack->pop();
+                        expr = new Expression();
                         expr->type = EXPR_OPERATION;
                         expr->operation.op = EXPR_OP_ACCESS_FIELD;
                         break;
@@ -480,14 +520,28 @@ bool Parser::parse_expression(Expression** ptr)
 
 	if (status)
 	{
-		*ptr = stack.pop();
+        Expression* lhs = stack.pop();
+        Expression* expr = lhs;
+        while(stack.peek() != nullptr && lhs->type == EXPR_OPERATION)
+        {
+            if((lhs->operation.op == EXPR_OP_REFERENCE) || (lhs->operation.op == EXPR_OP_DEREFERENCE))
+            {
+                expr->operation.rhs = stack.pop();
+                expr = expr->operation.rhs;
+            }
+        }
+
 		if (stack.peek() != nullptr)
 		{
-			status = process_expression(ptr, &stack, 0);
+			status = process_expression(&lhs, &stack, 0);
 		}
+
+        if(status)
+        {
+            *ptr = lhs;
+        }
 	}
     
-    printf("parse_expression: %s\n", status ? "true" : "false");
 	return status;
 }
 
@@ -2455,3 +2509,4 @@ bool Parser::parse_return(Statement** ptr)
 
     return result;
 }
+
