@@ -23,7 +23,7 @@ private:
 	bool process_symbol(Statement* stmt);
     bool scan_identifier(SymbolTable::Entry** ptr);
 
-    bool parse(AST** ptr);
+    AST* parse();
 
     bool parse_statement(Statement** ptr);
     

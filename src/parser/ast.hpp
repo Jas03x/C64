@@ -333,6 +333,12 @@ struct Statement
 
         struct
         {
+            uint8_t type;
+            strptr  name;
+        } comp_decl;
+
+        struct
+        {
             strptr      name;
             Statement*  statements;
         } name_space;
@@ -375,6 +381,11 @@ struct Statement
             strptr name;
             Enum*  enumerator;
         } enum_def;
+
+        struct
+        {
+            strptr name;
+        } enum_decl;
 
         struct
         {

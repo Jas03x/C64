@@ -15,15 +15,10 @@ Parser::~Parser()
 
 AST* Parser::Parse(TokenStack* stack)
 {
-    Parser parser(stack);
-
-    AST* ast = nullptr;
-    parser.parse(&ast);
-
-    return ast;
+    return Parser(stack).parse();
 }
 
-bool Parser::parse(AST** ptr)
+AST* Parser::parse()
 {
     bool status = true;
     Statement *head = nullptr, *tail = nullptr;
@@ -55,15 +50,14 @@ bool Parser::parse(AST** ptr)
         }
     }
 
+    AST* ast = nullptr;
     if(status)
     {
-        AST* ast = new AST();
+        ast = new AST();
         ast->statements = head;
-
-        *ptr = ast;
     }
 
-    return status;
+    return ast;
 }
 
 bool Parser::parse_identifier(Identifier** identifier)
@@ -85,14 +79,10 @@ bool Parser::parse_identifier(Identifier** identifier)
 			else                { tail->next = id; }
 			tail = id;
 			
-			if(m_stack->peek(0).type == TK_COLON)
+			if((m_stack->peek(0).type == TK_COLON) && (m_stack->peek(1).type == TK_COLON))
 			{
                 m_stack->pop();
-				if(m_stack->pop().type != TK_COLON)
-				{
-					status = false;
-					error("expected ':'\n");
-				}
+                m_stack->pop();
 			}
 			else
 			{
@@ -580,16 +570,16 @@ bool Parser::parse_composite(Composite** ptr)
 		entry->type = SymbolTable::Entry::TYPE_COMPOSITE;
 		entry->name = name;
 
-		status = m_symbols.push_scope(entry);
-		if (status)
-		{
-			status = parse_body(&body);
+        status = m_symbols.push_scope(entry);
+        if (status)
+        {
+            status = parse_body(&body);
 
-			if (status)
-			{
-				status = m_symbols.pop_scope();
-			}
-		}
+            if (status)
+            {
+                status = m_symbols.pop_scope();
+            }
+        }
     }
 
     if(status)
@@ -607,15 +597,61 @@ bool Parser::parse_composite(Composite** ptr)
 
 bool Parser::parse_composite_definition(Statement** ptr)
 {
-	Composite* composite = nullptr;
-	bool status = parse_composite(&composite);
+	bool status = true;
+
+    Statement stmt = {};
+    
+    if((m_stack->peek(1).type == TK_IDENTIFIER) && (m_stack->peek(2).type == TK_SEMICOLON))
+    {
+        stmt.type = STMT_COMP_DECL;
+        
+        Token type = m_stack->pop();
+        Token name = m_stack->pop();
+
+        switch(type.type)
+        {
+            case TK_STRUCT:
+            {
+                stmt.comp_decl.type = COMP_TYPE_STRUCT;
+                stmt.comp_decl.name = name.identifier.string;
+                break;
+            }
+
+            case TK_UNION:
+            {
+                stmt.comp_decl.type = COMP_TYPE_UNION;
+                stmt.comp_decl.name = name.identifier.string;
+                break;
+            }
+
+            default:
+            {
+                status = false;
+                error("expected \"struct\" or \"union\"\n");
+                break;
+            }
+        }
+
+        if(status)
+        {
+            SymbolTable::Entry* entry = new SymbolTable::Entry();
+	    	entry->type = SymbolTable::Entry::TYPE_COMPOSITE;
+		    entry->name = stmt.comp_decl.name;
+
+            status = m_symbols.current_scope()->insert(entry);
+        }
+    }
+    else
+    {
+        stmt.type = STMT_COMP_DEF;
+        status = parse_composite(&stmt.comp_def.composite);
+        stmt.comp_def.name = stmt.comp_def.composite->name;
+    }
 
 	if (status)
 	{
 		Statement* statement = new Statement();
-		statement->type = STMT_COMP_DEF;
-		statement->comp_def.name = composite->name;
-		statement->comp_def.composite = composite;
+        *statement = stmt; // copy the local statement into the allocated one
 
 		*ptr = statement;
 	}
@@ -625,15 +661,41 @@ bool Parser::parse_composite_definition(Statement** ptr)
 
 bool Parser::parse_enum_definition(Statement** ptr)
 {
-    Enum* enumerator = nullptr;
-    bool status = parse_enumerator(&enumerator);
+    bool status = true;
+    Statement stmt = {};
 
+    if((m_stack->peek(1).type == TK_IDENTIFIER) && (m_stack->peek(2).type == TK_SEMICOLON))
+    {
+        if(m_stack->pop().type != TK_ENUM)
+        {
+            status = false;
+            error("expected \"enum\"\n");
+        }
+        else
+        {
+            strptr name = m_stack->pop().identifier.string;
+
+            stmt.type = STMT_ENUM_DECL;
+            stmt.enum_decl.name = name;
+
+            SymbolTable::Entry* entry = new SymbolTable::Entry();
+            entry->type = SymbolTable::Entry::TYPE_ENUMERATOR;
+            entry->name = name;
+
+            status = m_symbols.current_scope()->insert(entry);
+        }
+    }
+    else
+    {
+        stmt.type = STMT_ENUM_DEF;
+        status = parse_enumerator(&stmt.enum_def.enumerator);
+        stmt.enum_def.name = stmt.enum_def.enumerator->name;
+    }
+    
     if(status)
     {
         Statement* statement = new Statement();
-        statement->type = STMT_ENUM_DEF;
-        statement->enum_def.name = enumerator->name;
-        statement->enum_def.enumerator = enumerator;
+        *statement = stmt;
 
         *ptr = statement;
     }
@@ -960,11 +1022,19 @@ bool Parser::parse_enumerator(Enum** ptr)
 
     if(status)
     {
-        Enum* enumerator = new Enum();
-        enumerator->name = name;
-        enumerator->values = list_head;
+        SymbolTable::Entry* entry = new SymbolTable::Entry();
+        entry->type = SymbolTable::Entry::TYPE_ENUMERATOR;
+        entry->name = name;
 
-        *ptr = enumerator;
+        status = m_symbols.current_scope()->insert(entry);
+        if(status)
+        {
+            Enum* enumerator = new Enum();
+            enumerator->name = name;
+            enumerator->values = list_head;
+
+            *ptr = enumerator;
+        }
     }
 
     return status;
@@ -2360,18 +2430,8 @@ bool Parser::parse_def_or_decl(Statement** ptr)
         {
             if(m_stack->peek(1).type == TK_IDENTIFIER)
             {
-                Token tk = m_stack->peek(2);
-                if(tk.type == TK_OPEN_CURLY_BRACKET)
-                {
-                    status = parse_definition(ptr);
-                    break;
-                }
-                else if(tk.type == TK_SEMICOLON)
-                {
-                    status = false;
-                    error("TODO: DO DEM FORWARD DECLARATIONS\n");
-                    break;
-                }
+                status = parse_definition(ptr);
+                break;
             }
 
             goto DEFAULT;
