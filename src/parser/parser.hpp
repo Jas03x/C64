@@ -28,7 +28,6 @@ private:
     bool parse_statement(Statement** ptr);
     
 	bool parse_operator(Expression** ptr);
-	bool parse_sub_expr(Expression** ptr);
     bool parse_expression(Expression** ptr);
 	
 	uint8_t get_operator_precedence(uint8_t op);
