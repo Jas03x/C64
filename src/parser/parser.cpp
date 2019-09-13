@@ -644,8 +644,7 @@ bool Parser::parse_composite_definition(Statement** ptr)
     else
     {
         stmt.type = STMT_COMP_DEF;
-        status = parse_composite(&stmt.comp_def.composite);
-        stmt.comp_def.name = stmt.comp_def.composite->name;
+        status = parse_composite(&stmt.comp_def);
     }
 
 	if (status)
@@ -1275,7 +1274,7 @@ bool Parser::parse_case_stmt(Statement** ptr)
 {
     bool status = true;
 
-    Literal value = { };
+    Expression* value = nullptr;
 
     Token tk = m_stack->pop();
     if(tk.type != TK_CASE)
@@ -1286,17 +1285,7 @@ bool Parser::parse_case_stmt(Statement** ptr)
 
     if(status)
     {
-        tk = m_stack->pop();
-
-        if(tk.type == TK_LITERAL)
-        {
-            value = tk.literal;
-        }
-        else
-        {
-            status = false;
-            error("expecting literal\n");
-        }
+        status = parse_expression(&value);
     }
 
     if(status)
@@ -2263,11 +2252,11 @@ bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
         function->body = nullptr;
         function->params = params;
         function->ret_type = var;
+        function->name = name;
 
         Statement* stmt = new Statement();
-        stmt->type           = stmt_type;
-        stmt->function.name  = name;
-        stmt->function.ptr   = function;
+        stmt->type      = stmt_type;
+        stmt->function  = function;
 
 		SymbolTable::Entry* entry = new SymbolTable::Entry();
 		entry->type = SymbolTable::Entry::TYPE_FUNCTION;
@@ -2317,8 +2306,8 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
             {
                 stmt = new Statement();
                 stmt->type = STMT_VARIABLE_DECL;
-                stmt->variable.name = name;
-                stmt->variable.type = var;
+                stmt->variable_decl.name = name;
+                stmt->variable_decl.type = var;
             }
             
             if(status && (tk.type == TK_EQUAL))
@@ -2339,7 +2328,7 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
                     {
                         if(value != nullptr)
                         {
-                            stmt->variable.value = value;
+                            stmt->variable_decl.value = value;
                         }
                         else
                         {

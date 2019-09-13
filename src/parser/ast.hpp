@@ -4,20 +4,11 @@
 #include <literal.hpp>
 #include <token.hpp>
 
-struct Expression; // forward declare "expression" for "argument"
+// forward declare some of the ast structures since they contain pointers to each other
+struct Expression;
 struct Variable;
-
-struct Argument
-{
-    Expression* value;
-    Argument*   next;
-};
-
-struct Identifier
-{
-	strptr      str;
-	Identifier* next;
-};
+struct Statement;
+struct Parameter;
 
 enum
 {
@@ -63,6 +54,79 @@ enum
     EXPR_OP_ACCESS_FIELD           = 0x1A,
     EXPR_OP_ARROW                  = 0x1B,
     EXPR_OP_INDEX                  = 0x1C
+};
+
+enum
+{
+    STMT_INVALID       = 0x00,
+    STMT_FUNCTION_DEF  = 0x01,
+    STMT_FUNCTION_DECL = 0x02,
+    STMT_EXPR          = 0x03,
+    STMT_VARIABLE_DECL = 0x04,
+    STMT_IF            = 0x05,
+    STMT_ELSE_IF       = 0x06,
+    STMT_ELSE          = 0x07,
+    STMT_RET           = 0x08,
+    STMT_COMP_DEF      = 0x09,
+    STMT_COMP_DECL     = 0x0A,
+    STMT_FOR           = 0x0B,
+    STMT_WHILE         = 0x0C,
+    STMT_NAMESPACE     = 0x0D,
+    STMT_TYPEDEF       = 0x0E,
+    STMT_COMPOUND_STMT = 0x0F,
+    STMT_BREAK         = 0x10,
+    STMT_CONTINUE      = 0x11,
+    STMT_GOTO          = 0x12,
+    STMT_SWITCH        = 0x13,
+    STMT_CASE          = 0x14,
+    STMT_LABEL         = 0x15,
+    STMT_DEFAULT_CASE  = 0x16,
+    STMT_ENUM_DEF      = 0x17,
+    STMT_ENUM_DECL     = 0x18,
+    STMT_IMPORT        = 0x19,
+    STMT_EXPORT        = 0x20,
+    STMT_MODULE        = 0x21
+};
+
+enum TYPE
+{
+    TYPE_UNKNOWN   = 0x00,
+    TYPE_VOID      = 0x01,
+    TYPE_U8        = 0x02,
+    TYPE_U16       = 0x03,
+    TYPE_U32       = 0x04,
+    TYPE_U64       = 0x05,
+    TYPE_I8        = 0x06,
+    TYPE_I16       = 0x07,
+    TYPE_I32       = 0x08,
+    TYPE_I64       = 0x09,
+    TYPE_F32       = 0x0A,
+    TYPE_F64       = 0x0B,
+    TYPE_PTR       = 0x0C,
+    TYPE_COMPOSITE = 0x0D,
+    TYPE_ENUM      = 0x0E,
+	TYPE_FUNCTION_POINTER     = 0x0F,
+    TYPE_CONSTANT_SIZED_ARRAY = 0x10,
+    TYPE_VARIABLE_SIZED_ARRAY = 0x11
+};
+
+enum COMPOSITE_TYPE
+{
+    COMP_TYPE_INVALID = 0,
+    COMP_TYPE_STRUCT  = 1,
+    COMP_TYPE_UNION   = 2
+};
+
+struct Argument
+{
+    Expression* value;
+    Argument*   next;
+};
+
+struct Identifier
+{
+	strptr      str;
+	Identifier* next;
 };
 
 struct Initializer
@@ -123,75 +187,10 @@ struct Expression
     };
 };
 
-enum
-{
-    STMT_INVALID       = 0x00,
-    STMT_FUNCTION_DEF  = 0x01,
-    STMT_FUNCTION_DECL = 0x02,
-    STMT_EXPR          = 0x03,
-    STMT_VARIABLE_DECL = 0x04,
-    STMT_IF            = 0x05,
-    STMT_ELSE_IF       = 0x06,
-    STMT_ELSE          = 0x07,
-    STMT_RET           = 0x08,
-    STMT_COMP_DEF      = 0x09,
-    STMT_COMP_DECL     = 0x0A,
-    STMT_FOR           = 0x0B,
-    STMT_WHILE         = 0x0C,
-    STMT_NAMESPACE     = 0x0D,
-    STMT_TYPEDEF       = 0x0E,
-    STMT_COMPOUND_STMT = 0x0F,
-    STMT_BREAK         = 0x10,
-    STMT_CONTINUE      = 0x11,
-    STMT_GOTO          = 0x12,
-    STMT_SWITCH        = 0x13,
-    STMT_CASE          = 0x14,
-    STMT_LABEL         = 0x15,
-    STMT_DEFAULT_CASE  = 0x16,
-    STMT_ENUM_DEF      = 0x17,
-    STMT_ENUM_DECL     = 0x18,
-    STMT_IMPORT        = 0x19,
-    STMT_EXPORT        = 0x20,
-    STMT_MODULE        = 0x21
-};
-
-enum TYPE
-{
-    TYPE_UNKNOWN   = 0x00,
-    TYPE_VOID      = 0x01,
-    TYPE_U8        = 0x02,
-    TYPE_U16       = 0x03,
-    TYPE_U32       = 0x04,
-    TYPE_U64       = 0x05,
-    TYPE_I8        = 0x06,
-    TYPE_I16       = 0x07,
-    TYPE_I32       = 0x08,
-    TYPE_I64       = 0x09,
-    TYPE_F32       = 0x0A,
-    TYPE_F64       = 0x0B,
-    TYPE_PTR       = 0x0C,
-    TYPE_COMPOSITE = 0x0D,
-    TYPE_ENUM      = 0x0E,
-	TYPE_FUNCTION_POINTER     = 0x0F,
-    TYPE_CONSTANT_SIZED_ARRAY = 0x10,
-    TYPE_VARIABLE_SIZED_ARRAY = 0x11
-};
-
-struct Variable;
-
-enum COMPOSITE_TYPE
-{
-    COMP_TYPE_INVALID = 0,
-    COMP_TYPE_STRUCT  = 1,
-    COMP_TYPE_UNION   = 2
-};
-
-struct Statement;
-
 struct Composite
 {
     uint8_t type;
-    strptr name;
+    strptr  name;
 
     Statement* body;
 };
@@ -221,8 +220,6 @@ struct Enum
 
     Value* values;
 };
-
-struct Parameter;
 
 struct Variable
 {
@@ -259,19 +256,12 @@ struct Parameter
     Parameter* next;
 };
 
-struct Statement;
-
 struct Function
 {
+    strptr     name;
     Variable*  ret_type;
     Parameter* params;
     Statement* body;
-};
-
-enum ACCESS
-{
-    PRIVATE = 0,
-    PUBLIC  = 1
 };
 
 struct Statement
@@ -282,24 +272,20 @@ struct Statement
     {
         Expression* expr;
 
-        struct
-        {
-            strptr    name;
-            Function* ptr;
-        } function;
+        Function* function;
 
         struct
         {
             strptr      name;
             Variable*   type;
             Expression* value;
-        } variable;
+        } variable_decl;
 
         struct
         {
             Expression* condition;
             Statement*  body;
-        } if_stmt;
+        } if_stmt; // same for else_if
 
         struct
         {
@@ -325,11 +311,7 @@ struct Statement
             Expression* expression;
         } ret_stmt;
 
-        struct
-        {
-            strptr     name;
-            Composite* composite;
-        } comp_def;
+        Composite* comp_def;
 
         struct
         {
@@ -372,8 +354,7 @@ struct Statement
 
         struct
         {
-            Literal    value;
-            Statement* body;
+            Expression* value;
         } case_stmt;
 
         struct
@@ -386,23 +367,6 @@ struct Statement
         {
             strptr name;
         } enum_decl;
-
-        struct
-        {
-            strptr module_name;
-        } import_stmt;
-
-        struct
-        {
-            strptr module_name;
-        } export_stmt;
-
-        struct
-        {
-            uint8_t access;
-            strptr  name;
-        } module_decl;
-
     };
 
     Statement* next;

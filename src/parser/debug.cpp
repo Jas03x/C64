@@ -326,24 +326,6 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
 
     switch(stmt->type)
     {
-        case STMT_IMPORT:
-        {
-            printf("IMPORT: %.*s\n", stmt->import_stmt.module_name.len, stmt->import_stmt.module_name.ptr);
-            break;
-        }
-
-        case STMT_EXPORT:
-        {
-            printf("EXPORT: %.*s\n", stmt->export_stmt.module_name.len, stmt->export_stmt.module_name.ptr);
-            break;
-        }
-
-        case STMT_MODULE:
-        {
-            printf("%s MODULE: %.*s\n", stmt->module_decl.access == ACCESS::PUBLIC ? "PUBLIC" : "PRIVATE", stmt->module_decl.name.len, stmt->module_decl.name.ptr);
-            break;
-        }
-
         case STMT_ENUM_DEF:
         {
             debug_print_enum(stmt->enum_def.enumerator);
@@ -419,12 +401,12 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
         {
             printf("%s\n", stmt->type == STMT_FUNCTION_DEF ? "FUNCTION DEFINITION" : "FUNCTION DECLARATION");
 
-            debug_print_variable(stmt->function.ptr->ret_type, level + 1);
+            debug_print_variable(stmt->function->ret_type, level + 1);
 
             debug_indent(level + 1);
-            printf("NAME: %.*s\n", stmt->function.name.len, stmt->function.name.ptr);
+            printf("NAME: %.*s\n", stmt->function->name.len, stmt->function->name.ptr);
 
-            for(Parameter* p = stmt->function.ptr->params; p != nullptr; p = p->next)
+            for(Parameter* p = stmt->function->params; p != nullptr; p = p->next)
             {
                 debug_indent(level + 1);
                 printf("PARAMETER:\n");
@@ -439,7 +421,7 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
             {
                 debug_indent(level + 1);
                 printf("BODY:\n");
-                for(Statement* s = stmt->function.ptr->body; s != nullptr; s = s->next)
+                for(Statement* s = stmt->function->body; s != nullptr; s = s->next)
                 {
                     debug_print_stmt(s, level + 2);
                 }
@@ -451,21 +433,21 @@ void debug_print_stmt(Statement* stmt, unsigned int level)
         case STMT_COMP_DEF:
         {
 			printf("COMPOSITE:\n");
-			debug_print_composite(stmt->comp_def.composite, level + 1);
+			debug_print_composite(stmt->comp_def, level + 1);
             break;
         }
 
         case STMT_VARIABLE_DECL:
         {
             printf("VAR\n");
-            debug_print_variable(stmt->variable.type, level + 1);
+            debug_print_variable(stmt->variable_decl.type, level + 1);
 
             debug_indent(level + 1);
-            printf("NAME: %.*s\n", stmt->variable.name.len, stmt->variable.name.ptr);
+            printf("NAME: %.*s\n", stmt->variable_decl.name.len, stmt->variable_decl.name.ptr);
             
             debug_indent(level + 1);
             printf("EXPR:\n");
-            debug_print_expr(stmt->variable.value, level + 2);
+            debug_print_expr(stmt->variable_decl.value, level + 2);
 
             break;
         }
@@ -744,15 +726,7 @@ void debug_print_switch(const Statement* statement, unsigned int level)
 void debug_print_case(const Statement* statement, unsigned int level)
 {
     debug_indent(level);
-    printf("CASE: ");
-    switch(statement->case_stmt.value.type)
-    {
-        case LITERAL_INTEGER: { printf("%llu\n", statement->case_stmt.value.integer.value); break; }
-        case LITERAL_DECIMAL: { printf("%f\n",   statement->case_stmt.value.decimal.value); break; }
-        case LITERAL_CHAR:    { printf("'%c'\n",   statement->case_stmt.value.character);     break; }
-        case LITERAL_STRING:  { printf("\"%.*s\"\n", statement->case_stmt.value.string.len, statement->case_stmt.value.string.ptr); break; }
-        default:              { printf("Unknown token\n"); break; }
-    }
+    printf("CASE: TODO\n"); 
     
 }
 
