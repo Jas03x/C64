@@ -33,7 +33,7 @@ AST* Parser::parse()
         else
         {
             Statement* stmt = nullptr;
-            
+
             if(parse_statement(&stmt))
             {
                 if(stmt != nullptr)
@@ -66,7 +66,7 @@ bool Parser::parse_identifier(Identifier** identifier)
 
 	Token tk = {};
 	Identifier *head = nullptr, *tail = nullptr;
-	
+
 	while(status)
 	{
 		tk = m_stack->pop();
@@ -74,11 +74,11 @@ bool Parser::parse_identifier(Identifier** identifier)
 		{
 			Identifier* id = new Identifier();
 			id->str = tk.identifier.string;
-			
+
 			if(tail == nullptr) { head = id;       }
 			else                { tail->next = id; }
 			tail = id;
-			
+
 			if((m_stack->peek(0).type == TK_COLON) && (m_stack->peek(1).type == TK_COLON))
 			{
                 m_stack->pop();
@@ -95,7 +95,7 @@ bool Parser::parse_identifier(Identifier** identifier)
 			error("expected identifier\n");
 		}
 	}
-	
+
     if(status)
     {
         *identifier = head;
@@ -119,7 +119,7 @@ bool Parser::parse_body(Statement** ptr)
     while(status)
     {
         Token tk = m_stack->peek(0);
-        
+
         if(tk.type == TK_CLOSE_CURLY_BRACKET)
         {
             m_stack->pop();
@@ -128,7 +128,7 @@ bool Parser::parse_body(Statement** ptr)
         else
         {
             Statement* stmt = nullptr;
-            
+
             if(parse_statement(&stmt))
             {
                 if(stmt != nullptr)
@@ -240,9 +240,9 @@ bool Parser::process_expression(Expression** lhs, ExpressionStack* stack, uint8_
     		{
 	    		Expression* _op = stack->peek();
 		    	if (_op == nullptr) { break; } // no more operators
-    
+
 	    		uint8_t _precedence = get_operator_precedence(_op->operation.op);
-		    	if (_precedence > precedence) {            
+		    	if (_precedence > precedence) {
     			    status = process_expression(&rhs, stack, _precedence);
                 } else {
                     break;
@@ -368,7 +368,7 @@ bool Parser::parse_expression(Expression** ptr)
                         break;
                     }
                 }
-                
+
                 if(transition) { state = state_op; }
                 break;
             }
@@ -531,7 +531,7 @@ bool Parser::parse_expression(Expression** ptr)
             *ptr = lhs;
         }
 	}
-    
+
 	return status;
 }
 
@@ -553,7 +553,7 @@ bool Parser::parse_composite(Composite** ptr)
             error("Expected 'struct' or 'union'\n");
         }
     }
-    
+
 	if (status)
 	{
 		if (m_stack->peek(0).type == TK_IDENTIFIER)
@@ -600,11 +600,11 @@ bool Parser::parse_composite_definition(Statement** ptr)
 	bool status = true;
 
     Statement stmt = {};
-    
+
     if((m_stack->peek(1).type == TK_IDENTIFIER) && (m_stack->peek(2).type == TK_SEMICOLON))
     {
         stmt.type = STMT_COMP_DECL;
-        
+
         Token type = m_stack->pop();
         Token name = m_stack->pop();
 
@@ -690,7 +690,7 @@ bool Parser::parse_enum_definition(Statement** ptr)
         status = parse_enumerator(&stmt.enum_def.enumerator);
         stmt.enum_def.name = stmt.enum_def.enumerator->name;
     }
-    
+
     if(status)
     {
         Statement* statement = new Statement();
@@ -735,7 +735,7 @@ bool Parser::parse_namespace(Statement** ptr)
 		SymbolTable::Entry* entry = new SymbolTable::Entry();
 		entry->type = SymbolTable::Entry::TYPE_NAMESPACE;
 		entry->name = name;
-		
+
 		status = m_symbols.push_scope(entry);
 
 		if (status)
@@ -792,7 +792,7 @@ bool Parser::parse_function_pointer(strptr& name, Variable** ptr, Variable* ret_
         {
             status = parse_array(&var);
         }
-        
+
         if (status)
         {
             if (m_stack->pop().type == TK_CLOSE_ROUND_BRACKET)
@@ -928,7 +928,7 @@ bool Parser::parse_enum_value(Enum::Value** ptr)
     if(m_stack->peek(0).type == TK_EQUAL)
     {
         m_stack->pop();
-        
+
         if(m_stack->pop().type == TK_LITERAL)
         {
             value = tk.literal;
@@ -939,7 +939,7 @@ bool Parser::parse_enum_value(Enum::Value** ptr)
             error("expected literal\n");
         }
     }
-    
+
     if(status)
     {
         Enum::Value* entry = new Enum::Value();
@@ -1403,7 +1403,7 @@ bool Parser::parse_statement(Statement** ptr)
         {
             SymbolTable::Entry* entry = nullptr;
             status = scan_identifier(&entry);
-            
+
             if(status)
             {
                 switch(entry->type)
@@ -1422,7 +1422,7 @@ bool Parser::parse_statement(Statement** ptr)
                     }
                 }
             }
-			
+
 			break;
         }
 
@@ -1615,7 +1615,7 @@ bool Parser::parse_if_stmt(Statement** ptr)
 bool Parser::parse_for_stmt(Statement** ptr)
 {
     bool status = true;
-    
+
     Statement*  var  = nullptr;
     Expression* cond = nullptr;
     Expression* step = nullptr;
@@ -1760,7 +1760,7 @@ bool Parser::parse_while_stmt(Statement** ptr)
 bool Parser::parse_initializer(Expression** ptr)
 {
     bool status = true;
-    
+
     Initializer::Value *head = nullptr, *tail = nullptr;
 
     Token tk = m_stack->pop();
@@ -1870,7 +1870,7 @@ bool Parser::parse_cast(Expression** ptr)
 			{
 				if (m_stack->pop().type != TK_RIGHT_ARROW_HEAD) { status = false; error("expected '>'\n"); }
 				else if (m_stack->pop().type != TK_OPEN_ROUND_BRACKET) { status = false; error("expected '('\n"); }
-				
+
 				if (status)
 				{
 					status = parse_expression(&expr);
@@ -1919,7 +1919,7 @@ bool Parser::parse_arguments(Argument** args)
         status = false;
     }
     else
-    {   
+    {
         if(m_stack->peek(0).type == TK_CLOSE_ROUND_BRACKET)
         {
             m_stack->pop();
@@ -1938,7 +1938,7 @@ bool Parser::parse_arguments(Argument** args)
                 {
                     Argument* arg = new Argument();
                     arg->value = expr;
-                    
+
                     if(head == nullptr)
                     {
                         head = arg;
@@ -2000,7 +2000,7 @@ bool Parser::parse_parameters(Parameter** params)
                 status = parse_variable(&var);
                 if(status)
                 {
-                    strptr name = {}; 
+                    strptr name = {};
 
 					tk = m_stack->peek(0);
                     if(tk.type == TK_IDENTIFIER)
@@ -2012,7 +2012,7 @@ bool Parser::parse_parameters(Parameter** params)
 					{
 						status = parse_function_pointer(name, &var, var);
 					}
-                    
+
                     if(m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
                     {
                         status = parse_array(&var);
@@ -2023,7 +2023,7 @@ bool Parser::parse_parameters(Parameter** params)
                         Parameter* param = new Parameter();
                         param->type = var;
                         param->name = name;
-                        
+
                         if(head == nullptr) { head = param; }
                         else                { tail->next = param; }
                         tail = param;
@@ -2195,7 +2195,7 @@ bool Parser::parse_variable(Variable** ptr)
             var->type = TYPE_PTR;
             var->flags.value = head->flags.value;
             var->pointer = head;
-            
+
             head = var;
         }
     }
@@ -2218,7 +2218,7 @@ bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
     {
         status = parse_parameters(&params);
     }
-    
+
     if(status)
     {
         Token tk = m_stack->peek(0);
@@ -2229,7 +2229,7 @@ bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
                 stmt_type = STMT_FUNCTION_DEF;
                 break;
             }
-            
+
             case TK_SEMICOLON:
             {
                 m_stack->pop();
@@ -2277,7 +2277,7 @@ bool Parser::parse_function_decl(Variable* var, strptr name, Statement** ptr)
 					status = m_symbols.pop_scope();
 				}
 			}
-			
+
 			if (status)
 			{
 				*ptr = stmt;
@@ -2309,7 +2309,7 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
                 stmt->variable_decl.name = name;
                 stmt->variable_decl.type = var;
             }
-            
+
             if(status && (tk.type == TK_EQUAL))
             {
                 Expression* value = nullptr;
@@ -2343,7 +2343,7 @@ bool Parser::parse_variable_decl(Variable* var, strptr name, Statement** ptr)
 				SymbolTable::Entry* entry = new SymbolTable::Entry();
 				entry->type = SymbolTable::Entry::TYPE_VARIABLE;
 				entry->name = name;
-				
+
 				status = m_symbols.current_scope()->insert(entry);
 				if (status)
 				{
@@ -2397,7 +2397,7 @@ bool Parser::parse_array(Variable** variable)
                 }
             }
         }
-        
+
         if(status)
         {
             *variable = head;
@@ -2472,7 +2472,7 @@ bool Parser::parse_declaration(Statement** ptr)
     Variable* var  = new Variable();
 
     status = parse_variable(&var);
-    
+
     if(status)
     {
         switch(m_stack->peek(0).type)
@@ -2558,4 +2558,3 @@ bool Parser::parse_return(Statement** ptr)
 
     return result;
 }
-

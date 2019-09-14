@@ -1,6 +1,7 @@
 CC   = "g++"
 
-INC_PATH += -I ./src/misc/
+INC_PATH += -I ./src/
+INC_PATH += -I ./src/inc/
 INC_PATH += -I ./src/parser/
 
 BIN = ./bin
@@ -11,7 +12,7 @@ EXE = C64.exe
 CC_OPTIONS   = -std=c++11 -Wall -g
 
 ROOT_OBJECTS   = $(patsubst $(SRC)/%.cpp,        $(BIN)/%.o,        $(wildcard $(SRC)/*.cpp))
-MISC_OBJECTS   = $(patsubst $(SRC)/misc/%.cpp,   $(BIN)/misc/%.o,   $(wildcard $(SRC)/misc/*.cpp))
+UTIL_OBJECTS   = $(patsubst $(SRC)/util/%.cpp,   $(BIN)/util/%.o,   $(wildcard $(SRC)/util/*.cpp))
 PARSER_OBJECTS = $(patsubst $(SRC)/parser/%.cpp, $(BIN)/parser/%.o, $(wildcard $(SRC)/parser/*.cpp))
 
 COMPILE_OBJ = $(CC) $(CC_OPTIONS) $(INC_PATH) -o $@ -c
@@ -19,13 +20,13 @@ COMPILE_OBJ = $(CC) $(CC_OPTIONS) $(INC_PATH) -o $@ -c
 $(BIN)/%.o: $(SRC)/%.cpp
 	$(COMPILE_OBJ) $^
 
-$(BIN)/misc/%.o: $(SRC)/misc/%.cpp
+$(BIN)/util/%.o: $(SRC)/util/%.cpp
 	$(COMPILE_OBJ) $^
 
 $(BIN)/parser/%.o: $(SRC)/parser/%.cpp
 	$(COMPILE_OBJ) $^
 
-$(EXE): $(ROOT_OBJECTS) $(MISC_OBJECTS) $(PARSER_OBJECTS)
+$(EXE): $(ROOT_OBJECTS) $(UTIL_OBJECTS) $(PARSER_OBJECTS)
 	$(CC) $^ -o $(BIN)/$@
 
 .PHONY: test
@@ -35,5 +36,5 @@ test:
 .PHONY: clean
 clean:
 	/bin/rm -f $(BIN)/*.o
-	/bin/rm -f $(BIN)/misc/*.o
+	/bin/rm -f $(BIN)/util/*.o
 	/bin/rm -f $(BIN)/parser/*.o
