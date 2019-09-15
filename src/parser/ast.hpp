@@ -286,17 +286,6 @@ struct Statement
 
         struct
         {
-            uint8_t type;
-            strptr  name;
-        } comp_decl;
-
-        struct
-        {
-            strptr name;
-        } enum_decl;
-
-        struct
-        {
             strptr      name;
             Variable*   variable;
         } type_def;

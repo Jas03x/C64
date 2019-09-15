@@ -41,9 +41,9 @@ bool Parser::parse_statement(list& stmt_list)
         case TK_ELSE:      { break; }
         case TK_FOR:       { break; }
         case TK_WHILE:     { break; }
+        case TK_TYPEDEF:   { break; }
         case TK_OPEN_CURLY_BRACKET: { break; }
 
-        case TK_TYPEDEF:
         case TK_UNION: case TK_STRUCT: case TK_ENUM:
         case TK_TYPE:  case TK_CONST:  case TK_EXTERN:
         {
@@ -90,11 +90,9 @@ bool Parser::parse_definition(list& stmt_list)
     uint8_t type = m_stack->peek(0).type;
     switch(type)
     {
-        case TK_TYPEDEF: { status = parse_typedef(stmt_list); break; }
-
         case TK_TYPE: case TK_CONST: case TK_IDENTIFIER:
         {
-            status = parse_variable_definition(stmt_list);
+            status = parse_declaration(stmt_list);
             break;
         }
 
@@ -103,7 +101,7 @@ bool Parser::parse_definition(list& stmt_list)
             if(m_stack->peek(1).type == TK_IDENTIFIER) {
                 status = (type == TK_ENUM) ? parse_enumerator_definition(stmt_list) : parse_composite_definition(stmt_list);
             } else {
-                status = parse_variable_definition(stmt_list);
+                status = parse_declaration(stmt_list);
             }
             break;
         }
@@ -177,43 +175,152 @@ bool Parser::parse_enumerator_definition(list& stmt_list)
     return status;
 }
 
-bool Parser::parse_variable_definition(list& stmt_list)
+bool Parser::parse_declaration(list& stmt_list)
 {
     bool status = true;
 
     Variable* type = nullptr;
+    Variable* var  = nullptr;
+    strptr name = {};
+    
     status = parse_variable(&type);
+    
+    var = type;
+    if(status && (m_stack->peek(0).type == TK_ASTERISK)) {
+        status = parse_pointer_array(&var);
+    }
+
+    Token tk = m_stack->pop();
+    if(tk.type == TK_IDENTIFIER) {
+        name = tk.identifier.string;
+    } else {
+        status = false;
+        error("expected identifier\n");
+    }
+
+    tk = m_stack->peek(0);
+    if(tk.type == TK_OPEN_ROUND_BRACKET)
+    {
+        status = parse_function_declaration(stmt_list, var, name);
+    }
+    else
+    {
+        status = parse_variable_declaration(stmt_list, type, var, name);
+    }
+
+    return status;
+}
+
+bool Parser::parse_function_declaration(list& stmt_list, Variable* var, strptr name)
+{
+    bool status = true;
+    Function* func = new Function();
+
+    if(m_stack->pop().type != TK_OPEN_ROUND_BRACKET) {
+        status = false;
+        error("expected '('\n");
+    }
 
     while(status)
     {
-        Statement* stmt = new Statement();
-        stmt->type = STMT_VARIABLE_DECL;
-        stmt->variable_decl.type = type;
+        Parameter* param = nullptr;
+        status = parse_parameter(&param);
 
-        Token tk = m_stack->pop();
-        if(tk.type == TK_IDENTIFIER) {
-            stmt->variable_decl.name = tk.identifier.string;
-        } else {
-            status = false;
-            error("expected identifier\n");
-        }
-
-        if(status) {
-            status = parse_pointer_array(&stmt->variable_decl.type);
-        }
-
-        if(status && (m_stack->peek(0).type == TK_EQUAL)) {
-            status = parse_expression(&stmt->variable_decl.value);
+        if(status)
+        {
+            func->parameters.insert(param);
         }
 
         if(status)
         {
-            stmt_list.insert(stmt);
-
-            tk = m_stack->pop();
-            if(tk.type == TK_SEMICOLON) {
+            Token tk = m_stack->pop();
+            if(tk.type == TK_CLOSE_ROUND_BRACKET) {
                 break;
             } else if(tk.type != TK_COMMA) {
+                status = false;
+                error("expected ',' or ';'\n");
+            }
+        }
+    }
+
+    uint8_t stmt_type = STMT_INVALID;
+    if(status)
+    {
+        switch(m_stack->peek(0).type)
+        {
+            case TK_SEMICOLON:
+            {
+                stmt_type = STMT_FUNCTION_DECL;
+                break;
+            }
+            case TK_OPEN_CURLY_BRACKET:
+            {
+                stmt_type = STMT_FUNCTION_DEF;
+                status = parse_body(func->body);
+                break;
+            }
+        }
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = stmt_type;
+        stmt->function = func;
+    }
+
+    return status;
+}
+
+bool Parser::parse_variable_declaration(list& stmt_list, Variable* type, Variable* var, strptr name)
+{
+    bool status = true;
+
+    while(status)
+    {
+        Expression* value = nullptr;
+        if(m_stack->peek(0).type == TK_EQUAL)
+        {
+            m_stack->pop();
+            status = parse_expression(&value);
+        }
+
+        if(status)
+        {
+            Statement* stmt = new Statement();
+            stmt->type = STMT_VARIABLE_DECL;
+            stmt->variable_decl.name = name;
+            stmt->variable_decl.type = var;
+            stmt->variable_decl.value = value;
+
+            stmt_list.insert(stmt);
+        }
+
+        if(status)
+        {
+            Token tk = m_stack->pop();
+            if(tk.type == TK_SEMICOLON)
+            {
+                break;
+            }
+            else if(tk.type == ',')
+            {
+                var = type;
+                status = parse_pointer_array(&var);
+
+                if(status)
+                {
+                    tk = m_stack->pop();
+                    if(tk.type == TK_IDENTIFIER) {
+                        name = tk.identifier.string;
+                    } else {
+                        status = false;
+                        error("expected identifier\n");
+                    }
+                }
+            }
+            else
+            {
                 status = false;
                 error("expected ',' or ';'\n");
             }

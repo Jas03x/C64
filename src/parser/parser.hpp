@@ -18,17 +18,22 @@ private:
 
 private:
     Parser(TokenStack* stack);
+    
     uint8_t scan_identifier();
 
     // stmt:
     bool parse_body(list& stmt_list);
     bool parse_statement(list& stmt_list);    
     bool parse_definition(list& stmt_list);
+    bool parse_declaration(list& stmt_list);
     bool parse_expression(list& stmt_list);
     bool parse_typedef(list& stmt_list);
-    bool parse_variable_definition(list& stmt_list);
     bool parse_composite_definition(list& stmt_list);
     bool parse_enumerator_definition(list& stmt_list);
+    bool parse_function_declaration(list& stmt_list);
+    bool parse_variable_declaration(list& stmt_list);
+    bool parse_function_declaration(list& stmt_list, Variable* var, strptr name);
+    bool parse_variable_declaration(list& stmt_list, Variable* type, Variable* var, strptr name);
 
     // type:
     bool parse_variable(Variable** var);
@@ -36,6 +41,8 @@ private:
     bool parse_composite(Composite** ptr);
     bool parse_enumerator(Enumerator** ptr);
     bool parse_pointer_array(Variable** ptr);
+    bool parse_identifier(Identifier** ptr);
+    bool parse_parameter(Parameter** ptr);
 
     // expr:
     bool parse_expression(Expression** ptr);
