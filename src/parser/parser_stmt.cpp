@@ -3,7 +3,7 @@
 #include <debug.hpp>
 #include <symbol_table.hpp>
 
-bool Parser::parse_body(list& statements)
+bool Parser::parse_body(list& stmt_list)
 {
     bool status = true;
 
@@ -14,13 +14,8 @@ bool Parser::parse_body(list& statements)
         if(tk.type == '}') { break; }
         else
         {
-            Statement* stmt = nullptr;
-            if(parse_statement(statements))
+            if(!parse_statement(stmt_list))
             {
-                if(stmt != nullptr) {
-                    statements.insert(stmt);
-                }
-            } else {
                 status = false;
             }
         }
@@ -29,7 +24,7 @@ bool Parser::parse_body(list& statements)
     return status;
 }
 
-bool Parser::parse_statement(list& statements)
+bool Parser::parse_statement(list& stmt_list)
 {
     bool status = true;
     
@@ -52,7 +47,7 @@ bool Parser::parse_statement(list& statements)
         case TK_UNION: case TK_STRUCT: case TK_ENUM:
         case TK_TYPE:  case TK_CONST:  case TK_EXTERN:
         {
-            status = parse_definition(statements);
+            status = parse_definition(stmt_list);
             break;
         }
 
@@ -64,13 +59,13 @@ bool Parser::parse_statement(list& statements)
                 case SymbolTable::Entry::TYPE_COMPOSITE:
                 case SymbolTable::Entry::TYPE_ENUMERATOR:
                 {
-                    status = parse_definition(statements);
+                    status = parse_definition(stmt_list);
                     break;
                 }
 
                 default:
                 {
-                    status = parse_expression(statements);
+                    status = parse_expression(stmt_list);
                     break;
                 }
             }
@@ -88,27 +83,27 @@ bool Parser::parse_statement(list& statements)
     return status;
 }
 
-bool Parser::parse_definition(list& statements)
+bool Parser::parse_definition(list& stmt_list)
 {
     bool status = true;
     
     uint8_t type = m_stack->peek(0).type;
     switch(type)
     {
-        case TK_TYPEDEF: { status = parse_typedef(statements); break; }
+        case TK_TYPEDEF: { status = parse_typedef(stmt_list); break; }
 
         case TK_TYPE: case TK_CONST: case TK_IDENTIFIER:
         {
-            status = parse_variable_definition(statements);
+            status = parse_variable_definition(stmt_list);
             break;
         }
 
         case TK_STRUCT: case TK_UNION: case TK_ENUM:
         {
             if(m_stack->peek(1).type == TK_IDENTIFIER) {
-                status = (type == TK_ENUM) ? parse_enumerator_definition(statements) : parse_composite_definition(statements);
+                status = (type == TK_ENUM) ? parse_enumerator_definition(stmt_list) : parse_composite_definition(stmt_list);
             } else {
-                status = parse_variable_definition(statements);
+                status = parse_variable_definition(stmt_list);
             }
             break;
         }
@@ -119,7 +114,7 @@ bool Parser::parse_definition(list& statements)
     return status;
 }
 
-bool Parser::parse_composite_definition(list& statements)
+bool Parser::parse_composite_definition(list& stmt_list)
 {
     bool status = true;
     Statement stmt = {};
@@ -150,13 +145,13 @@ bool Parser::parse_composite_definition(list& statements)
 
     if(status)
     {
-        statements.insert(new Statement(stmt));
+        stmt_list.insert(new Statement(stmt));
     }
 
     return status;
 }
 
-bool Parser::parse_enumerator_definition(list& statements)
+bool Parser::parse_enumerator_definition(list& stmt_list)
 {
     bool status = true;
     Statement stmt = {};
@@ -176,13 +171,13 @@ bool Parser::parse_enumerator_definition(list& statements)
 
     if(status)
     {
-        statements.insert(new Statement(stmt));
+        stmt_list.insert(new Statement(stmt));
     }
 
     return status;
 }
 
-bool Parser::parse_variable_definition(list& statements)
+bool Parser::parse_variable_definition(list& stmt_list)
 {
     bool status = true;
 
@@ -213,7 +208,7 @@ bool Parser::parse_variable_definition(list& statements)
 
         if(status)
         {
-            statements.insert(stmt);
+            stmt_list.insert(stmt);
 
             tk = m_stack->pop();
             if(tk.type == TK_SEMICOLON) {

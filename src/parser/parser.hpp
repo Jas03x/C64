@@ -21,14 +21,14 @@ private:
     uint8_t scan_identifier();
 
     // stmt:
-    bool parse_body(list& statements);
-    bool parse_statement(list& statements);    
-    bool parse_definition(list& statements);
-    bool parse_expression(list& statements);
-    bool parse_typedef(list& statements);
-    bool parse_variable_definition(list& statements);
-    bool parse_composite_definition(list& statements);
-    bool parse_enumerator_definition(list& statements);
+    bool parse_body(list& stmt_list);
+    bool parse_statement(list& stmt_list);    
+    bool parse_definition(list& stmt_list);
+    bool parse_expression(list& stmt_list);
+    bool parse_typedef(list& stmt_list);
+    bool parse_variable_definition(list& stmt_list);
+    bool parse_composite_definition(list& stmt_list);
+    bool parse_enumerator_definition(list& stmt_list);
 
     // type:
     bool parse_variable(Variable** var);

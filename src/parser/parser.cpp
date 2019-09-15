@@ -17,13 +17,8 @@ AST* Parser::Parse(TokenStack* stack)
         if(stack->peek(0).type == TK_EOF) { break; }
         else
         {
-            Statement* stmt = nullptr;
-            if(parser.parse_statement(&stmt))
+            if(!parser.parse_statement(ast->statements))
             {
-                if(stmt != nullptr) {
-                    ast->statements.insert(stmt);
-                }
-            } else {
                 status = false;
             }
         }
