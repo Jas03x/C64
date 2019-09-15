@@ -4,11 +4,9 @@
 #include <literal.hpp>
 #include <token.hpp>
 
+#include <util/list.hpp>
+
 // forward declare some of the ast structures since they contain pointers to each other
-struct Expression;
-struct Variable;
-struct Statement;
-struct Parameter;
 
 enum
 {
@@ -117,27 +115,81 @@ enum COMPOSITE_TYPE
     COMP_TYPE_UNION   = 2
 };
 
-struct Argument
-{
-    Expression* value;
-    Argument*   next;
-};
-
 struct Identifier
 {
 	strptr      str;
 	Identifier* next;
 };
 
-struct Initializer
+struct Composite
 {
+    uint8_t type;
+    strptr  name;
+    list    body;
+};
+
+struct Enumerator
+{
+    strptr name;
+    
     struct Value
     {
-        Expression* expr;
-        Value*      next;
+        strptr  name;
+        Literal value;
     };
-    
-    Value* values;
+
+    list values;
+};
+
+struct Parameter
+{
+    strptr     name;
+    Variable*  type;
+};
+
+struct Function
+{
+    strptr     name;
+    Variable*  ret_type;
+    list       parameters;
+    list       body;
+};
+
+union VariableFlags
+{
+    struct
+    {
+        unsigned int is_constant         : 1;
+        unsigned int is_external_symbol  : 1;
+    };
+
+    uint8_t value;
+};
+
+struct Variable
+{
+    uint8_t type;
+    VariableFlags flags;
+
+    union
+    {
+        Enumerator*     enumerator;
+        Composite*      composite;
+        Identifier*     identifier;
+        const Variable* pointer;
+
+        struct
+        {
+            Expression*     size;
+            const Variable* elements;
+        } array;
+
+		struct
+		{
+			Variable*  ret_type;
+			Parameter* parameters;
+		} func_ptr;
+    };
 };
 
 struct Expression
@@ -146,17 +198,10 @@ struct Expression
 
     union
     {
-        Literal literal;
-
+        Literal     literal;
         Expression* sub_expr;
-
 		Identifier* identifier;
-
-        struct
-        {
-            Expression* lhs;
-            Expression* rhs;
-        } assign;
+        list        initializer;
 
         struct
         {
@@ -180,88 +225,9 @@ struct Expression
 		struct
 		{
 			Expression* function;
-			Argument*   arguments;
+			list        arguments;
 		} call;
-
-        Initializer initializer;
     };
-};
-
-struct Composite
-{
-    uint8_t type;
-    strptr  name;
-
-    Statement* body;
-};
-
-union VariableFlags
-{
-    struct
-    {
-        unsigned int is_constant         : 1;
-        unsigned int is_external_symbol  : 1;
-    };
-
-    uint8_t value;
-};
-
-struct Enum
-{
-    strptr name;
-    
-    struct Value
-    {
-        strptr  name;
-        Literal value;
-
-        Value* next;
-    };
-
-    Value* values;
-};
-
-struct Variable
-{
-    uint8_t type;
-    VariableFlags flags;
-
-    union
-    {
-        Identifier* identifier;
-
-        struct
-        {
-            Expression*     size;
-            const Variable* elements;
-        } array;
-
-        Enum*      enumerator;
-        Composite* composite;
-
-		struct
-		{
-			Variable*  ret_type;
-			Parameter* parameters;
-		} func_ptr;
-
-        const Variable* pointer;
-    };
-};
-
-struct Parameter
-{
-    strptr     name;
-    Variable*  type;
-    Parameter* next;
-};
-
-struct Function
-{
-    strptr     name;
-    Variable*  ret_type;
-    Parameter* params;
-    Statement* body;
 };
 
 struct Statement
@@ -271,8 +237,9 @@ struct Statement
     union
     {
         Expression* expr;
-
-        Function* function;
+        Function*   function;
+        Composite*  comp_def;
+        Enumerator* enum_def;
 
         struct
         {
@@ -308,10 +275,14 @@ struct Statement
 
         struct
         {
-            Expression* expression;
-        } ret_stmt;
+            strptr      name;
+            Statement*  statements;
+        } name_space;
 
-        Composite* comp_def;
+        struct
+        {
+            list statements;
+        } compound_stmt;
 
         struct
         {
@@ -321,9 +292,8 @@ struct Statement
 
         struct
         {
-            strptr      name;
-            Statement*  statements;
-        } name_space;
+            strptr name;
+        } enum_decl;
 
         struct
         {
@@ -333,18 +303,13 @@ struct Statement
 
         struct
         {
-            Statement* body;
-        } compound_stmt;
+            Expression* expression;
+        } ret_stmt;
 
         struct
         {
             strptr target;
         } goto_stmt;
-
-        struct
-        {
-            strptr name;
-        } label;
 
         struct
         {
@@ -360,21 +325,13 @@ struct Statement
         struct
         {
             strptr name;
-            Enum*  enumerator;
-        } enum_def;
-
-        struct
-        {
-            strptr name;
-        } enum_decl;
+        } label;
     };
-
-    Statement* next;
 };
 
 struct AST
 {
-    Statement* statements;
+    list statements;
 };
 
 #endif // AST_HPP

@@ -692,7 +692,7 @@ void debug_print_enum(const Enum* enumerator, unsigned int level)
         printf("\n");
     }
 
-    for(Enum::Value* v = enumerator->values; v != nullptr; v = v->next)
+    for(Enumerator::Value* v = enumerator->values; v != nullptr; v = v->next)
     {
         printf("VALUE %.*s = ", v->name.len, v->name.ptr);
         switch(v->value.type)
