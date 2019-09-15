@@ -57,7 +57,7 @@ bool Parser::parse_variable(Variable** ptr)
 
                 if(status)
                 {
-                    var->type = TYPE_ENUM;
+                    var->type = TYPE_ENUMERATOR;
                     var->enumerator = enumerator;
                 }
 
@@ -188,14 +188,7 @@ bool Parser::parse_enumerator(Enumerator** ptr)
                 if(status && (m_stack->peek(0).type == TK_EQUAL))
                 {
                     m_stack->pop();
-                    
-                    tk = m_stack->pop();
-                    if(tk.type == TK_LITERAL) {
-                        value->value = tk.literal;
-                    } else {
-                        status = false;
-                        error("expected literal\n");
-                    }
+                    status = parse_expression(&value->value);
                 }
                 
                 if(status)

@@ -80,29 +80,26 @@ enum
     STMT_LABEL         = 0x15,
     STMT_DEFAULT_CASE  = 0x16,
     STMT_ENUM_DEF      = 0x17,
-    STMT_ENUM_DECL     = 0x18,
-    STMT_IMPORT        = 0x19,
-    STMT_EXPORT        = 0x20,
-    STMT_MODULE        = 0x21
+    STMT_ENUM_DECL     = 0x18
 };
 
 enum TYPE
 {
-    TYPE_UNKNOWN   = 0x00,
-    TYPE_VOID      = 0x01,
-    TYPE_U8        = 0x02,
-    TYPE_U16       = 0x03,
-    TYPE_U32       = 0x04,
-    TYPE_U64       = 0x05,
-    TYPE_I8        = 0x06,
-    TYPE_I16       = 0x07,
-    TYPE_I32       = 0x08,
-    TYPE_I64       = 0x09,
-    TYPE_F32       = 0x0A,
-    TYPE_F64       = 0x0B,
-    TYPE_PTR       = 0x0C,
-    TYPE_COMPOSITE = 0x0D,
-    TYPE_ENUM      = 0x0E,
+    TYPE_UNKNOWN    = 0x00,
+    TYPE_VOID       = 0x01,
+    TYPE_U8         = 0x02,
+    TYPE_U16        = 0x03,
+    TYPE_U32        = 0x04,
+    TYPE_U64        = 0x05,
+    TYPE_I8         = 0x06,
+    TYPE_I16        = 0x07,
+    TYPE_I32        = 0x08,
+    TYPE_I64        = 0x09,
+    TYPE_F32        = 0x0A,
+    TYPE_F64        = 0x0B,
+    TYPE_PTR        = 0x0C,
+    TYPE_COMPOSITE  = 0x0D,
+    TYPE_ENUMERATOR = 0x0E,
 	TYPE_FUNCTION_POINTER     = 0x0F,
     TYPE_CONSTANT_SIZED_ARRAY = 0x10,
     TYPE_VARIABLE_SIZED_ARRAY = 0x11
@@ -137,8 +134,8 @@ struct Enumerator
     
     struct Value
     {
-        strptr  name;
-        Literal value;
+        strptr      name;
+        Expression* value;
     };
 
     list values;
@@ -176,21 +173,21 @@ struct Variable
 
     union
     {
-        Enumerator*     enumerator;
-        Composite*      composite;
-        Identifier*     identifier;
-        const Variable* pointer;
+        Enumerator* enumerator;
+        Composite*  composite;
+        Identifier* identifier;
+        Variable*   pointer;
 
         struct
         {
-            Expression*     size;
-            const Variable* elements;
+            Expression* size;
+            Variable*   elements;
         } array;
 
 		struct
 		{
 			Variable*  ret_type;
-			Parameter* parameters;
+			list       parameters;
 		} func_ptr;
     };
 };

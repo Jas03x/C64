@@ -2,12 +2,34 @@
 
 bool Parser::parse_expression(Expression** ptr)
 {
-    bool status = true;
+    bool status = true, running = true;
 
-    while(m_stack->peek(0).type != TK_SEMICOLON) { m_stack->pop(); }
+    while(status && running)
+    {
+        Token tk = m_stack->pop();
+        switch(tk.type)
+        {
+            case TK_COLON:
+            case TK_COMMA:
+            case TK_SEMICOLON:
+            case TK_CLOSE_CURLY_BRACKET:
+            {
+                running = false;
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+        }
+    }
     
-    *ptr = new Expression();
-    (*ptr)->type = EXPR_INVALID;
+    if(status)
+    {
+        *ptr = new Expression();
+        (*ptr)->type = EXPR_INVALID;
+    }
 
     return status;
 }
