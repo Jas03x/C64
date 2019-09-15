@@ -1,13 +1,6 @@
 #include "list.hpp"
 
-list::list()
-{
-    head = nullptr;
-    tail = nullptr;
-    count = 0;
-}
-
-list::~list()
+void list::free()
 {
     for(element* it = this->head; it != nullptr;)
     {

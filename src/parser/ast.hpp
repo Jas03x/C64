@@ -115,6 +115,9 @@ enum COMPOSITE_TYPE
     COMP_TYPE_UNION   = 2
 };
 
+struct Variable;
+struct Expression;
+
 struct Identifier
 {
 	strptr      str;
@@ -238,8 +241,8 @@ struct Statement
     {
         Expression* expr;
         Function*   function;
-        Composite*  comp_def;
-        Enumerator* enum_def;
+        Composite*  composite;
+        Enumerator* enumerator;
 
         struct
         {

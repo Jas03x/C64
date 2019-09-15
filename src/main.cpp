@@ -18,7 +18,7 @@ bool process(const char* path)
         if(ast != nullptr)
         {
             printf("Successfully parsed!\n");
-            debug_print_ast(ast);
+            // debug_print_ast(ast);
         }
     }
 

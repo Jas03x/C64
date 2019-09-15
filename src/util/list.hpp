@@ -13,8 +13,7 @@ struct list
     element* tail;
     unsigned int count;
 
-    list();
-    ~list();
+    void free();
     void insert(void* ptr);
 };
 

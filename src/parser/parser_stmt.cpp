@@ -83,6 +83,25 @@ bool Parser::parse_statement(list& stmt_list)
     return status;
 }
 
+bool Parser::parse_expression(list& stmt_list)
+{
+    bool status = true;
+    
+    Expression* expr = nullptr;
+    status = parse_expression(&expr);
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_EXPR;
+        stmt->expr = expr;
+
+        stmt_list.insert(stmt);
+    }
+
+    return status;
+}
+
 bool Parser::parse_definition(list& stmt_list)
 {
     bool status = true;
@@ -120,13 +139,15 @@ bool Parser::parse_composite_definition(list& stmt_list)
     if((m_stack->peek(1).type == TK_IDENTIFIER) && (m_stack->peek(2).type == TK_SEMICOLON))
     {
         stmt.type = STMT_COMP_DECL;
+        stmt.composite = new Composite();
+
         Token c_type = m_stack->pop();
         Token c_name = m_stack->pop();
         
-        stmt.comp_decl.name = c_name.identifier.string;
+        stmt.composite->name = c_name.identifier.string;
         switch(c_type.type) {
-            case TK_STRUCT: { stmt.comp_decl.type = COMP_TYPE_STRUCT; break; }
-            case TK_UNION:  { stmt.comp_decl.type = COMP_TYPE_UNION;  break; }
+            case TK_STRUCT: { stmt.composite->type = COMP_TYPE_STRUCT; break; }
+            case TK_UNION:  { stmt.composite->type = COMP_TYPE_UNION;  break; }
             default:
             {
                 status = false;
@@ -138,7 +159,7 @@ bool Parser::parse_composite_definition(list& stmt_list)
     else
     {
         stmt.type = STMT_COMP_DEF;
-        status = parse_composite(&stmt.comp_def);
+        status = parse_composite(&stmt.composite);
     }
 
     if(status)
@@ -157,14 +178,16 @@ bool Parser::parse_enumerator_definition(list& stmt_list)
     if((m_stack->peek(1).type == TK_IDENTIFIER) && (m_stack->peek(2).type == TK_SEMICOLON))
     {
         stmt.type = STMT_ENUM_DECL;
-        Token e_type = m_stack->pop();
+        stmt.enumerator = new Enumerator();
+
+        m_stack->pop(); // consume the 'enum' token
         Token e_name = m_stack->pop();
-        stmt.enum_decl.name = e_name.identifier.string;
+        stmt.enumerator->name = e_name.identifier.string;
     }
     else
     {
         stmt.type = STMT_ENUM_DEF;
-        status = parse_enumerator(&stmt.enum_def);
+        status = parse_enumerator(&stmt.enumerator);
     }
 
     if(status)

@@ -30,8 +30,6 @@ private:
     bool parse_typedef(list& stmt_list);
     bool parse_composite_definition(list& stmt_list);
     bool parse_enumerator_definition(list& stmt_list);
-    bool parse_function_declaration(list& stmt_list);
-    bool parse_variable_declaration(list& stmt_list);
     bool parse_function_declaration(list& stmt_list, Variable* var, strptr name);
     bool parse_variable_declaration(list& stmt_list, Variable* type, Variable* var, strptr name);
 

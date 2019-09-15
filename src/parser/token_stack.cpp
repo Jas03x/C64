@@ -19,9 +19,6 @@ Token TokenStack::pop()
     {
         tk = m_stack[m_index++];
     }
-    
-    printf("pop: ");
-    debug_print_token(tk);
 
     return tk;
 }

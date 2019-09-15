@@ -249,3 +249,75 @@ bool Parser::parse_pointer_array(Variable** ptr)
 
     return status;
 }
+
+bool Parser::parse_parameter(Parameter** ptr)
+{
+    bool status = true;
+
+    Parameter* param = new Parameter();
+    status = parse_variable(&param->type);
+
+    if(status && (m_stack->peek(0).type == TK_ASTERISK)) {
+        status = parse_pointer_array(&param->type);
+    }
+
+    if(status)
+    {
+        Token tk = m_stack->pop();
+        if(tk.type == TK_IDENTIFIER)
+        {
+            param->name = tk.identifier.string;
+        }
+        else
+        {
+            status = false;
+            error("expected identifier\n");
+        }
+    }
+
+    return status;
+}
+
+bool Parser::parse_identifier(Identifier** ptr)
+{
+    bool status = true;
+    Identifier *head = nullptr, *tail = nullptr;
+
+    while(status)
+    {
+        Token tk = m_stack->pop();
+        if(tk.type == TK_IDENTIFIER)
+        {
+            Identifier* id = new Identifier();
+            id->str = tk.identifier.string;
+
+            if(tail == nullptr) { head = id;       }
+            else                { tail->next = id; }
+            tail = id;
+
+            Token tk0 = m_stack->peek(0);
+            Token tk1 = m_stack->peek(1);
+            if((tk0.type == TK_COLON) && (tk1.type == TK_COLON))
+            {
+                m_stack->pop();
+                m_stack->pop();
+            }
+            else
+            {
+                break;
+            }
+        }
+        else
+        {
+            status = false;
+            error("expected identifier\n");
+        }
+    }
+
+    if(status)
+    {
+        *ptr = head;
+    }
+
+    return status;
+}
