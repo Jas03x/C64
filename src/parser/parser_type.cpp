@@ -41,6 +41,11 @@ bool Parser::parse_variable(Variable** ptr)
                 Composite* composite = nullptr;
                 status = parse_composite(&composite);
 
+                if(status && (composite->name.len != 0)) {
+                    status = false;
+                    error("inline composite cannot have a name\n");
+                }
+
                 if(status)
                 {
                     var->type = TYPE_COMPOSITE;
@@ -55,6 +60,11 @@ bool Parser::parse_variable(Variable** ptr)
                 Enumerator* enumerator = nullptr;
                 status = parse_enumerator(&enumerator);
 
+                if(status && (enumerator->name.len != 0)) {
+                    status = false;
+                    error("inline enumerator cannot have a name\n");
+                }
+
                 if(status)
                 {
                     var->type = TYPE_ENUMERATOR;
@@ -64,7 +74,12 @@ bool Parser::parse_variable(Variable** ptr)
                 break;
             }
 
-            default: { status = false; break; }
+            default:
+            {
+                status = false;
+                error("unexpected token %s\n", token_to_str(tk));
+                break;
+            }
         } // switch
     } // if
 
@@ -218,7 +233,7 @@ bool Parser::parse_enumerator(Enumerator** ptr)
     return status;
 }
 
-bool Parser::parse_pointer_array(Variable** ptr)
+bool Parser::parse_pointer(Variable** ptr)
 {
     bool status = true;
 
@@ -243,6 +258,39 @@ bool Parser::parse_pointer_array(Variable** ptr)
     return status;
 }
 
+bool Parser::parse_array(Variable** ptr)
+{
+    bool status = true;
+
+    Variable* head = *ptr;
+    while(m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)
+    {
+        m_stack->pop();
+
+        Variable* var = new Variable();
+        var->flags.value = head->flags.value;
+        var->array.elements = head;
+
+        if(m_stack->peek(0).type == TK_CLOSE_SQUARE_BRACKET)
+        {
+            var->type = TYPE_VARIABLE_SIZED_ARRAY;
+        }
+        else
+        {
+            var->type = TYPE_CONSTANT_SIZED_ARRAY;
+            status = parse_expression(&var->array.size);
+        }
+
+        if(m_stack->pop().type != TK_CLOSE_SQUARE_BRACKET)
+        {
+            status = false;
+            error("expected ']'\n");
+        }
+    }
+
+    return status;
+}
+
 bool Parser::parse_parameter(Parameter** ptr)
 {
     bool status = true;
@@ -251,21 +299,21 @@ bool Parser::parse_parameter(Parameter** ptr)
     status = parse_variable(&param->type);
 
     if(status && (m_stack->peek(0).type == TK_ASTERISK)) {
-        status = parse_pointer_array(&param->type);
+        status = parse_pointer(&param->type);
     }
 
-    if(status)
+    if(status && (m_stack->peek(0).type == TK_IDENTIFIER))
     {
         Token tk = m_stack->pop();
-        if(tk.type == TK_IDENTIFIER)
-        {
-            param->name = tk.identifier.string;
-        }
-        else
-        {
-            status = false;
-            error("expected identifier\n");
-        }
+        param->name = tk.identifier.string;
+    }
+
+    if(status && (m_stack->peek(0).type == TK_OPEN_SQUARE_BRACKET)) {
+        status = parse_array(&param->type);
+    }
+
+    if(status) {
+        *ptr = param;
     }
 
     return status;

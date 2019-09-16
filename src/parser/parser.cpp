@@ -17,10 +17,7 @@ AST* Parser::Parse(TokenStack* stack)
         if(stack->peek(0).type == TK_EOF) { break; }
         else
         {
-            if(!parser.parse_statement(ast->statements))
-            {
-                status = false;
-            }
+            status = parser.parse_statement(ast->statements);
         }
     }
 

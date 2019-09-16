@@ -36,6 +36,7 @@ U32 main(U32 argc, U8* argv[])
     io::file* file = io::open("~/test.txt");
     U32 size = io::get_size(file);
     U8* buffer = malloc(size);
+    /*
     if(read(file, size, buffer) != size)
     {
         io::print("an error occured while reading the file\n");
@@ -48,6 +49,7 @@ U32 main(U32 argc, U8* argv[])
 
     struct { const U8* name; U32 age; } jas = { "Jas", 21 };
     print_person_name(const Person* (&jas));
+    */
 
     return 0;
 }

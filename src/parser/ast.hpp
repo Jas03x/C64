@@ -62,25 +62,24 @@ enum
     STMT_EXPR          = 0x03,
     STMT_VARIABLE_DECL = 0x04,
     STMT_IF            = 0x05,
-    STMT_ELSE_IF       = 0x06,
-    STMT_ELSE          = 0x07,
-    STMT_RET           = 0x08,
-    STMT_COMP_DEF      = 0x09,
-    STMT_COMP_DECL     = 0x0A,
-    STMT_FOR           = 0x0B,
-    STMT_WHILE         = 0x0C,
-    STMT_NAMESPACE     = 0x0D,
-    STMT_TYPEDEF       = 0x0E,
-    STMT_COMPOUND_STMT = 0x0F,
-    STMT_BREAK         = 0x10,
-    STMT_CONTINUE      = 0x11,
-    STMT_GOTO          = 0x12,
-    STMT_SWITCH        = 0x13,
-    STMT_CASE          = 0x14,
-    STMT_LABEL         = 0x15,
-    STMT_DEFAULT_CASE  = 0x16,
-    STMT_ENUM_DEF      = 0x17,
-    STMT_ENUM_DECL     = 0x18
+    STMT_ELSE          = 0x06,
+    STMT_RET           = 0x07,
+    STMT_COMP_DEF      = 0x08,
+    STMT_COMP_DECL     = 0x09,
+    STMT_FOR           = 0x0A,
+    STMT_WHILE         = 0x0B,
+    STMT_NAMESPACE     = 0x0C,
+    STMT_TYPEDEF       = 0x0D,
+    STMT_COMPOUND_STMT = 0x0E,
+    STMT_BREAK         = 0x0F,
+    STMT_CONTINUE      = 0x10,
+    STMT_GOTO          = 0x11,
+    STMT_SWITCH        = 0x12,
+    STMT_CASE          = 0x13,
+    STMT_LABEL         = 0x14,
+    STMT_DEFAULT_CASE  = 0x15,
+    STMT_ENUM_DEF      = 0x16,
+    STMT_ENUM_DECL     = 0x17
 };
 
 enum TYPE
@@ -251,18 +250,20 @@ struct Statement
         struct
         {
             Expression* condition;
-            Statement*  body;
-        } if_stmt; // same for else_if
+            list        body;
+            
+            Statement*  else_stmt;
+        } if_stmt;
 
         struct
         {
-            Statement* body;
+            list body;
         } else_stmt;
 
         struct
         {
             Expression* condition;
-            Statement*  body;
+            list        body;
         } while_stmt;
 
         struct
@@ -270,13 +271,13 @@ struct Statement
             Statement*  variable;
             Expression* condition;
             Expression* step;
-            Statement*  body;
+            list        body;
         } for_stmt;
 
         struct
         {
             strptr      name;
-            Statement*  statements;
+            list        statements;
         } name_space;
 
         struct

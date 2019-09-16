@@ -9,17 +9,22 @@
 
 bool process(const char* path)
 {
-    bool status = true;
-
-	TokenStack tokens;    
-    if(Tokenizer::Tokenize(path, tokens))
+	TokenStack tokens;
+    
+    bool status = Tokenizer::Tokenize(path, tokens);
+    if(status)
     {
         AST* ast = Parser::Parse(&tokens);
         if(ast != nullptr)
         {
-            printf("Successfully parsed!\n");
             print_ast(ast);
         }
+        else
+        {
+            status = false;
+            error("an error occured while parsing\n");
+        }
+        
     }
 
     return status;
@@ -39,6 +44,5 @@ int main(int argc, char* argv[])
     }
 
     printf("Terminating\n");
-
     return 0;
 }

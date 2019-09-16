@@ -32,13 +32,18 @@ private:
     bool parse_enumerator_definition(list& stmt_list);
     bool parse_function_declaration(list& stmt_list, Variable* var, strptr name);
     bool parse_variable_declaration(list& stmt_list, Variable* type, Variable* var, strptr name);
+    bool parse_namespace(list& stmt_list);
+    bool parse_if_statement(list& stmt_list);
+    bool parse_if_statement(Statement** ptr);
+    bool parse_return_statement(list& stmt_list);
 
     // type:
     bool parse_variable(Variable** var);
     bool parse_variable_modifiers(VariableFlags& flags);
     bool parse_composite(Composite** ptr);
     bool parse_enumerator(Enumerator** ptr);
-    bool parse_pointer_array(Variable** ptr);
+    bool parse_pointer(Variable** ptr);
+    bool parse_array(Variable** ptr);
     bool parse_identifier(Identifier** ptr);
     bool parse_parameter(Parameter** ptr);
 

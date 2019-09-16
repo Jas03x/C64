@@ -5,7 +5,7 @@
 void indent(unsigned int level)
 {
     for(unsigned int i = 0; i < level; i++) {
-        printf("\t");
+        printf("    ");
     }
 }
 
@@ -19,6 +19,67 @@ void print(unsigned int level, const char* format, ...)
     va_start(args, format);
     vfprintf(stdout, format, args);
     va_end(args);
+}
+
+const char* token_to_str(const Token& tk)
+{
+    const static char* tbl[] =
+    {
+        "TK_CONST",
+        "TK_EXTERN",
+        "TK_STRUCT",
+        "TK_RETURN",
+        "TK_IF",
+        "TK_EQUAL",
+        "TK_LEFT_ARROW_HEAD",
+        "TK_RIGHT_ARROW_HEAD",
+        "TK_PLUS",
+        "TK_MINUS",
+        "TK_DOT",
+        "TK_ASTERISK",
+        "TK_FORWARD_SLASH",
+        "TK_OPEN_CURLY_BRACKET",
+        "TK_CLOSE_CURLY_BRACKET",
+        "TK_OPEN_ROUND_BRACKET",
+        "TK_CLOSE_ROUND_BRACKET",
+        "TK_OPEN_SQUARE_BRACKET",
+        "TK_CLOSE_SQUARE_BRACKET",
+        "TK_SEMICOLON",
+        "TK_LITERAL",
+        "TK_IDENTIFIER",
+        "TK_COMMA",
+        "TK_OR",
+        "TK_AND",
+        "TK_CARET",
+        "TK_EXPLANATION_MARK",
+        "TK_AMPERSAND",
+        "TK_PERCENT",
+        "TK_NAMESPACE",
+        "TK_TYPE",
+        "TK_FOR",
+        "TK_WHILE",
+        "TK_COLON",
+        "TK_TYPEDEF",
+        "TK_BREAK",
+        "TK_GOTO",
+        "TK_ELSE",
+        "TK_CONTINUE",
+        "TK_SWITCH",
+        "TK_UNION",
+        "TK_CASE",
+        "TK_DEFAULT",
+        "TK_ENUM",
+        "TK_STATIC_CAST",
+        "TK_REINTERPRET_CAST",
+        "TK_EOF"
+    };
+
+    const char* str = "TK_INVALID";
+    if((tk.type > TK_INVALID) && (tk.type < TK_COUNT))
+    {
+        str = tbl[tk.type - 1];
+    }
+    return str;
 }
 
 void print_ast(AST* ast)
@@ -38,14 +99,12 @@ void print_statement(Statement* stmt, unsigned int level)
         case STMT_EXPR:          { break; }
         case STMT_VARIABLE_DECL: { break; }
         case STMT_IF:            { break; }
-        case STMT_ELSE_IF:       { break; }
-        case STMT_ELSE:          { break; }
         case STMT_RET:           { break; }
         case STMT_COMP_DEF:      { break; }
         case STMT_COMP_DECL:     { break; }
         case STMT_FOR:           { break; }
         case STMT_WHILE:         { break; }
-        case STMT_NAMESPACE:     { break; }
+        case STMT_NAMESPACE:     { print(level, "NAMESPACE:\n"); print_namespace(stmt, level + 1); break; }
         case STMT_TYPEDEF:       { break; }
         case STMT_COMPOUND_STMT: { break; }
         case STMT_BREAK:         { break; }
@@ -214,5 +273,16 @@ void print_expression(Expression* expr, unsigned int level)
         case EXPR_STATIC_CAST:      { break; }
         case EXPR_REINTERPRET_CAST: { break; }
         default: { print(level, "INVALID\n"); break; }
+    }
+}
+
+void print_namespace(Statement* stmt, unsigned int level)
+{
+    print(level + 1, "NAME: %.*s\n", stmt->name_space.name.len, stmt->name_space.name.ptr);
+
+    print(level + 1, "MEMBERS:\n");
+    for(list::element* it = stmt->name_space.statements.head; it != nullptr; it = it->next)
+    {
+        print_statement(reinterpret_cast<Statement*>(it->ptr), level + 2);
     }
 }

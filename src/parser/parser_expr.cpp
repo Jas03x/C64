@@ -6,10 +6,10 @@ bool Parser::parse_expression(Expression** ptr)
 
     while(status && running)
     {
-        Token tk = m_stack->pop();
+        Token tk = m_stack->peek(0);
         switch(tk.type)
         {
-            case TK_COLON:
+            // case TK_COLON:
             case TK_COMMA:
             case TK_SEMICOLON:
             case TK_CLOSE_CURLY_BRACKET:
@@ -20,6 +20,7 @@ bool Parser::parse_expression(Expression** ptr)
 
             default:
             {
+                m_stack->pop();
                 break;
             }
         }
