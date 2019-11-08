@@ -1,42 +1,130 @@
 
-ROOT: STMT ...
+program: decl_list;
 
-STMT:
-    ENUM NAME;                                      |
-    UNION NAME;                                     |
-    STRUCT NAME;                                    |
-    STRUCT { STMT ... };                            |
-    STRUCT { STMT ... } NAME;                       |
-    STRUCT NAME { STMT ... } NAME;                  |
-    STRUCT NAME { STMT ... } NAME = { EXPR... };    |
-    UNION { STMT ... };                             |
-    UNION { STMT ... } NAME;                        |
-    UNION NAME { STMT ... } NAME;                   |
-    UNION NAME { STMT ... } NAME = { EXPR... };     |
-    ENUM { VALUE ... };                             |
-    ENUM { VALUE ... } NAME;                        |
-    ENUM NAME { VALUE ... } NAME;                   |
-    ENUM NAME { VALUE ... } NAME = VALUE;           |
-    TYPE NAME;                                      |
-    TYPE NAME = EXPR;                               |
-    TYPE NAME(ARG, ...) { ... }                     |
-    RETURN EXPR;                                    |
+decl_list:
+    var_decl
+    | type_defn
+    | func_decl
+    | func_defn
+    | namespace;
 
-EXPR:
-    ID                  |
-    LITERAL             |
-    (EXPR)              |
-    *EXPR               |
-    EXPR->NAME;         |
-    EXPR ++             |
-    EXPR --             |
-    EXPR = EXPR         |
-    EXPR += EXPR        |
-    EXPR *= EXPR        |
-    EXPR /= EXPR        |
-    EXPR = EXPR + EXPR  |
-    EXPR = EXPR - EXPR  |
-    EXPR = EXPR * EXPR  |
-    EXPR = EXPR / EXPR  |
-    EXPR(EXPR, ...)     |
+namespace: 'namespace' ident '{' decl_list '}';
+
+var_decl: var_mods type _var_decl ',' ... ';';
+
+_var_decl:
+    ident
+    | ident '=' expr
+    | ident '[' const_int ']' ...
+    | '*' var_decl;
+
+func_decl: func_mods type ident '(' param_list ')';
+func_defn: func_mods type ident '(' param_list ')' '{' stmt_list '}';
+
+mods: null | 'const' | 'static' | 'extern';
+var_mods:  mods;
+func_mods: mods;
+
+param_list: null | type ident;
+
+type:
+    'void'
+    | 'U8'  | 'byte'
+    | 'U16' | 'word'
+    | 'U32' | 'dword'
+    | 'U64' | 'qword'
+    | 'I8'
+    | 'I16'
+    | 'I32'
+    | 'I64'
+    | 'F32'
+    | 'F64'
+    | ident
+    | struct '{' struct_body '}'
+    | union  '{' union_body  '}'
+    | enum   '{' enum_body   '}';
+
+type_defn:
+    'struct' ident ';'
+    | 'struct' ident '{' struct_body '}'
+    | 'union' ident ';'
+    | 'union' ident '{' union_body '}'
+    | 'enum'  ident ';'
+    | 'enum'  ident '{' enum_body '}'
+    | 'typedef' var_mods type ident;
+
+enum_body:
+    null
+    | ident
+    | ident '=' const_word;
+
+struct_body: null | var_decl ...;
+union_body:  null | var_decl ...;
+
+stmt_list: stmt ...;
+
+stmt:
+    var_decl
+    | '{' stmt_list '}'
+    | expr ';'
+    | 'for' '(' var_decl ';' expr ';' expr ')' loop_body
+    | 'while' '(' expr ')' loop_body
+    | 'break' ';'
+    | 'continue' ';'
+    | 'goto' ';'
+    | switch '(' expr ')' '{' switch_body '}'
+    | ident ':'
+    | 'return' expr ';'
+    | 'if' '(' expr ')' cond_body
+    | 'else' cond_body;
+
+cond_body: stmt | '{' stmt_list '}';
+loop_body: stmt | '{' stmt_list '}';
+
+switch_body:
+    null
+    | case const_word ':'
+    | default ':'
+    | stmt;
+
+expr:
+    '(' expr ')'
+    | 'null'
+    | const_int
+    | const_str
+    | ident
+    | ident '.'  ident
+    | ident '->' ident
+    | ident '(' arg_list ')'
+    | expr '[' expr ']'
+    | expr '+' expr
+    | expr '-' expr
+    | expr '*' expr
+    | expr '/' expr
+    | expr '%' expr
+    | expr '&' expr
+    | expr '|' expr
+    | expr '^' expr
+    | expr '=' expr
+    | expr '<' expr
+    | expr '>' expr
+    | expr '<=' expr
+    | expr '>=' expr
+    | expr '>>' expr
+    | expr '<<' expr
+    | expr 'or' expr
+    | expr 'and' expr
+    | '~' expr
+    | 'not' expr
+    | '*' expr
+    | '&' expr
+    | expr '++'
+    | expr '--'
+    | '++' expr
+    | '--' expr
+    | expr '?' expr ':' expr
+    | 'static_cast' '<' type '>' '(' expr ')'
+    | 'reinterpret_cast' '<' type '>' '(' expr ')';
+
+arg_list: null | expr ...;
 
