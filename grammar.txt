@@ -15,17 +15,35 @@ var_decl: var_mods type _var_decl ',' ... ';';
 _var_decl:
     ident
     | ident '=' expr
-    | ident '[' const_int ']' ...
-    | '*' var_decl;
+    | ident array_dim '=' expr
+    | '*' var_decl
+    | var_pfn '=' expr;
 
-func_decl: func_mods type ident '(' param_list ')';
-func_defn: func_mods type ident '(' param_list ')' '{' stmt_list '}';
+array_dim: null | '[' const_word ']' ...;
+
+func_decl:
+    func_mods type ident '(' param_list ')' ';'
+    | type '(' '*' func_decl ')' '(' param_list ')' ';'
+    | func_pfn ';';
+
+func_defn:
+    func_mods type ident '(' param_list ')' '{' stmt_list '}'
+    | type '(' '*' func_decl ')' '(' param_list ')'
+    | func_pfn '{' stmt_list '}';
 
 mods: null | 'const' | 'static' | 'extern';
 var_mods:  mods;
 func_mods: mods;
 
-param_list: null | type ident;
+func_pfn:
+    '(' '*' pfn '(' param_list ')' ')' '(' param_list ')'
+    | '(' '*' ident '(' param_list ')' ')' '(' param_list ')';
+
+var_pfn:
+    '(' '*' pfn '(' param_list ')' ')' '(' param_list ')'
+    | '(' '*' '(' ident array_dim ')' '(' param_list ')' ')' '(' param_list ')';
+
+param_list: null | type ident ',' ...;
 
 type:
     'void'
@@ -51,12 +69,13 @@ type_defn:
     | 'union' ident '{' union_body '}'
     | 'enum'  ident ';'
     | 'enum'  ident '{' enum_body '}'
-    | 'typedef' var_mods type ident;
+    | 'typedef' var_mods type ident
+    | 'typedef' func_mods type ident '(' param_list ')'
+    | 'typedef' func_pfn;
 
-enum_body:
-    null
-    | ident
-    | ident '=' const_word;
+enum_value: ident | ident '=' const_word;
+
+enum_body: null | enum_value ',' ...;
 
 struct_body: null | var_decl ...;
 union_body:  null | var_decl ...;
@@ -89,6 +108,7 @@ switch_body:
 
 expr:
     '(' expr ')'
+    | '{' expr ... '}'
     | 'null'
     | const_int
     | const_str
@@ -127,4 +147,3 @@ expr:
     | 'reinterpret_cast' '<' type '>' '(' expr ')';
 
 arg_list: null | expr ...;
-
