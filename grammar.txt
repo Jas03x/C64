@@ -36,11 +36,11 @@ var_mods:  mods;
 func_mods: mods;
 
 func_pfn:
-    '(' '*' pfn '(' param_list ')' ')' '(' param_list ')'
+    '(' '*' func_pfn '(' param_list ')' ')' '(' param_list ')'
     | '(' '*' ident '(' param_list ')' ')' '(' param_list ')';
 
 var_pfn:
-    '(' '*' pfn '(' param_list ')' ')' '(' param_list ')'
+    '(' '*' var_pfn '(' param_list ')' ')' '(' param_list ')'
     | '(' '*' '(' ident array_dim ')' '(' param_list ')' ')' '(' param_list ')';
 
 param_list: null | type ident ',' ...;
