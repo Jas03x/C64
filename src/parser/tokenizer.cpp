@@ -325,7 +325,7 @@ bool Tokenizer::read_identifier()
 
 	if(status)
 	{
-		Token tk = { 0 };
+		Token tk = { 0, 0 };
 
 		m_buffer.push_back(0);
 		const char* str = m_buffer.data();
@@ -337,8 +337,8 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'i': { if(_strncmp(str, "if", 2)) { tk = { TK_IF }; } break; }
-					case 'o': { if(_strncmp(str, "or", 2)) { tk = { TK_OR }; } break; }
+					case 'i': { if(_strncmp(str, "if", 2)) { tk = { TK_IF, { 0 } }; } break; }
+					case 'o': { if(_strncmp(str, "or", 2)) { tk = { TK_OR, { 0 } }; } break; }
 					case 'I':
 					{
 						switch(str[1])
@@ -362,8 +362,8 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'a': { if(_strncmp(str, "and", 3)) { tk = { TK_AND }; } break; }
-					case 'f': { if(_strncmp(str, "for", 3)) { tk = { TK_FOR }; } break; }
+					case 'a': { if(_strncmp(str, "and", 3)) { tk = { TK_AND, { 0 } }; } break; }
+					case 'f': { if(_strncmp(str, "for", 3)) { tk = { TK_FOR, { 0 } }; } break; }
 					case 'F':
 					{
 						switch(str[1])
@@ -404,8 +404,8 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[3])
 						{
-							case 'e': { if(_strncmp(str, "case", 4)) { tk = { TK_CASE }; } break; }
-							case 't': { if(_strncmp(str, "cast", 4)) { tk = { TK_STATIC_CAST }; } break; }
+							case 'e': { if(_strncmp(str, "case", 4)) { tk = { TK_CASE, { 0 } }; } break; }
+							case 't': { if(_strncmp(str, "cast", 4)) { tk = { TK_STATIC_CAST, { 0 } }; } break; }
 						break;
 						}
 						break;
@@ -414,8 +414,8 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case 'l': { if(_strncmp(str, "else", 4)) { tk = { TK_ELSE }; } break; }
-							case 'n': { if(_strncmp(str, "enum", 4)) { tk = { TK_ENUM }; } break; }
+							case 'l': { if(_strncmp(str, "else", 4)) { tk = { TK_ELSE, { 0 } }; } break; }
+							case 'n': { if(_strncmp(str, "enum", 4)) { tk = { TK_ENUM, { 0 } }; } break; }
 						}
 						break;
 					}
@@ -427,9 +427,9 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'c': { if(_strncmp(str, "const", 5)) { tk = { TK_CONST }; } break; }
-					case 'w': { if(_strncmp(str, "while", 5)) { tk = { TK_WHILE }; } break; }
-					case 'u': { if(_strncmp(str, "union", 5)) { tk = { TK_UNION }; } break; }
+					case 'c': { if(_strncmp(str, "const", 5)) { tk = { TK_CONST, { 0 } }; } break; }
+					case 'w': { if(_strncmp(str, "while", 5)) { tk = { TK_WHILE, { 0 } }; } break; }
+					case 'u': { if(_strncmp(str, "union", 5)) { tk = { TK_UNION, { 0 } }; } break; }
 				}
 				break;
 			}
@@ -437,17 +437,17 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'e': { if(_strncmp(str, "extern", 6)) { tk = { TK_EXTERN }; } break; }
+					case 'e': { if(_strncmp(str, "extern", 6)) { tk = { TK_EXTERN, { 0 } }; } break; }
 					case 'r':
 					{
 						switch(str[1])
 						{
-							case 'e': { if(_strncmp(str, "return", 6)) { tk = { TK_RETURN }; } break; }
-							case '_': { if(_strncmp(str, "r_cast", 6)) { tk = { TK_REINTERPRET_CAST }; } break; }
+							case 'e': { if(_strncmp(str, "return", 6)) { tk = { TK_RETURN, { 0 } }; } break; }
+							case '_': { if(_strncmp(str, "r_cast", 6)) { tk = { TK_REINTERPRET_CAST, { 0 } }; } break; }
 						}
 						break;
 					}
-					case 's': { if(_strncmp(str, "switch", 6)) { tk = { TK_SWITCH }; } break; }
+					case 's': { if(_strncmp(str, "switch", 6)) { tk = { TK_SWITCH, { 0 } }; } break; }
 				}
 				break;
 			}
@@ -455,7 +455,7 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'd': { if(_strncmp(str, "default", 7)) { tk = { TK_DEFAULT }; } break; }
+					case 'd': { if(_strncmp(str, "default", 7)) { tk = { TK_DEFAULT, { 0 } }; } break; }
 				}
 				break;
 			}
@@ -463,7 +463,7 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'c': { if(_strncmp(str, "continue", 8)) { tk = { TK_CONTINUE }; } break; }
+					case 'c': { if(_strncmp(str, "continue", 8)) { tk = { TK_CONTINUE, { 0 } }; } break; }
 				}
 				break;
 			}
@@ -471,7 +471,7 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'n': { if(_strncmp(str, "namespace", 9)) { tk = { TK_NAMESPACE }; } break; }
+					case 'n': { if(_strncmp(str, "namespace", 9)) { tk = { TK_NAMESPACE, { 0 } }; } break; }
 				}
 				break;
 			}
@@ -509,33 +509,33 @@ bool Tokenizer::read_punctuator()
 {
 	bool status =  true;
 
-	Token tk = { 0 };
+	Token tk = { 0, 0 };
 	char c = pop();
 	
 	switch(c)
 	{
-		case '=': { tk = { TK_EQUAL }; break; }
-		case '<': { tk = { TK_LEFT_ARROW_HEAD };  break; }
-		case '>': { tk = { TK_RIGHT_ARROW_HEAD }; break; }
-		case '+': { tk = { TK_PLUS }; break; }
-		case '-': { tk = { TK_MINUS }; break; }
-		case '.': { tk = { TK_DOT }; break; }
-		case '*': { tk = { TK_ASTERISK }; break; }
-		case '/': { tk = { TK_FORWARD_SLASH }; break; }
-		case '{': { tk = { TK_OPEN_CURLY_BRACKET }; break; }
-		case '}': { tk = { TK_CLOSE_CURLY_BRACKET }; break; }
-		case '(': { tk = { TK_OPEN_ROUND_BRACKET }; break; }
-		case ')': { tk = { TK_CLOSE_ROUND_BRACKET }; break; }
-		case '[': { tk = { TK_OPEN_SQUARE_BRACKET }; break; }
-		case ']': { tk = { TK_CLOSE_SQUARE_BRACKET }; break; }
-		case ';': { tk = { TK_SEMICOLON }; break; }
-		case ',': { tk = { TK_COMMA }; break; }
-		case '^': { tk = { TK_CARET }; break; }
-		case '!': { tk = { TK_EXPLANATION_MARK }; break; }
-		case '&': { tk = { TK_AMPERSAND }; break; }
-		case '|': { tk = { TK_VERTICAL_BAR }; break; }
-		case '%': { tk = { TK_PERCENT }; break; }
-		case ':': { tk = { TK_COLON }; break; }
+		case '=': { tk = { TK_EQUAL, { 0 } }; break; }
+		case '<': { tk = { TK_LEFT_ARROW_HEAD, { 0 } };  break; }
+		case '>': { tk = { TK_RIGHT_ARROW_HEAD, { 0 } }; break; }
+		case '+': { tk = { TK_PLUS, { 0 } }; break; }
+		case '-': { tk = { TK_MINUS, { 0 } }; break; }
+		case '.': { tk = { TK_DOT, { 0 } }; break; }
+		case '*': { tk = { TK_ASTERISK, { 0 } }; break; }
+		case '/': { tk = { TK_FORWARD_SLASH, { 0 } }; break; }
+		case '{': { tk = { TK_OPEN_CURLY_BRACKET, { 0 } }; break; }
+		case '}': { tk = { TK_CLOSE_CURLY_BRACKET, { 0 } }; break; }
+		case '(': { tk = { TK_OPEN_ROUND_BRACKET, { 0 } }; break; }
+		case ')': { tk = { TK_CLOSE_ROUND_BRACKET, { 0 } }; break; }
+		case '[': { tk = { TK_OPEN_SQUARE_BRACKET, { 0 } }; break; }
+		case ']': { tk = { TK_CLOSE_SQUARE_BRACKET, { 0 } }; break; }
+		case ';': { tk = { TK_SEMICOLON, { 0 } }; break; }
+		case ',': { tk = { TK_COMMA, { 0 } }; break; }
+		case '^': { tk = { TK_CARET, { 0 } }; break; }
+		case '!': { tk = { TK_EXPLANATION_MARK, { 0 } }; break; }
+		case '&': { tk = { TK_AMPERSAND, { 0 } }; break; }
+		case '|': { tk = { TK_VERTICAL_BAR, { 0 } }; break; }
+		case '%': { tk = { TK_PERCENT, { 0 } }; break; }
+		case ':': { tk = { TK_COLON, { 0 } }; break; }
 		default:
 		{
 			status = false;

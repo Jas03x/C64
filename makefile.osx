@@ -1,4 +1,4 @@
-CC   = "g++"
+CC = "g++"
 
 INC_PATH += -I ./src/
 INC_PATH += -I ./src/inc/
@@ -10,7 +10,7 @@ SRC = ./src
 
 EXE = C64.exe
 
-CC_OPTIONS   = -std=c++11 -Wall -g
+CC_OPTIONS   = -std=c++11 -Wall -Wextra -g
 
 ROOT_OBJECTS   = $(patsubst $(SRC)/%.cpp,        $(BIN)/%.o,        $(wildcard $(SRC)/*.cpp))
 UTIL_OBJECTS   = $(patsubst $(SRC)/util/%.cpp,   $(BIN)/util/%.o,   $(wildcard $(SRC)/util/*.cpp))
