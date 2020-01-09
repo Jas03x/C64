@@ -19,3 +19,21 @@ void TokenStack::push(const Token& tk)
 {
     m_tokens.push_back(tk);
 }
+
+void TokenStack::insert_identifier(const strptr& ptr)
+{
+    m_identifier_set[ptr] = ptr;
+}
+
+const char* TokenStack::find_identifier(const strptr& ptr)
+{
+    const char* str = nullptr;
+
+    std::map<strptr, strptr>::const_iterator it = m_identifier_set.find(ptr);
+    if(it != m_identifier_set.end())
+    {
+        str = it->second.ptr;
+    }
+
+    return str;
+}

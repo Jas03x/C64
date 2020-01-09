@@ -3,6 +3,7 @@ CC   = "g++"
 INC_PATH += -I ./src/
 INC_PATH += -I ./src/inc/
 INC_PATH += -I ./src/parser/
+INC_PATH += -I ./src/util/
 
 BIN = ./bin
 SRC = ./src

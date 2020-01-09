@@ -3,8 +3,11 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <ascii.hpp>
+
+#define _strncmp(s0, s1, len) (strncmp((s0), (s1), (len)) == 0)
 
 Tokenizer::Tokenizer()
 {
@@ -96,7 +99,9 @@ bool Tokenizer::read_character()
 
 	if(status)
 	{
-		m_stack->push({ TK_LITERAL, { LITERAL_CHAR, c }});
+		Token tk = { TK_LITERAL, { .literal = { LITERAL_CHAR, { .character = c }}}};
+		m_stack->push(tk);
+
 		status = expect('\'');
 	}
 
@@ -133,8 +138,14 @@ bool Tokenizer::read_string()
 
 	if(status)
 	{
-		// TODO: STORE THE STRING
-		m_buffer.clear();
+		unsigned int len = m_buffer.size();
+		
+		char* str = new char[len + 1];
+		memcpy(str, m_buffer.data(), len);
+		str[len] = 0; // null terminate
+
+		Token tk = { TK_LITERAL, { .literal = { LITERAL_STRING, { .string = { str, len } } } }};
+		m_stack->push(tk);
 	}
 
 	return status;
@@ -171,7 +182,9 @@ bool Tokenizer::read_decimal()
 	if(status)
 	{
 		m_buffer.push_back(0);
-		m_stack->push({ TK_LITERAL, { LITERAL_INTEGER, strtoul(m_buffer.data(), nullptr, 10) } });
+		Token tk = { TK_LITERAL, { .literal = { LITERAL_INTEGER, { .integer = strtoul(m_buffer.data(), nullptr, 10)}}}};
+
+		m_stack->push(tk);
 		m_buffer.clear();
 	}
 
@@ -199,7 +212,9 @@ bool Tokenizer::read_hexadecimal()
 	if(status)
 	{
 		m_buffer.push_back(0);
-		m_stack->push({ TK_LITERAL, { LITERAL_INTEGER, strtoul(m_buffer.data(), nullptr, 16) } });
+		Token tk = { TK_LITERAL, { .literal = { LITERAL_INTEGER, { .integer = strtoul(m_buffer.data(), nullptr, 16)}}}};
+
+		m_stack->push(tk);
 		m_buffer.clear();
 	}
 
@@ -210,7 +225,6 @@ bool Tokenizer::read_literal()
 {
 	bool status = true;
 
-	Token tk;
 	char c = peek(0);
 	if(c == '\'')
 	{
@@ -303,9 +317,189 @@ bool Tokenizer::read_identifier()
 		}
 	}
 
+	if(status && (m_buffer.size() == 0))
+	{
+		status = false;
+		printf("error: expected identifier\n");
+	}
+
 	if(status)
 	{
-		// TODO: Use the populated string here
+		Token tk = { 0 };
+
+		m_buffer.push_back(0);
+		const char* str = m_buffer.data();
+		unsigned int len = m_buffer.size();
+
+		switch(len)
+		{
+			case 2:
+			{
+				switch(str[0])
+				{
+					case 'i': { if(_strncmp(str, "if", 2)) { tk = { TK_IF }; } break; }
+					case 'o': { if(_strncmp(str, "or", 2)) { tk = { TK_OR }; } break; }
+					case 'I':
+					{
+						switch(str[1])
+						{
+							case '8': { tk = { TK_TYPE, TK_TYPE_I8 }; break; }
+						}
+						break;
+					}
+					case 'U':
+					{
+						switch(str[1])
+						{
+							case '8': { tk = { TK_TYPE, TK_TYPE_U8 }; break; }
+						}
+						break;
+					}
+				}
+				break;
+			}
+			case 3:
+			{
+				switch(str[0])
+				{
+					case 'a': { if(_strncmp(str, "and", 3)) { tk = { TK_AND }; } break; }
+					case 'f': { if(_strncmp(str, "for", 3)) { tk = { TK_FOR }; } break; }
+					case 'F':
+					{
+						switch(str[1])
+						{
+							case '3': { if(_strncmp(str, "F32", 3)) { tk = { TK_TYPE, TK_TYPE_F32 }; } break; }
+							case '6': { if(_strncmp(str, "F64", 3)) { tk = { TK_TYPE, TK_TYPE_F64 }; } break; }
+						}
+						break;
+					}
+					case 'I':
+					{
+						switch(str[1])
+						{
+							case '1': { if(_strncmp(str, "I16", 3)) { tk = { TK_TYPE, TK_TYPE_I16 }; } break; }
+							case '3': { if(_strncmp(str, "I32", 3)) { tk = { TK_TYPE, TK_TYPE_I32 }; } break; }
+							case '6': { if(_strncmp(str, "I64", 3)) { tk = { TK_TYPE, TK_TYPE_I64 }; } break; }
+						}
+						break;
+					}
+					case 'U':
+					{
+						switch(str[1])
+						{
+							case '1': { if(_strncmp(str, "U16", 3)) { tk = { TK_TYPE, TK_TYPE_U16 }; } break; }
+							case '3': { if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, TK_TYPE_U32 }; } break; }
+							case '6': { if(_strncmp(str, "U64", 3)) { tk = { TK_TYPE, TK_TYPE_U64 }; } break; }
+						}
+						break;
+					}
+				}
+				break;
+			}
+			case 4:
+			{
+				switch(str[0])
+				{
+					case 'c':
+					{
+						switch(str[3])
+						{
+							case 'e': { if(_strncmp(str, "case", 4)) { tk = { TK_CASE }; } break; }
+							case 't': { if(_strncmp(str, "cast", 4)) { tk = { TK_STATIC_CAST }; } break; }
+						break;
+						}
+						break;
+					}
+					case 'e':
+					{
+						switch(str[1])
+						{
+							case 'l': { if(_strncmp(str, "else", 4)) { tk = { TK_ELSE }; } break; }
+							case 'n': { if(_strncmp(str, "enum", 4)) { tk = { TK_ENUM }; } break; }
+						}
+						break;
+					}
+					case 'v': { if(_strncmp(str, "void", 4)) { tk = { TK_TYPE, TK_TYPE_VOID }; } break; }
+				}
+				break;
+			}
+			case 5:
+			{
+				switch(str[0])
+				{
+					case 'c': { if(_strncmp(str, "const", 5)) { tk = { TK_CONST }; } break; }
+					case 'w': { if(_strncmp(str, "while", 5)) { tk = { TK_WHILE }; } break; }
+					case 'u': { if(_strncmp(str, "union", 5)) { tk = { TK_UNION }; } break; }
+				}
+				break;
+			}
+			case 6:
+			{
+				switch(str[0])
+				{
+					case 'e': { if(_strncmp(str, "extern", 6)) { tk = { TK_EXTERN }; } break; }
+					case 'r':
+					{
+						switch(str[1])
+						{
+							case 'e': { if(_strncmp(str, "return", 6)) { tk = { TK_RETURN }; } break; }
+							case '_': { if(_strncmp(str, "r_cast", 6)) { tk = { TK_REINTERPRET_CAST }; } break; }
+						}
+						break;
+					}
+					case 's': { if(_strncmp(str, "switch", 6)) { tk = { TK_SWITCH }; } break; }
+				}
+				break;
+			}
+			case 7:
+			{
+				switch(str[0])
+				{
+					case 'd': { if(_strncmp(str, "default", 7)) { tk = { TK_DEFAULT }; } break; }
+				}
+				break;
+			}
+			case 8:
+			{
+				switch(str[0])
+				{
+					case 'c': { if(_strncmp(str, "continue", 8)) { tk = { TK_CONTINUE }; } break; }
+				}
+				break;
+			}
+			case 9:
+			{
+				switch(str[0])
+				{
+					case 'n': { if(_strncmp(str, "namespace", 9)) { tk = { TK_NAMESPACE }; } break; }
+				}
+				break;
+			}
+		}
+	
+		if(tk.type == TK_INVALID) // this is an identifier
+		{
+			const char* id = m_stack->find_identifier(strptr(str, len));
+			if(id == nullptr)
+			{
+				char* ptr = new char[len + 1];
+				memcpy(ptr, str, len);
+				ptr[len] = 0; // null terminate
+
+				id = ptr;
+				m_stack->insert_identifier(strptr(ptr, len));
+			}
+
+			tk.type = TK_IDENTIFIER;
+			tk.data.identifier.len = len;
+			tk.data.identifier.ptr = id;
+		}
+
+		if(status)
+		{
+			m_stack->push(tk);
+			m_buffer.clear();
+		}
 	}
 
 	return true;
@@ -315,11 +509,12 @@ bool Tokenizer::read_punctuator()
 {
 	bool status =  true;
 
-	Token tk;
+	Token tk = { 0 };
 	char c = pop();
 	
 	switch(c)
 	{
+		case '=': { tk = { TK_EQUAL }; break; }
 		case '<': { tk = { TK_LEFT_ARROW_HEAD };  break; }
 		case '>': { tk = { TK_RIGHT_ARROW_HEAD }; break; }
 		case '+': { tk = { TK_PLUS }; break; }

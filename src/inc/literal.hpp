@@ -18,24 +18,16 @@ struct Literal
 
     union
     {
-        struct
-        {
-            uint64_t value;
-        } integer;
-
-        struct
-        {
-            double value;
-        } decimal;
-
-        uint8_t character;
+        uint64_t integer;
+        double decimal;
+        char character;
 
         struct
         {
             const char*  ptr;
             unsigned int len;
         } string;
-    };
+    } value;
 };
 
 #endif // LITERAL_HPP

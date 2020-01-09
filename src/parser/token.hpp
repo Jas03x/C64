@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include <strptr.hpp>
 #include <literal.hpp>
 
 enum TOKEN
@@ -83,12 +84,8 @@ struct Token
     {
         uint8_t subtype;
         Literal literal;
-
-        struct
-        {
-            strptr string;
-        } identifier;
-    };
+        strptr  identifier;
+    } data;
 };
 
 #endif // TOKEN_HPP

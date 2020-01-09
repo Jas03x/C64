@@ -11,7 +11,8 @@ bool process(const char* path)
 {
 	TokenStack tokens;
     
-    bool status = Tokenizer::Tokenize(path, tokens);
+    bool status = Tokenizer::Tokenize(path, &tokens);
+    /*
     if(status)
     {
         AST* ast = Parser::Parse(&tokens);
@@ -26,6 +27,7 @@ bool process(const char* path)
         }
         
     }
+    */
 
     return status;
 }
