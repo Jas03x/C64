@@ -488,12 +488,6 @@ bool Tokenizer::read_identifier()
 
 				id = ptr;
 				m_stack->insert_identifier(strptr(ptr, len));
-				
-				printf("NEW: %s\n", id);
-			}
-			else
-			{
-				printf("REUSE: %s\n", id);
 			}
 			
 
