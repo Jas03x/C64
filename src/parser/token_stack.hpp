@@ -8,16 +8,16 @@
 class TokenStack
 {
 private:
-    unsigned int       m_index;
-    std::vector<Token> m_stack;
+    unsigned int m_position;
+    std::vector<Token> m_tokens;
 
 public:
     TokenStack();
 
+    const Token& peek();
+    const Token& pop();
+
     void push(const Token& tk);
-    Token pop();
-    Token peek(unsigned int offset);
-    void clear();
 };
 
 #endif // TOKEN_STACK_HPP

@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 
-#include <strptr.hpp>
 #include <literal.hpp>
 
 enum TOKEN
@@ -37,6 +36,7 @@ enum TOKEN
     TK_CARET,
     TK_EXPLANATION_MARK,
     TK_AMPERSAND,
+    TK_VERTICAL_BAR,
     TK_PERCENT,
     TK_NAMESPACE,
     TK_TYPE,
@@ -82,7 +82,6 @@ struct Token
     union
     {
         uint8_t subtype;
-
         Literal literal;
 
         struct
