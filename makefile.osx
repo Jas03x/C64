@@ -32,7 +32,7 @@ $(EXE): $(ROOT_OBJECTS) $(UTIL_OBJECTS) $(PARSER_OBJECTS)
 
 .PHONY: test
 test:
-	$(BIN)/$(EXE) ./test/example.c
+	$(BIN)/$(EXE) ./test/hello_world.c
 
 .PHONY: clean
 clean:

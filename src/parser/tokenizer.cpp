@@ -18,13 +18,7 @@ Tokenizer::Tokenizer()
 int Tokenizer::read_escape_character()
 {
 	int value = 0;
-	bool status = true;
-
-	if(pop() != '\'')
-	{
-		status = false;
-		printf("error: expected '\'\n");
-	}
+	bool status = expect('\\');
 
 	if(status)
 	{
@@ -115,12 +109,7 @@ bool Tokenizer::read_string()
 	char c = 0;
 	while(status)
 	{
-		c = pop();
-		if(c == '"')
-		{
-			break;
-		}
-		
+		c = peek(0);
 		if(c == '\\')
 		{
 			int value = read_escape_character();
@@ -130,9 +119,18 @@ bool Tokenizer::read_string()
 				c = (char) value;
 			}
 		}
+		else
+		{
+			pop();
+		}
 
-		if(status) {
-			m_buffer.push_back(c);
+		if(status)
+		{
+			if(c == '"') {
+				break;
+			} else {
+				m_buffer.push_back(c);
+			}
 		}
 	}
 
@@ -146,6 +144,7 @@ bool Tokenizer::read_string()
 
 		Token tk = { TK_LITERAL, { .literal = { LITERAL_STRING, { .string = { str, len } } } }};
 		m_stack->push(tk);
+		m_buffer.clear();
 	}
 
 	return status;
@@ -160,18 +159,19 @@ bool Tokenizer::read_decimal()
 	while(status)
 	{
 		c = peek(0);
-		if(IS_NUM(c))
+		if(IS_NUM(c) || (c == '.'))
 		{
-			m_buffer.push_back(c);
-		}
-		else if(c == '.')
-		{
-			if(!is_float) {
-				is_float = true;
-			} else {
-				status = false;
-				printf("error: repeated decimal symbol\n");
+			pop();
+			if(c == '.')
+			{
+				if(!is_float) {
+					is_float = true;
+				} else {
+					status = false;
+					printf("error: repeated decimal symbol\n");
+				}
 			}
+			m_buffer.push_back(c);
 		}
 		else
 		{
@@ -488,7 +488,14 @@ bool Tokenizer::read_identifier()
 
 				id = ptr;
 				m_stack->insert_identifier(strptr(ptr, len));
+				
+				printf("NEW: %s\n", id);
 			}
+			else
+			{
+				printf("REUSE: %s\n", id);
+			}
+			
 
 			tk.type = TK_IDENTIFIER;
 			tk.data.identifier.len = len;
@@ -576,18 +583,25 @@ bool Tokenizer::tokenize(FILE* file, TokenStack* stack)
 		}
 		else
 		{
-			char lookahead = peek(1);
-			if((c == '/') && (lookahead == '/'))
+			if(c == EOF)
 			{
-				status = read_single_line_comment();
-			}
-			else if((c == '/') && (lookahead == '*'))
-			{
-				status = read_multi_line_comment();
+				break;
 			}
 			else
 			{
-				status = read_punctuator();
+				if(c == '/')
+				{
+					switch(peek(1))
+					{
+						case '/': { status = read_single_line_comment(); break; }
+						case '*': { status = read_multi_line_comment();  break; }
+						default:  { status = read_punctuator(); break; }
+					}
+				}
+				else
+				{
+					status = read_punctuator();
+				}
 			}
 		}
 		
