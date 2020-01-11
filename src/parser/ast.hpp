@@ -6,8 +6,6 @@
 
 #include <util/list.hpp>
 
-// forward declare some of the ast structures since they contain pointers to each other
-
 enum
 {
     EXPR_INVALID          = 0x0,
@@ -68,18 +66,17 @@ enum
     STMT_COMP_DECL     = 0x09,
     STMT_FOR           = 0x0A,
     STMT_WHILE         = 0x0B,
-    STMT_NAMESPACE     = 0x0C,
-    STMT_TYPEDEF       = 0x0D,
-    STMT_COMPOUND_STMT = 0x0E,
-    STMT_BREAK         = 0x0F,
-    STMT_CONTINUE      = 0x10,
-    STMT_GOTO          = 0x11,
-    STMT_SWITCH        = 0x12,
-    STMT_CASE          = 0x13,
-    STMT_LABEL         = 0x14,
-    STMT_DEFAULT_CASE  = 0x15,
-    STMT_ENUM_DEF      = 0x16,
-    STMT_ENUM_DECL     = 0x17
+    STMT_TYPEDEF       = 0x0C,
+    STMT_COMPOUND_STMT = 0x0D,
+    STMT_BREAK         = 0x0E,
+    STMT_CONTINUE      = 0x0F,
+    STMT_GOTO          = 0x10,
+    STMT_SWITCH        = 0x11,
+    STMT_CASE          = 0x12,
+    STMT_LABEL         = 0x13,
+    STMT_DEFAULT_CASE  = 0x14,
+    STMT_ENUM_DEF      = 0x15,
+    STMT_ENUM_DECL     = 0x16
 };
 
 enum TYPE
@@ -111,7 +108,7 @@ enum COMPOSITE_TYPE
     COMP_TYPE_UNION   = 2
 };
 
-struct Variable;
+struct Type;
 struct Expression;
 
 struct Identifier
@@ -122,14 +119,14 @@ struct Identifier
 
 struct Composite
 {
-    uint8_t type;
-    strptr  name;
-    list    body;
+    uint8_t     type;
+    Identifier* name;
+    list        body;
 };
 
 struct Enumerator
 {
-    strptr name;
+    Identifier* name;
     
     struct Value
     {
@@ -142,53 +139,53 @@ struct Enumerator
 
 struct Parameter
 {
-    strptr     name;
-    Variable*  type;
+    strptr name;
+    Type*  type;
 };
 
 struct Function
 {
-    strptr     name;
-    Variable*  ret_type;
-    list       parameters;
-    list       body;
+    Identifier* name;
+    Type*       ret_type;
+    list        parameters;
+    list        body;
 };
 
-union VariableFlags
+union TypeFlags
 {
     struct
     {
         unsigned int is_constant         : 1;
         unsigned int is_external_symbol  : 1;
-    };
+    } bits;
 
-    uint8_t value;
+    uint8_t all;
 };
 
-struct Variable
+struct Type
 {
     uint8_t type;
-    VariableFlags flags;
+    TypeFlags flags;
 
     union
     {
         Enumerator* enumerator;
         Composite*  composite;
         Identifier* identifier;
-        Variable*   pointer;
+        Type*   pointer;
 
         struct
         {
             Expression* size;
-            Variable*   elements;
+            Type*   elements;
         } array;
 
 		struct
 		{
-			Variable*  ret_type;
+			Type*  ret_type;
 			list       parameters;
 		} func_ptr;
-    };
+    } data;
 };
 
 struct Expression
@@ -217,7 +214,7 @@ struct Expression
 		
 		struct
 		{
-			Variable* type;
+			Type* type;
 			Expression* expr;
 		} cast;
 
@@ -243,7 +240,7 @@ struct Statement
         struct
         {
             strptr      name;
-            Variable*   type;
+            Type*       type;
             Expression* value;
         } variable_decl;
 
@@ -287,8 +284,8 @@ struct Statement
 
         struct
         {
-            strptr      name;
-            Variable*   variable;
+            strptr  name;
+            Type*   variable;
         } type_def;
 
         struct

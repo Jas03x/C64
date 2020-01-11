@@ -39,7 +39,6 @@ enum TOKEN
     TK_AMPERSAND,
     TK_VERTICAL_BAR,
     TK_PERCENT,
-    TK_NAMESPACE,
     TK_TYPE,
     TK_FOR,
     TK_WHILE,

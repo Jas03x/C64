@@ -468,14 +468,6 @@ bool Tokenizer::read_identifier()
 				}
 				break;
 			}
-			case 9:
-			{
-				switch(str[0])
-				{
-					case 'n': { if(_strncmp(str, "namespace", 9)) { tk = { TK_NAMESPACE, { 0 } }; } break; }
-				}
-				break;
-			}
 		}
 	
 		if(tk.type == TK_INVALID) // this is an identifier

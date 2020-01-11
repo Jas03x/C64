@@ -83,7 +83,6 @@ void print_token(const Token& tk)
             case TK_AMPERSAND: { str = "&"; break; }
             case TK_VERTICAL_BAR: { str = "|"; break; }
             case TK_PERCENT: { str = "%"; break; }
-            case TK_NAMESPACE: { str = "namespace"; break; }
             case TK_FOR: { str = "for"; break; }
             case TK_WHILE: { str = "while"; break; }
             case TK_COLON: { str = ":"; break; }
