@@ -9,9 +9,15 @@
 
 bool process(const char* path)
 {
-	TokenStack tokens;
-    
-    bool status = Tokenizer::Tokenize(path, &tokens);
+	TokenStack token_stack;
+    bool status = Tokenizer::Tokenize(path, &token_stack);
+
+    const std::vector<Token>& tokens = token_stack.get_tokens();
+    for(unsigned int i = 0; i < tokens.size(); i++)
+    {
+        print_token(tokens[i]);
+    }
+
     /*
     if(status)
     {

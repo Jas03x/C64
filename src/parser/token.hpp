@@ -73,7 +73,8 @@ enum
     TK_TYPE_I32     = 0x8,
     TK_TYPE_I64     = 0x9,
     TK_TYPE_F32     = 0xA,
-    TK_TYPE_F64     = 0xB
+    TK_TYPE_F64     = 0xB,
+    TK_TYPE_COUNT   = 0xC
 };
 
 struct Token

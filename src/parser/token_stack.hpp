@@ -23,6 +23,8 @@ public:
     const Token& peek();
     const Token& pop();
     void push(const Token& tk);
+
+    const std::vector<Token>& get_tokens();
 };
 
 #endif // TOKEN_STACK_HPP

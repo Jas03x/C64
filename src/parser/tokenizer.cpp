@@ -306,9 +306,10 @@ bool Tokenizer::read_identifier()
 
 	while(status)
 	{
-		c = pop();
+		c = peek(0);
 		if(IS_ALPHA_NUM(c))
 		{
+			pop();
 			m_buffer.push_back(c);
 		}
 		else
@@ -543,6 +544,11 @@ bool Tokenizer::read_punctuator()
 			printf("unknown token '%c'\n", c);
 			break;
 		}
+	}
+
+	if(status)
+	{
+		m_stack->push(tk);
 	}
 
 	return status;

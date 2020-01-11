@@ -21,268 +21,86 @@ void print(unsigned int level, const char* format, ...)
     va_end(args);
 }
 
-const char* token_to_str(const Token& tk)
+void print_token(const Token& tk)
 {
-    const static char* tbl[] =
+    if(tk.type == TK_TYPE)
     {
-        "TK_CONST",
-        "TK_EXTERN",
-        "TK_STRUCT",
-        "TK_RETURN",
-        "TK_IF",
-        "TK_EQUAL",
-        "TK_LEFT_ARROW_HEAD",
-        "TK_RIGHT_ARROW_HEAD",
-        "TK_PLUS",
-        "TK_MINUS",
-        "TK_DOT",
-        "TK_ASTERISK",
-        "TK_FORWARD_SLASH",
-        "TK_OPEN_CURLY_BRACKET",
-        "TK_CLOSE_CURLY_BRACKET",
-        "TK_OPEN_ROUND_BRACKET",
-        "TK_CLOSE_ROUND_BRACKET",
-        "TK_OPEN_SQUARE_BRACKET",
-        "TK_CLOSE_SQUARE_BRACKET",
-        "TK_SEMICOLON",
-        "TK_LITERAL",
-        "TK_IDENTIFIER",
-        "TK_COMMA",
-        "TK_OR",
-        "TK_AND",
-        "TK_CARET",
-        "TK_EXPLANATION_MARK",
-        "TK_AMPERSAND",
-        "TK_PERCENT",
-        "TK_NAMESPACE",
-        "TK_TYPE",
-        "TK_FOR",
-        "TK_WHILE",
-        "TK_COLON",
-        "TK_TYPEDEF",
-        "TK_BREAK",
-        "TK_GOTO",
-        "TK_ELSE",
-        "TK_CONTINUE",
-        "TK_SWITCH",
-        "TK_UNION",
-        "TK_CASE",
-        "TK_DEFAULT",
-        "TK_ENUM",
-        "TK_STATIC_CAST",
-        "TK_REINTERPRET_CAST",
-        "TK_EOF"
-    };
+        const char* lookup_table[] = {
+            "invalid", "void",
+            "U8", "U16", "U32", "U64",
+            "I8", "I16", "I32", "I64",
+            "F32", "F64"
+        };
 
-    const char* str = "TK_INVALID";
-    if((tk.type > TK_INVALID) && (tk.type < TK_COUNT))
-    {
-        str = tbl[tk.type - 1];
+        unsigned int subtype = (tk.data.subtype < TK_TYPE_COUNT) ? tk.data.subtype : 0;
+        printf("type: %s\n", lookup_table[subtype]);
     }
-    return str;
-}
-
-void print_ast(AST* ast)
-{
-    for(list::element* it = ast->statements.head; it != nullptr; it = it->next)
+    else if(tk.type == TK_LITERAL)
     {
-        print_statement(reinterpret_cast<Statement*>(it->ptr), 0);
-    }
-}
-
-void print_statement(Statement* stmt, unsigned int level)
-{
-    switch(stmt->type)
-    {
-        case STMT_FUNCTION_DEF:  { print(level, "FUNCTION DEFINITION:\n");  print_function(stmt->function, level + 1); break; }
-        case STMT_FUNCTION_DECL: { print(level, "FUNCTION DECLARATION:\n"); print_function(stmt->function, level + 1); break; }
-        case STMT_EXPR:          { break; }
-        case STMT_VARIABLE_DECL: { break; }
-        case STMT_IF:            { break; }
-        case STMT_RET:           { break; }
-        case STMT_COMP_DEF:      { break; }
-        case STMT_COMP_DECL:     { break; }
-        case STMT_FOR:           { break; }
-        case STMT_WHILE:         { break; }
-        case STMT_NAMESPACE:     { print(level, "NAMESPACE:\n"); print_namespace(stmt, level + 1); break; }
-        case STMT_TYPEDEF:       { break; }
-        case STMT_COMPOUND_STMT: { break; }
-        case STMT_BREAK:         { break; }
-        case STMT_CONTINUE:      { break; }
-        case STMT_GOTO:          { break; }
-        case STMT_SWITCH:        { break; }
-        case STMT_CASE:          { break; }
-        case STMT_LABEL:         { break; }
-        case STMT_DEFAULT_CASE:  { break; }
-        case STMT_ENUM_DEF:      { break; }
-        case STMT_ENUM_DECL:     { break; }
-        default: { print(level, "INVALID STATEMENT\n"); break; }
-    }
-}
-
-void print_function(Function* func, unsigned int level)
-{
-    print(level, "NAME: %.*s\n", func->name.len, func->name.ptr);
-    
-    print(level, "RETURN:\n");
-    print_variable(func->ret_type, level + 1);
-
-    print(level, "PARAMETERS:\n");
-    for(list::element* it = func->parameters.head; it != nullptr; it = it->next)
-    {
-        print_parameter(reinterpret_cast<Parameter*>(it->ptr), level + 1);
-    }
-
-    print(level, "BODY:\n");
-    for(list::element* it = func->body.head; it != nullptr; it = it->next)
-    {
-        print_statement(reinterpret_cast<Statement*>(it->ptr), level + 1);
-    }
-}
-
-void print_variable(Variable* var, unsigned int level)
-{
-    switch(var->type)
-    {
-        case TYPE_PTR:
+        switch(tk.data.literal.type)
         {
-            print(level, "PTR\n");
-            print_variable(var->pointer, level + 1);
-            break;
-        }
-        case TYPE_COMPOSITE:
-        {
-            print(level, "COMPOSITE\n");
-            print_composite(var->composite, level + 1);
-            break;
-        }
-        case TYPE_ENUMERATOR:
-        {
-            print(level, "ENUMERATOR\n");
-            print_enumerator(var->enumerator, level + 1);
-            break;
-        }
-        case TYPE_FUNCTION_POINTER:
-        {
-            print(level, "FUNCTION POINTER\n");
-            
-            print(level + 1, "RETURN:\n");
-            print_variable(var->func_ptr.ret_type, level + 2);
-
-            print(level + 1, "PARAMETERS:\n");
-            for(list::element* it = var->func_ptr.parameters.head; it != nullptr; it++)
-            {
-                print_parameter(reinterpret_cast<Parameter*>(it->ptr), level + 1);
-            }
-            break;
-        }
-        case TYPE_CONSTANT_SIZED_ARRAY:
-        {
-            print(level, "FIXED SIZE ARRAY\n");
-
-            print(level + 1, "SIZE:\n");
-            print_expression(var->array.size, level + 2);
-
-            print(level + 1, "ELEMENTS:\n");
-            print_variable(var->array.elements, level + 2);
-            break;
-        }
-        case TYPE_VARIABLE_SIZED_ARRAY:
-        {
-            print(level, "VARIABLE SIZE ARRAY\n");
-
-            print(level + 1, "ELEMENTS:\n");
-            print_variable(var->array.elements, level + 2);
-            break;
-        }
-        default:
-        {
-            const char* type = "UNKNOWN";
-            switch(var->type)
-            {
-                case TYPE_VOID: { type = "VOID"; break; }
-                case TYPE_U8:   { type = "U8";   break; }
-                case TYPE_U16:  { type = "U16";  break; }
-                case TYPE_U32:  { type = "U32";  break; }
-                case TYPE_U64:  { type = "U64";  break; }
-                case TYPE_I8:   { type = "I8";   break; }
-                case TYPE_I16:  { type = "I16";  break; }
-                case TYPE_I32:  { type = "I32";  break; }
-                case TYPE_I64:  { type = "I64";  break; }
-                case TYPE_F32:  { type = "F32";  break; }
-                case TYPE_F64:  { type = "F64";  break; }
-                default:        { break; }
-            }
-            print(level, "TYPE: %s\n", type);
-            break;
+            case LITERAL_INTEGER: { printf("literal: integer (%lu)\n", tk.data.literal.value.integer); break; }
+            case LITERAL_DECIMAL: { printf("literal: decimal (%f)\n", tk.data.literal.value.decimal); break; }
+            case LITERAL_CHAR:    { printf("literal: character (%c)\n", tk.data.literal.value.character); break; }
+            case LITERAL_STRING:  { printf("literal: string (%u, %s)\n", tk.data.literal.value.string.len, tk.data.literal.value.string.ptr); break; }
+            default: { printf("literal: invalid\n"); break; }
         }
     }
-    
-    print(level, "FLAGS: ");
-    if(var->flags.is_constant)        { print(0, "CONSTANT "); }
-    if(var->flags.is_external_symbol) { print(0, "EXTERNAL "); }
-    print(0, "\n");
-}
-
-void print_composite(Composite* composite, unsigned int level)
-{
-    print(level, "%s:\n", (composite->type == COMP_TYPE_STRUCT) ? "STRUCT" : "UNION");
-
-    print(level + 1, "NAME: %.*s\n", composite->name.len, composite->name.ptr);
-    
-    print(level + 1, "MEMBERS:\n");
-    for(list::element* it = composite->body.head; it != nullptr; it = it->next)
+    else if(tk.type == TK_IDENTIFIER)
     {
-        print_statement(reinterpret_cast<Statement*>(it->ptr), level + 2);
+        printf("identifier: %s\n", tk.data.identifier.ptr);
     }
-}
-
-void print_parameter(Parameter* param, unsigned int level)
-{
-    print(level, "NAME: %.*s\n", param->name.len, param->name.ptr);
-    
-    print(level, "TYPE:\n");
-    print_variable(param->type, level + 1);
-}
-
-void print_enumerator(Enumerator* enumerator, unsigned int level)
-{
-    print(level, "ENUMERATOR\n");
-
-    print(level + 1, "NAME: %.*s\n", enumerator->name.len, enumerator->name.ptr);
-
-    print(level + 1, "VALUES:\n");
-    for(list::element* it = enumerator->values.head; it != nullptr; it = it->next)
+    else
     {
-        Enumerator::Value* value = reinterpret_cast<Enumerator::Value*>(it->ptr);
-        print(level + 2, "VALUE: %.*s\n", value->name.len, value->name.ptr);
-        print_expression(value->value, level + 3);
-    }
-}
-
-void print_expression(Expression* expr, unsigned int level)
-{
-    switch(expr->type)
-    {
-        case EXPR_SUB_EXPR:         { break; }
-        case EXPR_LITERAL:          { break; }
-        case EXPR_IDENTIFIER:       { break; }
-        case EXPR_OPERATION:        { break; }
-        case EXPR_INITIALIZER:      { break; }
-        case EXPR_FUNCTION_CALL:    { break; }
-        case EXPR_STATIC_CAST:      { break; }
-        case EXPR_REINTERPRET_CAST: { break; }
-        default: { print(level, "INVALID\n"); break; }
-    }
-}
-
-void print_namespace(Statement* stmt, unsigned int level)
-{
-    print(level + 1, "NAME: %.*s\n", stmt->name_space.name.len, stmt->name_space.name.ptr);
-
-    print(level + 1, "MEMBERS:\n");
-    for(list::element* it = stmt->name_space.statements.head; it != nullptr; it = it->next)
-    {
-        print_statement(reinterpret_cast<Statement*>(it->ptr), level + 2);
+        const char* str = "invalid";
+        switch(tk.type)
+        {
+            case TK_CONST: { str = "const"; break; }
+            case TK_EXTERN: { str = "extern"; break; }
+            case TK_STRUCT: { str = "struct"; break; }
+            case TK_RETURN: { str = "return"; break; }
+            case TK_IF: { str = "if"; break; }
+            case TK_EQUAL: { str = "="; break; }
+            case TK_LEFT_ARROW_HEAD: { str = "<"; break; }
+            case TK_RIGHT_ARROW_HEAD: { str = ">"; break; }
+            case TK_PLUS: { str = "+"; break; }
+            case TK_MINUS: { str = "-"; break; }
+            case TK_DOT: { str = "."; break; }
+            case TK_ASTERISK: { str = "*"; break; }
+            case TK_FORWARD_SLASH: { str = "/"; break; }
+            case TK_OPEN_CURLY_BRACKET: { str = "{"; break; }
+            case TK_CLOSE_CURLY_BRACKET: { str = "}"; break; }
+            case TK_OPEN_ROUND_BRACKET: { str = "("; break; }
+            case TK_CLOSE_ROUND_BRACKET: { str = ")"; break; }
+            case TK_OPEN_SQUARE_BRACKET: { str = "["; break; }
+            case TK_CLOSE_SQUARE_BRACKET: { str = "]"; break; }
+            case TK_SEMICOLON: { str = ";"; break; }
+            case TK_COMMA: { str = ","; break; }
+            case TK_OR: { str = "or"; break; }
+            case TK_AND: { str = "and"; break; }
+            case TK_CARET: { str = "^"; break; }
+            case TK_EXPLANATION_MARK: { str = "!"; break; }
+            case TK_AMPERSAND: { str = "&"; break; }
+            case TK_VERTICAL_BAR: { str = "|"; break; }
+            case TK_PERCENT: { str = "%"; break; }
+            case TK_NAMESPACE: { str = "namespace"; break; }
+            case TK_FOR: { str = "for"; break; }
+            case TK_WHILE: { str = "while"; break; }
+            case TK_COLON: { str = ":"; break; }
+            case TK_TYPEDEF: { str = "typedef"; break; }
+            case TK_BREAK: { str = "break"; break; }
+            case TK_GOTO: { str = "goto"; break; }
+            case TK_ELSE: { str = "else"; break; }
+            case TK_CONTINUE: { str = "continue"; break; }
+            case TK_SWITCH: { str = "switch"; break; }
+            case TK_UNION: { str = "union"; break; }
+            case TK_CASE: { str = "case"; break; }
+            case TK_DEFAULT: { str = "default"; break; }
+            case TK_ENUM: { str = "enum"; break; }
+            case TK_STATIC_CAST: { str = "cast"; break; }
+            case TK_REINTERPRET_CAST: { str = "r_cast"; break; }
+            case TK_EOF: { str = "eof"; break; }
+        }
+        printf("%s\n", str);
     }
 }

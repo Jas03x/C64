@@ -37,3 +37,8 @@ const char* TokenStack::find_identifier(const strptr& ptr)
 
     return str;
 }
+
+const std::vector<Token>& TokenStack::get_tokens()
+{
+    return m_tokens;
+}
