@@ -111,22 +111,16 @@ enum COMPOSITE_TYPE
 struct Type;
 struct Expression;
 
-struct Identifier
-{
-	strptr      str;
-	Identifier* next;
-};
-
 struct Composite
 {
-    uint8_t     type;
-    Identifier* name;
-    list        body;
+    uint8_t type;
+    strptr  name;
+    list    body;
 };
 
 struct Enumerator
 {
-    Identifier* name;
+    strptr name;
     
     struct Value
     {
@@ -145,18 +139,18 @@ struct Parameter
 
 struct Function
 {
-    Identifier* name;
-    Type*       ret_type;
-    list        parameters;
-    list        body;
+    strptr name;
+    Type*  ret_type;
+    list   parameters;
+    list   body;
 };
 
 union TypeFlags
 {
     struct
     {
-        unsigned int is_constant         : 1;
-        unsigned int is_external_symbol  : 1;
+        unsigned int is_constant        : 1;
+        unsigned int is_external_symbol : 1;
     } bits;
 
     uint8_t all;
@@ -171,8 +165,8 @@ struct Type
     {
         Enumerator* enumerator;
         Composite*  composite;
-        Identifier* identifier;
-        Type*   pointer;
+        strptr      identifier;
+        Type*       pointer;
 
         struct
         {
@@ -196,7 +190,7 @@ struct Expression
     {
         Literal     literal;
         Expression* sub_expr;
-		Identifier* identifier;
+		strptr      identifier;
         list        initializer;
 
         struct
@@ -273,12 +267,6 @@ struct Statement
 
         struct
         {
-            strptr      name;
-            list        statements;
-        } name_space;
-
-        struct
-        {
             list statements;
         } compound_stmt;
 
@@ -313,7 +301,7 @@ struct Statement
         {
             strptr name;
         } label;
-    };
+    } data;
 };
 
 struct AST
