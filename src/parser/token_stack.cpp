@@ -5,14 +5,14 @@ TokenStack::TokenStack()
     m_position = 0;
 }
 
-const Token& TokenStack::peek()
-{
-    return m_tokens[m_position];
-}
-
 const Token& TokenStack::pop()
 {
     return m_tokens[m_position++];
+}
+
+const Token& TokenStack::peek(unsigned int offset)
+{
+    return m_tokens[m_position + offset];
 }
 
 void TokenStack::push(const Token& tk)

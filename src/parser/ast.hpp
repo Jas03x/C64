@@ -177,7 +177,7 @@ struct Type
 		struct
 		{
 			Type*  ret_type;
-			list       parameters;
+			list   parameters;
 		} func_ptr;
     } data;
 };
@@ -308,5 +308,7 @@ struct AST
 {
     list statements;
 };
+
+void delete_ast(AST* ast);
 
 #endif // AST_HPP

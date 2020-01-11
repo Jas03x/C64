@@ -20,8 +20,9 @@ public:
     void insert_identifier(const strptr& ptr);
     const char* find_identifier(const strptr& ptr);
 
-    const Token& peek();
     const Token& pop();
+    const Token& peek(unsigned int offset);
+    
     void push(const Token& tk);
 
     const std::vector<Token>& get_tokens();

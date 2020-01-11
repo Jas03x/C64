@@ -15,6 +15,9 @@ private:
 private:
     Parser(TokenStack* stack);
 
+    bool parse_statement(Statement& stmt);
+    bool parse_declaration(Statement& stmt);
+
 public:
     static AST* Parse(TokenStack* stack);
 };
