@@ -21,20 +21,20 @@ private:
     Tokenizer();
 
     bool expect(char c);
+    
     int read_escape_character();
 
     bool read_literal();
     bool read_identifier();
     bool read_punctuator();
     bool read_string();
-    bool read_character();
+    bool read_character_literal();
     bool read_decimal();
     bool read_hexadecimal();
     bool read_single_line_comment();
     bool read_multi_line_comment();
 
     char pop();
-    char peek(unsigned int offset);
     bool tokenize(FILE* m_file, TokenStack* stack);
 
 public:

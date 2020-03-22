@@ -2,6 +2,8 @@
 
 #include <stdarg.h>
 
+#include <ascii.hpp>
+
 void indent(unsigned int level)
 {
     for(unsigned int i = 0; i < level; i++) {
@@ -39,10 +41,23 @@ void print_token(const Token& tk)
     {
         switch(tk.data.literal.type)
         {
-            case LITERAL_INTEGER: { printf("literal: integer (%lu)\n", tk.data.literal.value.integer); break; }
-            case LITERAL_DECIMAL: { printf("literal: decimal (%f)\n", tk.data.literal.value.decimal); break; }
-            case LITERAL_CHAR:    { printf("literal: character (%c)\n", tk.data.literal.value.character); break; }
-            case LITERAL_STRING:  { printf("literal: string (%u, %s)\n", tk.data.literal.value.string.len, tk.data.literal.value.string.ptr); break; }
+            case LITERAL_INTEGER: { printf("literal: integer (%llu)\n", tk.data.literal.data.integer_value); break; }
+            case LITERAL_FLOAT:   { printf("literal: decimal (%f)\n", tk.data.literal.data.float_value); break; }
+            case LITERAL_CHAR:    { printf("literal: character (%c)\n", tk.data.literal.data.character); break; }
+            case LITERAL_STRING:
+            {
+                printf("literal: string (%u, ", tk.data.literal.data.string.len);
+                for(unsigned int i = 0; i < tk.data.literal.data.string.len; i++) {
+                    char c = tk.data.literal.data.string.ptr[i];
+                    if(IS_ALPHA_NUM(c) || (c == ' ')) {
+                        printf("%c", c);
+                    } else {
+                        printf("\\x%hhX", c);
+                    }
+                }
+                printf(")\n");
+                break;
+            }
             default: { printf("literal: invalid\n"); break; }
         }
     }

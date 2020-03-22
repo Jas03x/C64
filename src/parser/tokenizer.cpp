@@ -32,26 +32,24 @@ int Tokenizer::read_escape_character()
 			case '"':  { value = ASCII_DOUBLE_QUOTE; break; }
 			case '\'': { value = ASCII_SINGLE_QUOTE; break; }
 			case '\\': { value = ASCII_BACK_SLASH; break; }
+			case 'x':
+			{
+				char s[3] = { 0 };
+				s[0] = pop();
+				s[1] = pop();
+
+				if(IS_HEXADECIMAL(s[0]) && IS_HEXADECIMAL(s[1])) {
+					value = (int) strtoul(s, nullptr, 16);
+				} else {
+					status = false;
+					printf("error: expected hexadecimal character\n");
+				}
+				break;
+			}
 			default:
 			{
-				if(c == 'x')
-				{
-					char str[3] = { 0 };
-					for(unsigned int i = 0; status && (i < 2); i++)
-					{
-						c = pop();
-						if(IS_HEXADECIMAL(c)) {
-							str[i] = c;
-						} else {
-							status = false;
-							printf("error: expected hexadecimal character\n");
-						}
-					}
-
-					if(status) {
-						value = (int) strtoul(str, nullptr, 16);
-					}
-				}
+				status = false;
+				printf("error: unknown escape sequence");
 				break;
 			}
 		}
@@ -72,21 +70,24 @@ bool Tokenizer::expect(char c)
 	return status;
 }
 
-bool Tokenizer::read_character()
+bool Tokenizer::read_character_literal()
 {
 	bool status = expect('\'');
 
 	char c = 0;
 	if(status)
 	{
-		c = pop();
-		if(c == '\\')
+		if(m_input[0] != '\\')
+		{
+			c = pop();
+		}
+		else
 		{
 			int value = read_escape_character();
-			status = (value != -1);
-
-			if(status) {
+			if(value != -1) {
 				c = (char) value;
+			} else {
+				status = false;
 			}
 		}
 	}
@@ -109,8 +110,11 @@ bool Tokenizer::read_string()
 	char c = 0;
 	while(status)
 	{
-		c = peek(0);
-		if(c == '\\')
+		if(m_input[0] != '\\')
+		{
+			c = pop();
+		}
+		else
 		{
 			int value = read_escape_character();
 			status = (value != -1);
@@ -118,10 +122,6 @@ bool Tokenizer::read_string()
 			if(status) {
 				c = (char) value;
 			}
-		}
-		else
-		{
-			pop();
 		}
 
 		if(status)
@@ -158,7 +158,7 @@ bool Tokenizer::read_decimal()
 	char c = 0;
 	while(status)
 	{
-		c = peek(0);
+		c = m_input[0];
 		if(IS_NUM(c) || (c == '.'))
 		{
 			pop();
@@ -182,7 +182,18 @@ bool Tokenizer::read_decimal()
 	if(status)
 	{
 		m_buffer.push_back(0);
-		Token tk = { TK_LITERAL, { .literal = { LITERAL_INTEGER, { .integer = strtoul(m_buffer.data(), nullptr, 10)}}}};
+
+		Token tk = { TK_LITERAL, { 0 }};
+		if(!is_float)
+		{
+			tk.data.literal.type = LITERAL_INTEGER;
+			tk.data.literal.data.integer_value = strtoul(m_buffer.data(), nullptr, 10);
+		}
+		else
+		{
+			tk.data.literal.type = LITERAL_FLOAT;
+			tk.data.literal.data.float_value = strtof(m_buffer.data(), nullptr);
+		}
 
 		m_stack->push(tk);
 		m_buffer.clear();
@@ -198,7 +209,7 @@ bool Tokenizer::read_hexadecimal()
 	char c = 0;
 	while(status)
 	{
-		c = peek(0);
+		c = m_input[0];
 		if(IS_HEXADECIMAL(c))
 		{
 			m_buffer.push_back(c);
@@ -212,7 +223,7 @@ bool Tokenizer::read_hexadecimal()
 	if(status)
 	{
 		m_buffer.push_back(0);
-		Token tk = { TK_LITERAL, { .literal = { LITERAL_INTEGER, { .integer = strtoul(m_buffer.data(), nullptr, 16)}}}};
+		Token tk = { TK_LITERAL, { .literal = { LITERAL_INTEGER, { .integer_value = strtoul(m_buffer.data(), nullptr, 16)}}}};
 
 		m_stack->push(tk);
 		m_buffer.clear();
@@ -225,16 +236,16 @@ bool Tokenizer::read_literal()
 {
 	bool status = true;
 
-	char c = peek(0);
+	char c = m_input[0];
 	if(c == '\'')
 	{
-		status = read_character();
+		status = read_character_literal();
 	}
 	else if(c == '"')
 	{
 		status = read_string();
 	}
-	else if((c == '0') && (peek(1) == 'x'))
+	else if((c == '0') && (m_input[1]== 'x'))
 	{
 		status = read_hexadecimal();
 	}
@@ -249,13 +260,13 @@ bool Tokenizer::read_literal()
 
 bool Tokenizer::read_single_line_comment()
 {
-	bool status = true;
+	bool status = expect('/') ? expect('/') : false;
 
 	char c = 0;
-	while(true)
+	while(status)
 	{
 		c = pop();
-		if(c == '\n')
+		if((c == '\n') || (c == EOF))
 		{
 			break;
 		}
@@ -266,10 +277,10 @@ bool Tokenizer::read_single_line_comment()
 
 bool Tokenizer::read_multi_line_comment()
 {
-	bool status = true;
+	bool status = expect('/') ? expect('*') : false;
 
 	char c = 0;
-	while(true)
+	while(status)
 	{
 		c = pop();
 		if(c == '*')
@@ -293,20 +304,10 @@ bool Tokenizer::read_identifier()
 {
 	bool status = true;
 
-	char c = pop();
-	if(IS_ALPHA(c))
-	{
-		m_buffer.push_back(c);
-	}
-	else
-	{
-		status = false;
-		printf("error: expected alphabet character\n");
-	}
-
+	char c = 0;
 	while(status)
 	{
-		c = peek(0);
+		c = m_input[0];
 		if(IS_ALPHA_NUM(c))
 		{
 			pop();
@@ -326,7 +327,7 @@ bool Tokenizer::read_identifier()
 
 	if(status)
 	{
-		Token tk = { 0, 0 };
+		Token tk = { 0, { 0 }};
 
 		m_buffer.push_back(0);
 		const char* str = m_buffer.data();
@@ -344,7 +345,7 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case '8': { tk = { TK_TYPE, TK_TYPE_I8 }; break; }
+							case '8': { tk = { TK_TYPE, { .subtype = TK_TYPE_I8 } }; break; }
 						}
 						break;
 					}
@@ -352,7 +353,7 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case '8': { tk = { TK_TYPE, TK_TYPE_U8 }; break; }
+							case '8': { tk = { TK_TYPE, { .subtype = TK_TYPE_U8 } }; break; }
 						}
 						break;
 					}
@@ -369,8 +370,8 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case '3': { if(_strncmp(str, "F32", 3)) { tk = { TK_TYPE, TK_TYPE_F32 }; } break; }
-							case '6': { if(_strncmp(str, "F64", 3)) { tk = { TK_TYPE, TK_TYPE_F64 }; } break; }
+							case '3': { if(_strncmp(str, "F32", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_F32 } }; } break; }
+							case '6': { if(_strncmp(str, "F64", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_F64 } }; } break; }
 						}
 						break;
 					}
@@ -378,9 +379,9 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case '1': { if(_strncmp(str, "I16", 3)) { tk = { TK_TYPE, TK_TYPE_I16 }; } break; }
-							case '3': { if(_strncmp(str, "I32", 3)) { tk = { TK_TYPE, TK_TYPE_I32 }; } break; }
-							case '6': { if(_strncmp(str, "I64", 3)) { tk = { TK_TYPE, TK_TYPE_I64 }; } break; }
+							case '1': { if(_strncmp(str, "I16", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_I16 } }; } break; }
+							case '3': { if(_strncmp(str, "I32", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_I32 } }; } break; }
+							case '6': { if(_strncmp(str, "I64", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_I64 } }; } break; }
 						}
 						break;
 					}
@@ -388,9 +389,9 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case '1': { if(_strncmp(str, "U16", 3)) { tk = { TK_TYPE, TK_TYPE_U16 }; } break; }
-							case '3': { if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, TK_TYPE_U32 }; } break; }
-							case '6': { if(_strncmp(str, "U64", 3)) { tk = { TK_TYPE, TK_TYPE_U64 }; } break; }
+							case '1': { if(_strncmp(str, "U16", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_U16 } }; } break; }
+							case '3': { if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_U32 } }; } break; }
+							case '6': { if(_strncmp(str, "U64", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_U64 } }; } break; }
 						}
 						break;
 					}
@@ -420,7 +421,7 @@ bool Tokenizer::read_identifier()
 						}
 						break;
 					}
-					case 'v': { if(_strncmp(str, "void", 4)) { tk = { TK_TYPE, TK_TYPE_VOID }; } break; }
+					case 'v': { if(_strncmp(str, "void", 4)) { tk = { TK_TYPE, { .subtype = TK_TYPE_VOID } }; } break; }
 				}
 				break;
 			}
@@ -475,10 +476,9 @@ bool Tokenizer::read_identifier()
 			const char* id = m_stack->find_identifier(strptr(str, len));
 			if(id == nullptr)
 			{
-				char* ptr = new char[len + 1];
-				memcpy(ptr, str, len);
-				ptr[len] = 0; // null terminate
-
+				char* ptr = new char[len];
+				memcpy(ptr, str, len); // 'str' is already null terminated
+				
 				id = ptr;
 				m_stack->insert_identifier(strptr(ptr, len));
 			}
@@ -503,7 +503,7 @@ bool Tokenizer::read_punctuator()
 {
 	bool status =  true;
 
-	Token tk = { 0, 0 };
+	Token tk = { 0, { 0 } };
 	char c = pop();
 	
 	switch(c)
@@ -560,7 +560,7 @@ bool Tokenizer::tokenize(FILE* file, TokenStack* stack)
 
 	while(status)
 	{
-		c = peek(0);
+		c = m_input[0];
 		if(IS_SPACE(c))
 		{
 			pop();
@@ -583,7 +583,7 @@ bool Tokenizer::tokenize(FILE* file, TokenStack* stack)
 			{
 				if(c == '/')
 				{
-					switch(peek(1))
+					switch(m_input[1])
 					{
 						case '/': { status = read_single_line_comment(); break; }
 						case '*': { status = read_multi_line_comment();  break; }
@@ -608,12 +608,6 @@ char Tokenizer::pop()
 	m_input[0] = m_input[1];
 	m_input[1] = fgetc(m_file);
 	return c;
-}
-
-char Tokenizer::peek(unsigned int offset)
-{
-	assert(offset <= 1);
-	return m_input[offset];
 }
 
 bool Tokenizer::Tokenize(const char* file_path, TokenStack* stack)
