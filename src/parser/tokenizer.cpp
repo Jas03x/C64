@@ -38,9 +38,12 @@ int Tokenizer::read_escape_character()
 				s[0] = pop();
 				s[1] = pop();
 
-				if(IS_HEXADECIMAL(s[0]) && IS_HEXADECIMAL(s[1])) {
+				if(IS_HEXADECIMAL(s[0]) && IS_HEXADECIMAL(s[1]))
+				{
 					value = (int) strtoul(s, nullptr, 16);
-				} else {
+				}
+				else
+				{
 					status = false;
 					printf("error: expected hexadecimal character\n");
 				}
@@ -62,7 +65,8 @@ bool Tokenizer::expect(char c)
 {
 	bool status = true;
 
-	if(pop() != c) {
+	if(pop() != c)
+	{
 		status = false;
 		printf("error: expected \"%c\"\n", c);
 	}
@@ -84,9 +88,12 @@ bool Tokenizer::read_character_literal()
 		else
 		{
 			int value = read_escape_character();
-			if(value != -1) {
+			if(value != -1)
+			{
 				c = (char) value;
-			} else {
+			}
+			else
+			{
 				status = false;
 			}
 		}
@@ -94,9 +101,12 @@ bool Tokenizer::read_character_literal()
 
 	if(status)
 	{
-		Token tk = { TK_LITERAL, { .literal = { LITERAL_CHAR, { .character = c }}}};
-		m_stack->push(tk);
+		Token tk = { 0, { 0 }};
+		tk.type = TK_LITERAL;
+		tk.data.literal.type = LITERAL_CHAR;
+		tk.data.literal.data.character = c;
 
+		m_stack->push(tk);
 		status = expect('\'');
 	}
 
@@ -117,18 +127,24 @@ bool Tokenizer::read_string()
 		else
 		{
 			int value = read_escape_character();
-			status = (value != -1);
-
-			if(status) {
+			if(value != -1)
+			{
 				c = (char) value;
+			}
+			else
+			{
+				status = false;
 			}
 		}
 
 		if(status)
 		{
-			if(c == '"') {
+			if(c == '"')
+			{
 				break;
-			} else {
+			}
+			else
+			{
 				m_buffer.push_back(c);
 			}
 		}
@@ -142,7 +158,12 @@ bool Tokenizer::read_string()
 		memcpy(str, m_buffer.data(), len);
 		str[len] = 0; // null terminate
 
-		Token tk = { TK_LITERAL, { .literal = { LITERAL_STRING, { .string = { str, len } } } }};
+		Token tk = { 0, { 0 }};
+		tk.type = TK_LITERAL;
+		tk.data.literal.type = LITERAL_STRING;
+		tk.data.literal.data.string.ptr = str;
+		tk.data.literal.data.string.len = len;
+
 		m_stack->push(tk);
 		m_buffer.clear();
 	}
@@ -164,9 +185,12 @@ bool Tokenizer::read_decimal()
 			pop();
 			if(c == '.')
 			{
-				if(!is_float) {
+				if(!is_float)
+				{
 					is_float = true;
-				} else {
+				}
+				else
+				{
 					status = false;
 					printf("error: repeated decimal symbol\n");
 				}
@@ -223,7 +247,11 @@ bool Tokenizer::read_hexadecimal()
 	if(status)
 	{
 		m_buffer.push_back(0);
-		Token tk = { TK_LITERAL, { .literal = { LITERAL_INTEGER, { .integer_value = strtoul(m_buffer.data(), nullptr, 16)}}}};
+		
+		Token tk = { 0, { 0 } };
+		tk.type = TK_LITERAL;
+		tk.data.literal.type = LITERAL_INTEGER;
+		tk.data.literal.data.integer_value = strtoul(m_buffer.data(), nullptr, 16);
 
 		m_stack->push(tk);
 		m_buffer.clear();
@@ -339,13 +367,13 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'i': { if(_strncmp(str, "if", 2)) { tk = { TK_IF, { 0 } }; } break; }
-					case 'o': { if(_strncmp(str, "or", 2)) { tk = { TK_OR, { 0 } }; } break; }
+					case 'i': { if(_strncmp(str, "if", 2)) { tk.type = TK_IF; } break; }
+					case 'o': { if(_strncmp(str, "or", 2)) { tk.type = TK_OR; } break; }
 					case 'I':
 					{
 						switch(str[1])
 						{
-							case '8': { tk = { TK_TYPE, { .subtype = TK_TYPE_I8 } }; break; }
+							case '8': { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_I8; break; }
 						}
 						break;
 					}
@@ -353,7 +381,7 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case '8': { tk = { TK_TYPE, { .subtype = TK_TYPE_U8 } }; break; }
+							case '8': { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_U8; break; }
 						}
 						break;
 					}
@@ -364,14 +392,14 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'a': { if(_strncmp(str, "and", 3)) { tk = { TK_AND, { 0 } }; } break; }
-					case 'f': { if(_strncmp(str, "for", 3)) { tk = { TK_FOR, { 0 } }; } break; }
+					case 'a': { if(_strncmp(str, "and", 3)) { tk.type = TK_AND; } break; }
+					case 'f': { if(_strncmp(str, "for", 3)) { tk.type = TK_FOR; } break; }
 					case 'F':
 					{
 						switch(str[1])
 						{
-							case '3': { if(_strncmp(str, "F32", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_F32 } }; } break; }
-							case '6': { if(_strncmp(str, "F64", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_F64 } }; } break; }
+							case '3': { if(_strncmp(str, "F32", 3)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_F32; } break; }
+							case '6': { if(_strncmp(str, "F64", 3)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_F64; } break; }
 						}
 						break;
 					}
@@ -379,9 +407,9 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case '1': { if(_strncmp(str, "I16", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_I16 } }; } break; }
-							case '3': { if(_strncmp(str, "I32", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_I32 } }; } break; }
-							case '6': { if(_strncmp(str, "I64", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_I64 } }; } break; }
+							case '1': { if(_strncmp(str, "I16", 3)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_I16; } break; }
+							case '3': { if(_strncmp(str, "I32", 3)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_I32; } break; }
+							case '6': { if(_strncmp(str, "I64", 3)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_I64; } break; }
 						}
 						break;
 					}
@@ -389,9 +417,9 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case '1': { if(_strncmp(str, "U16", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_U16 } }; } break; }
-							case '3': { if(_strncmp(str, "U32", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_U32 } }; } break; }
-							case '6': { if(_strncmp(str, "U64", 3)) { tk = { TK_TYPE, { .subtype = TK_TYPE_U64 } }; } break; }
+							case '1': { if(_strncmp(str, "U16", 3)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_U16; } break; }
+							case '3': { if(_strncmp(str, "U32", 3)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_U32; } break; }
+							case '6': { if(_strncmp(str, "U64", 3)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_U64; } break; }
 						}
 						break;
 					}
@@ -406,9 +434,8 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[3])
 						{
-							case 'e': { if(_strncmp(str, "case", 4)) { tk = { TK_CASE, { 0 } }; } break; }
-							case 't': { if(_strncmp(str, "cast", 4)) { tk = { TK_STATIC_CAST, { 0 } }; } break; }
-						break;
+							case 'e': { if(_strncmp(str, "case", 4)) { tk.type = TK_CASE; } break; }
+							case 't': { if(_strncmp(str, "cast", 4)) { tk.type = TK_STATIC_CAST; } break; }
 						}
 						break;
 					}
@@ -416,12 +443,12 @@ bool Tokenizer::read_identifier()
 					{
 						switch(str[1])
 						{
-							case 'l': { if(_strncmp(str, "else", 4)) { tk = { TK_ELSE, { 0 } }; } break; }
-							case 'n': { if(_strncmp(str, "enum", 4)) { tk = { TK_ENUM, { 0 } }; } break; }
+							case 'l': { if(_strncmp(str, "else", 4)) { tk.type = TK_ELSE; } break; }
+							case 'n': { if(_strncmp(str, "enum", 4)) { tk.type = TK_ENUM; } break; }
 						}
 						break;
 					}
-					case 'v': { if(_strncmp(str, "void", 4)) { tk = { TK_TYPE, { .subtype = TK_TYPE_VOID } }; } break; }
+					case 'v': { if(_strncmp(str, "void", 4)) { tk.type = TK_TYPE; tk.data.subtype = TK_TYPE_VOID; } break; }
 				}
 				break;
 			}
@@ -429,9 +456,9 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'c': { if(_strncmp(str, "const", 5)) { tk = { TK_CONST, { 0 } }; } break; }
-					case 'w': { if(_strncmp(str, "while", 5)) { tk = { TK_WHILE, { 0 } }; } break; }
-					case 'u': { if(_strncmp(str, "union", 5)) { tk = { TK_UNION, { 0 } }; } break; }
+					case 'c': { if(_strncmp(str, "const", 5)) { tk.type = TK_CONST; } break; }
+					case 'w': { if(_strncmp(str, "while", 5)) { tk.type = TK_WHILE; } break; }
+					case 'u': { if(_strncmp(str, "union", 5)) { tk.type = TK_UNION; } break; }
 				}
 				break;
 			}
@@ -439,17 +466,17 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'e': { if(_strncmp(str, "extern", 6)) { tk = { TK_EXTERN, { 0 } }; } break; }
+					case 'e': { if(_strncmp(str, "extern", 6)) { tk.type = TK_EXTERN; } break; }
 					case 'r':
 					{
 						switch(str[1])
 						{
-							case 'e': { if(_strncmp(str, "return", 6)) { tk = { TK_RETURN, { 0 } }; } break; }
-							case '_': { if(_strncmp(str, "r_cast", 6)) { tk = { TK_REINTERPRET_CAST, { 0 } }; } break; }
+							case 'e': { if(_strncmp(str, "return", 6)) { tk.type = TK_RETURN; } break; }
+							case '_': { if(_strncmp(str, "r_cast", 6)) { tk.type = TK_REINTERPRET_CAST; } break; }
 						}
 						break;
 					}
-					case 's': { if(_strncmp(str, "switch", 6)) { tk = { TK_SWITCH, { 0 } }; } break; }
+					case 's': { if(_strncmp(str, "switch", 6)) { tk.type = TK_SWITCH; } break; }
 				}
 				break;
 			}
@@ -457,7 +484,7 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'd': { if(_strncmp(str, "default", 7)) { tk = { TK_DEFAULT, { 0 } }; } break; }
+					case 'd': { if(_strncmp(str, "default", 7)) { tk.type = TK_DEFAULT; } break; }
 				}
 				break;
 			}
@@ -465,7 +492,7 @@ bool Tokenizer::read_identifier()
 			{
 				switch(str[0])
 				{
-					case 'c': { if(_strncmp(str, "continue", 8)) { tk = { TK_CONTINUE, { 0 } }; } break; }
+					case 'c': { if(_strncmp(str, "continue", 8)) { tk.type = TK_CONTINUE; } break; }
 				}
 				break;
 			}
@@ -503,33 +530,33 @@ bool Tokenizer::read_punctuator()
 {
 	bool status =  true;
 
-	Token tk = { 0, { 0 } };
+	Token tk = { 0 };
 	char c = pop();
 	
 	switch(c)
 	{
-		case '=': { tk = { TK_EQUAL, { 0 } }; break; }
-		case '<': { tk = { TK_LEFT_ARROW_HEAD, { 0 } };  break; }
-		case '>': { tk = { TK_RIGHT_ARROW_HEAD, { 0 } }; break; }
-		case '+': { tk = { TK_PLUS, { 0 } }; break; }
-		case '-': { tk = { TK_MINUS, { 0 } }; break; }
-		case '.': { tk = { TK_DOT, { 0 } }; break; }
-		case '*': { tk = { TK_ASTERISK, { 0 } }; break; }
-		case '/': { tk = { TK_FORWARD_SLASH, { 0 } }; break; }
-		case '{': { tk = { TK_OPEN_CURLY_BRACKET, { 0 } }; break; }
-		case '}': { tk = { TK_CLOSE_CURLY_BRACKET, { 0 } }; break; }
-		case '(': { tk = { TK_OPEN_ROUND_BRACKET, { 0 } }; break; }
-		case ')': { tk = { TK_CLOSE_ROUND_BRACKET, { 0 } }; break; }
-		case '[': { tk = { TK_OPEN_SQUARE_BRACKET, { 0 } }; break; }
-		case ']': { tk = { TK_CLOSE_SQUARE_BRACKET, { 0 } }; break; }
-		case ';': { tk = { TK_SEMICOLON, { 0 } }; break; }
-		case ',': { tk = { TK_COMMA, { 0 } }; break; }
-		case '^': { tk = { TK_CARET, { 0 } }; break; }
-		case '!': { tk = { TK_EXPLANATION_MARK, { 0 } }; break; }
-		case '&': { tk = { TK_AMPERSAND, { 0 } }; break; }
-		case '|': { tk = { TK_VERTICAL_BAR, { 0 } }; break; }
-		case '%': { tk = { TK_PERCENT, { 0 } }; break; }
-		case ':': { tk = { TK_COLON, { 0 } }; break; }
+		case '=': { tk.type = TK_EQUAL; break; }
+		case '<': { tk.type = TK_LEFT_ARROW_HEAD; break; }
+		case '>': { tk.type = TK_RIGHT_ARROW_HEAD; break; }
+		case '+': { tk.type = TK_PLUS; break; }
+		case '-': { tk.type = TK_MINUS; break; }
+		case '.': { tk.type = TK_DOT; break; }
+		case '*': { tk.type = TK_ASTERISK; break; }
+		case '/': { tk.type = TK_FORWARD_SLASH; break; }
+		case '{': { tk.type = TK_OPEN_CURLY_BRACKET; break; }
+		case '}': { tk.type = TK_CLOSE_CURLY_BRACKET; break; }
+		case '(': { tk.type = TK_OPEN_ROUND_BRACKET; break; }
+		case ')': { tk.type = TK_CLOSE_ROUND_BRACKET; break; }
+		case '[': { tk.type = TK_OPEN_SQUARE_BRACKET; break; }
+		case ']': { tk.type = TK_CLOSE_SQUARE_BRACKET; break; }
+		case ';': { tk.type = TK_SEMICOLON; break; }
+		case ',': { tk.type = TK_COMMA; break; }
+		case '^': { tk.type = TK_CARET; break; }
+		case '!': { tk.type = TK_EXPLANATION_MARK; break; }
+		case '&': { tk.type = TK_AMPERSAND; break; }
+		case '|': { tk.type = TK_VERTICAL_BAR; break; }
+		case '%': { tk.type = TK_PERCENT; break; }
+		case ':': { tk.type = TK_COLON; break; }
 		default:
 		{
 			status = false;

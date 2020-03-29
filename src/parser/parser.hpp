@@ -4,7 +4,6 @@
 #include <string>
 
 #include <ast.hpp>
-#include <symbol_table.hpp>
 #include <token_stack.hpp>
 
 class Parser
