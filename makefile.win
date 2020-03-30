@@ -29,6 +29,7 @@ LINK_OPTIONS = -DEBUG -PDB:$(BIN)/$(PDB)
 
 ROOT_OBJECTS   = $(patsubst $(SRC)/%.cpp,        $(BIN)/%.o,        $(wildcard $(SRC)/*.cpp))
 MISC_OBJECTS   = $(patsubst $(SRC)/misc/%.cpp,   $(BIN)/misc/%.o,   $(wildcard $(SRC)/misc/*.cpp))
+MISC_OBJECTS   = $(patsubst $(SRC)/util/%.cpp,   $(BIN)/util/%.o,   $(wildcard $(SRC)/util/*.cpp))
 PARSER_OBJECTS = $(patsubst $(SRC)/parser/%.cpp, $(BIN)/parser/%.o, $(wildcard $(SRC)/parser/*.cpp))
 
 COMPILE_OBJ = $(CC) $(CC_OPTIONS) $(INC_PATH) /Fo:$@ /c
@@ -50,7 +51,7 @@ debug:
 
 .PHONY: test
 test:
-	$(BIN)/$(EXE) ./test/main.c
+	$(BIN)/$(EXE) ./test/hello_world.c
 
 .PHONY: clean
 clean:
