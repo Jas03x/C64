@@ -1,20 +1,22 @@
 #ifndef LIST_HPP
 #define LIST_HPP
 
-struct list
+template<typename T>
+class List
 {
-    struct element
+public:
+    struct Element
     {
-        void* ptr;
-        element* next;
+        T* ptr;
+        Element* next;
     };
     
-    element* head;
-    element* tail;
+    Element* head;
+    Element* tail;
     unsigned int count;
 
     void free();
-    void insert(void* ptr);
+    void insert(T* ptr);
 };
 
 #endif // LIST_HPP

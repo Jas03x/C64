@@ -9,5 +9,6 @@
 #include <token.hpp>
 
 void print_token(const Token& tk);
+void print_ast(const AST& ast);
 
 #endif // DEBUG_HPP

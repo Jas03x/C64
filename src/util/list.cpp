@@ -1,19 +1,21 @@
 #include "list.hpp"
 
-void list::free()
+template <typename T>
+void List<T>::free()
 {
-    for(element* it = this->head; it != nullptr;)
+    for(List<T>::Element* it = this->head; it != nullptr;)
     {
-        element* e = it;
+        List<T>::Element* e = it;
         it = it->next;
 
         delete e;
     }
 }
 
-void list::insert(void* ptr)
+template <typename T>
+void List<T>::insert(T* ptr)
 {
-    element* e = new element();
+    List<T>::Element* e = new List<T>::Element();
     e->ptr = ptr;
 
     if(this->head == nullptr) { this->head = e;       }

@@ -118,3 +118,8 @@ void print_token(const Token& tk)
         printf("%s\n", str);
     }
 }
+
+void print_ast(const AST& ast)
+{
+    
+}

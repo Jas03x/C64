@@ -1,11 +1,11 @@
 #include <parser.hpp>
 
-Parser::Parser(TokenStack* stack)
+Parser::Parser(TokenStack& stack)
 {
-    m_stack = stack;
+    m_stack = &stack;
 }
 
-AST* Parser::Parse(TokenStack* stack)
+AST* Parser::Parse(TokenStack& stack)
 {
     bool status = true;
 
@@ -14,6 +14,10 @@ AST* Parser::Parse(TokenStack* stack)
     
     while(status)
     {
+        Statement* stmt = new Statement();
+        ast->statements.insert(stmt);
+
+        status = parse_statement(stmt);
     }
 
     if(!status)
@@ -23,4 +27,9 @@ AST* Parser::Parse(TokenStack* stack)
     }
 
     return ast;
+}
+
+bool parse_statement(Statement* stmt)
+{
+    return true;
 }

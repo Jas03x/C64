@@ -18,13 +18,12 @@ bool process(const char* path)
         print_token(tokens[i]);
     }
 
-    /*
     if(status)
     {
-        AST* ast = Parser::Parse(&tokens);
+        AST* ast = Parser::Parse(token_stack);
         if(ast != nullptr)
         {
-            print_ast(ast);
+            print_ast(*ast);
         }
         else
         {
@@ -33,7 +32,6 @@ bool process(const char* path)
         }
         
     }
-    */
 
     return status;
 }

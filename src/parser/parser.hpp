@@ -12,13 +12,12 @@ private:
 	TokenStack* m_stack;
 
 private:
-    Parser(TokenStack* stack);
+    Parser(TokenStack& stack);
 
-    bool parse_statement(Statement& stmt);
-    bool parse_declaration(Statement& stmt);
+    bool parse_statement(Statement* stmt);
 
 public:
-    static AST* Parse(TokenStack* stack);
+    static AST* Parse(TokenStack& stack);
 };
 
 #endif // PARSER_HPP

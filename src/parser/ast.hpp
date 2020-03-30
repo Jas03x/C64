@@ -108,14 +108,15 @@ enum COMPOSITE_TYPE
     COMP_TYPE_UNION   = 2
 };
 
-struct Type;
 struct Expression;
+struct Statement;
+struct Type;
 
 struct Composite
 {
     uint8_t type;
     strptr  name;
-    list    body;
+    List<Statement> body;
 };
 
 struct Enumerator
@@ -128,7 +129,7 @@ struct Enumerator
         Expression* value;
     };
 
-    list values;
+    List<Value> values;
 };
 
 struct Parameter
@@ -141,8 +142,8 @@ struct Function
 {
     strptr name;
     Type*  ret_type;
-    list   parameters;
-    list   body;
+    List<Parameter> parameters;
+    List<Statement> body;
 };
 
 union TypeFlags
@@ -177,7 +178,7 @@ struct Type
 		struct
 		{
 			Type*  ret_type;
-			list   parameters;
+			List<Parameter> parameters;
 		} func_ptr;
     } data;
 };
@@ -191,7 +192,7 @@ struct Expression
         Literal     literal;
         Expression* sub_expr;
 		strptr      identifier;
-        list        initializer;
+        List<Expression*> initializer;
 
         struct
         {
@@ -215,7 +216,7 @@ struct Expression
 		struct
 		{
 			Expression* function;
-			list        arguments;
+			List<Expression*> arguments;
 		} call;
     };
 };
@@ -241,20 +242,20 @@ struct Statement
         struct
         {
             Expression* condition;
-            list        body;
+            List<Statement> body;
             
             Statement*  else_stmt;
         } if_stmt;
 
         struct
         {
-            list body;
+            List<Statement> body;
         } else_stmt;
 
         struct
         {
             Expression* condition;
-            list        body;
+            List<Statement> body;
         } while_stmt;
 
         struct
@@ -262,12 +263,12 @@ struct Statement
             Statement*  variable;
             Expression* condition;
             Expression* step;
-            list        body;
+            List<Statement> body;
         } for_stmt;
 
         struct
         {
-            list statements;
+            List<Statement> statements;
         } compound_stmt;
 
         struct
@@ -306,7 +307,7 @@ struct Statement
 
 struct AST
 {
-    list statements;
+    List<Statement> statements;
 };
 
 void delete_ast(AST* ast);
