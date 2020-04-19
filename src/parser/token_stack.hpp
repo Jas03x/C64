@@ -21,7 +21,7 @@ public:
     const char* find_identifier(const strptr& ptr);
 
     const Token& pop();
-    const Token& peek(unsigned int offset);
+    const Token& peek();
     
     void push(const Token& tk);
 

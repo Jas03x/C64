@@ -14,7 +14,13 @@ private:
 private:
     Parser(TokenStack& stack);
 
-    bool parse_statement(Statement* stmt);
+    bool accept(uint8_t type);
+    bool expect(uint8_t type); 
+
+    bool parse_type(Type** ptr);
+    bool parse_identifier(strptr* id);
+    bool parse_definition(Statement* stmt);
+    bool parse_global_statement(Statement* stmt);
 
 public:
     static AST* Parse(TokenStack& stack);

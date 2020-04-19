@@ -1,5 +1,7 @@
 #include "list.hpp"
 
+#include <parser/ast.hpp>
+
 template <typename T>
 void List<T>::free()
 {
@@ -24,3 +26,7 @@ void List<T>::insert(T* ptr)
 
     this->count ++;
 }
+
+// instantiate the template for whatever classes use it
+template List<Statement>;
+

@@ -1,17 +1,5 @@
 #include <strptr.hpp>
 
-strptr::strptr()
-{
-    this->ptr = nullptr;
-    this->len = 0;
-}
-
-strptr::strptr(const char* str_ptr, unsigned int str_len)
-{
-    this->ptr = str_ptr;
-    this->len = str_len;
-}
-
 bool strptr::operator < (const strptr& rhs) const
 {
     bool ret = false;

@@ -120,7 +120,11 @@ bool Tokenizer::read_string()
 	char c = 0;
 	while(status)
 	{
-		if(m_input[0] != '\\')
+        if(m_input[0] == '"')
+        {
+            break;
+        }
+        else if(m_input[0] != '\\')
 		{
 			c = pop();
 		}
@@ -139,14 +143,7 @@ bool Tokenizer::read_string()
 
 		if(status)
 		{
-			if(c == '"')
-			{
-				break;
-			}
-			else
-			{
-				m_buffer.push_back(c);
-			}
+		    m_buffer.push_back(c);
 		}
 	}
 
@@ -500,14 +497,15 @@ bool Tokenizer::read_identifier()
 	
 		if(tk.type == TK_INVALID) // this is an identifier
 		{
-			const char* id = m_stack->find_identifier(strptr(str, len));
+            strptr key = { str, len };
+			const char* id = m_stack->find_identifier(key);
 			if(id == nullptr)
 			{
 				char* ptr = new char[len];
 				memcpy(ptr, str, len); // 'str' is already null terminated
 				
 				id = ptr;
-				m_stack->insert_identifier(strptr(ptr, len));
+				m_stack->insert_identifier(key);
 			}
 			
 
