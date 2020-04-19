@@ -14,7 +14,7 @@ AST* Parser::Parse(TokenStack& stack)
     
     while(status)
     {
-        if(stack->peek().type == TK_EOF)
+        if(stack.peek().type == TK_EOF)
         {
             break;
         }
@@ -63,9 +63,11 @@ bool Parser::parse_global_statement(Statement* stmt)
 
     switch(m_stack->peek().type)
     {
-        case TK_TYPE:
+        case TK_TYPE: { status = parse_definition(stmt); break; }
+        default:
         {
-            status = parse_definition(stmt);
+            status = false;
+            printf("error: unexpected token\n");
         }
     }
 
@@ -99,15 +101,23 @@ bool Parser::parse_type(Type** ptr)
     bool status = true;
 
     uint8_t data_type = 0;
-    switch(m_stack->pop())
+    if(accept(TK_TYPE))
     {
-        case TK_U32:  { data_type = TYPE_U8;   break; }
-        case TK_VOID: { data_type = TYPE_VOID; break; }
-        default:
+        switch(m_stack->pop().type)
         {
-            status = false;
-            printf("error: expected type\n");
+            case TK_TYPE_U32:  { data_type = TYPE_U8;   break; }
+            case TK_TYPE_VOID: { data_type = TYPE_VOID; break; }
+            default:
+            {
+                status = false;
+                printf("error: invalid type\n");
+            }
         }
+    }
+    else
+    {
+        status = false;
+        printf("error: unexpected token\n");
     }
 
     if(status)
@@ -144,7 +154,7 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
     bool status = expect(TK_OPEN_ROUND_BRACKET);
 
     uint8_t type = 0;
-    List<Paramter>  params;
+    List<Parameter>  params;
     List<Statement> body;
 
     while(status)
@@ -189,7 +199,7 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
     {
         Function* func = new Function();
         func->name = name;
-        func-ret_type = ret_type;
+        func->ret_type = ret_type;
         func->parameters = params;
         func->body = body;
 
@@ -248,6 +258,57 @@ bool Parser::parse_function_body(List<Statement>* body)
 bool Parser::parse_statement(Statement** ptr)
 {
     bool status = true;
+
+    switch(m_stack->peek().type)
+    {
+        case TK_RETURN:     { status = parse_return_statement(ptr); break; }
+        case TK_IDENTIFIER: { status = parse_expr_stmt(ptr); }
+    }
+
     return status;
 }
 
+bool Parser::parse_return_statement(Statement** ptr)
+{
+    bool status = expect(TK_RETURN);
+    Expression* expr = nullptr;
+
+    if(status)
+    {
+        status = parse_expression(&expr);
+    }
+
+    if(status)
+    {
+        status = expect(TK_SEMICOLON);
+    }
+
+    if(status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_RETURN;
+        stmt->data.ret_stmt.expression = expr;
+
+        *ptr = stmt;
+    }
+
+    return status;
+}
+
+bool Parser::parse_expr_stmt(Statement** ptr)
+{
+    bool status = true;
+    return status;
+}
+
+bool Parser::parse_expression(Expression** ptr)
+{
+    bool status = true;
+
+    switch(m_stack->peek().type)
+    {
+        case TK_LITERAL:
+    }
+
+    return status;
+}

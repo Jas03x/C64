@@ -61,7 +61,7 @@ enum
     STMT_VARIABLE_DECL = 0x04,
     STMT_IF            = 0x05,
     STMT_ELSE          = 0x06,
-    STMT_RET           = 0x07,
+    STMT_RETURN        = 0x07,
     STMT_COMP_DEF      = 0x08,
     STMT_COMP_DECL     = 0x09,
     STMT_FOR           = 0x0A,
