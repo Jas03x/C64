@@ -262,7 +262,7 @@ bool Parser::parse_statement(Statement** ptr)
     switch(m_stack->peek().type)
     {
         case TK_RETURN:     { status = parse_return_statement(ptr); break; }
-        case TK_IDENTIFIER: { status = parse_expr_stmt(ptr); }
+        case TK_IDENTIFIER: { status = parse_expr_stmt(ptr);        break; }
     }
 
     return status;
@@ -307,7 +307,8 @@ bool Parser::parse_expression(Expression** ptr)
 
     switch(m_stack->peek().type)
     {
-        case TK_LITERAL:
+        case TK_LITERAL: { break; }
+        case TK_IDENTIFIER: { break; }
     }
 
     return status;
