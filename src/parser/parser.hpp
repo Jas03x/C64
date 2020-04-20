@@ -30,11 +30,13 @@ private:
     bool parse_global_statement(Statement* stmt);
     bool parse_function_body(List<Statement>* body);
     bool parse_return_statement(Statement** ptr);
-    bool parse_expression(Expression** expr);
-    bool parse_expr_stmt(Statement** ptr);
+    bool parse_expression(Expression** ptr);
+    bool parse_expression(Statement** ptr);
     bool parse_function_definition(Type* ret_type, strptr name, Statement* stmt);
-    bool parse_expr_literal(Expression** expr);
-    bool parse_expr_identifier(Expression** expr);
+    bool parse_expr_literal(Expression** ptr);
+    bool parse_expr_identifier(Expression** ptr);
+    bool parse_expr_operator(Expression** ptr);
+    bool parse_expr_args(Expression** ptr);
 
 public:
     static AST* Parse(TokenStack& stack);

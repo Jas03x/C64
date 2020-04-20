@@ -216,8 +216,8 @@ struct Expression
 		struct
 		{
 			Expression* function;
-			List<Expression*> arguments;
-		} call;
+			List<Expression> arguments;
+		} function_call;
     } data;
 };
 

@@ -255,7 +255,7 @@ bool Parser::parse_statement(Statement** ptr)
     switch(m_stack->peek().type)
     {
         case TK_RETURN:     { parse_return_statement(ptr); break; }
-        case TK_IDENTIFIER: { parse_expr_stmt(ptr);        break; }
+        case TK_IDENTIFIER: { parse_expression(ptr);        break; }
     }
 
     return m_status;
@@ -289,21 +289,111 @@ bool Parser::parse_return_statement(Statement** ptr)
     return m_status;
 }
 
-bool Parser::parse_expr_stmt(Statement** ptr)
+bool Parser::parse_expression(Statement** ptr)
 {
+    Expression* expr = nullptr;
+    if(parse_expression(&expr))
+    {
+    }
     return m_status;
 }
 
 bool Parser::parse_expression(Expression** ptr)
 {
-    switch(m_stack->peek().type)
+    while(m_status)
     {
-        case TK_LITERAL:    { parse_expr_literal(ptr);    break; }
-        case TK_IDENTIFIER: { parse_expr_identifier(ptr); break; }
-        default:
+        Expression* expr = nullptr;
+        switch(m_stack->peek().type)
         {
-            error(ERROR_UNEXPECTED_TOKEN);
+            case TK_LITERAL:    { parse_expr_literal(&expr);    break; }
+            case TK_IDENTIFIER: { parse_expr_identifier(&expr); break; }
+            default:
+            {
+                error(ERROR_UNEXPECTED_TOKEN);
+            }
         }
+
+        if(m_status)
+        {
+            m_expr_stack.push_back(expr);
+
+            if(accept(TK_SEMICOLON))
+            {
+                m_stack->pop();
+                break;
+            }
+            else
+            {
+                while(m_status)
+                {
+                    Expression* op = nullptr;
+                    if(parse_expr_operator(&op))
+                    {
+                        m_expr_stack.push_back(expr);
+                        if(op->type != EXPR_FUNCTION_CALL)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_expr_operator(Expression** ptr)
+{
+    if(accept(TK_OPEN_ROUND_BRACKET))
+    {
+        parse_expr_args(ptr);
+    }
+    else
+    {
+        switch(m_stack->peek().type)
+        {
+            default:
+            {
+                error(ERROR_UNEXPECTED_TOKEN);
+            }
+        }
+    }
+    return m_status;
+}
+
+bool Parser::parse_expr_args(Expression** ptr)
+{
+    expect(TK_OPEN_ROUND_BRACKET);
+
+    List<Expression> args;
+
+    while(m_status)
+    {
+        Expression* expr = nullptr;
+        if(parse_expression(&expr))
+        {
+            args.insert(expr);
+        }
+
+        if(accept(TK_CLOSE_ROUND_BRACKET))
+        {
+            m_stack->pop();
+            break;
+        }
+        else
+        {
+            expect(TK_COMMA);
+        }
+    }
+
+    if(m_status)
+    {
+        Expression* expr = new Expression();
+        expr->type = EXPR_FUNCTION_CALL;
+        expr->data.function_call.arguments = args;
+
+        *ptr = expr;
     }
 
     return m_status;

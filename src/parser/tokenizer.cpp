@@ -528,7 +528,7 @@ bool Tokenizer::read_punctuator()
 {
 	bool status =  true;
 
-	Token tk = { 0 };
+	Token tk = { };
 	char c = pop();
 	
 	switch(c)
