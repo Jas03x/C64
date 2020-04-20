@@ -9,12 +9,15 @@
 class Parser
 {
 private:
+    bool m_status;
 	TokenStack* m_stack;
 
     std::vector<Expression*> m_expr_stack;
 
 private:
     Parser(TokenStack& stack);
+
+    void error(const char* format, ...);
 
     bool accept(uint8_t type);
     bool expect(uint8_t type); 
@@ -30,6 +33,8 @@ private:
     bool parse_expression(Expression** expr);
     bool parse_expr_stmt(Statement** ptr);
     bool parse_function_definition(Type* ret_type, strptr name, Statement* stmt);
+    bool parse_expr_literal(Expression** expr);
+    bool parse_expr_identifier(Expression** expr);
 
 public:
     static AST* Parse(TokenStack& stack);

@@ -1,7 +1,12 @@
 #include <parser.hpp>
 
+#include <stdarg.h>
+
+static const char* ERROR_UNEXPECTED_TOKEN = "unexpected token\n";
+
 Parser::Parser(TokenStack& stack)
 {
+    m_status = true;
     m_stack = &stack;
 }
 
@@ -21,9 +26,14 @@ AST* Parser::Parse(TokenStack& stack)
         else
         {
             Statement* stmt = new Statement();
-            ast->statements.insert(stmt);
-
-            status = parser.parse_global_statement(stmt);
+            if(parser.parse_global_statement(stmt))
+            {
+                ast->statements.insert(stmt);
+            }
+            else
+            {
+                status = false;
+            }
         }
     }
 
@@ -46,60 +56,62 @@ bool Parser::accept(uint8_t type)
     return ret;
 }
 
+void Parser::error(const char* format, ...)
+{
+    m_status = false;
+
+    va_list args;
+    va_start(args, format);
+    vfprintf(stdout, format, args);
+    va_end(args);
+}
+
 bool Parser::expect(uint8_t type)
 {
-    bool status = true;
     if(m_stack->pop().type != type)
     {
-        status = false;
-        printf("error: unexpected token\n");
+        error(ERROR_UNEXPECTED_TOKEN);
     }
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_global_statement(Statement* stmt)
 {
-    bool status = true;
-
     switch(m_stack->peek().type)
     {
-        case TK_TYPE: { status = parse_definition(stmt); break; }
+        case TK_TYPE: { parse_definition(stmt); break; }
         default:
         {
-            status = false;
-            printf("error: unexpected token\n");
+            error(ERROR_UNEXPECTED_TOKEN);
         }
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_definition(Statement* stmt)
 {
-    Type* type = nullptr;
-    bool status = parse_type(&type);
-    
     strptr name;
-    if(status)
+    Type* type = nullptr;
+
+    if(parse_type(&type))
     {
-        status = parse_identifier(&name);
+        parse_identifier(&name);
     }
 
-    if(status)
+    if(m_status)
     {
         if(accept(TK_OPEN_ROUND_BRACKET))
         {
-            status = parse_function_definition(type, name, stmt);
+            parse_function_definition(type, name, stmt);
         }
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_type(Type** ptr)
 {
-    bool status = true;
-
     uint8_t data_type = 0;
     if(accept(TK_TYPE))
     {
@@ -109,18 +121,16 @@ bool Parser::parse_type(Type** ptr)
             case TK_TYPE_VOID: { data_type = TYPE_VOID; break; }
             default:
             {
-                status = false;
-                printf("error: invalid type\n");
+                error("invalid type\n");
             }
         }
     }
     else
     {
-        status = false;
-        printf("error: unexpected token\n");
+        error(ERROR_UNEXPECTED_TOKEN);
     }
 
-    if(status)
+    if(m_status)
     {
         Type* type = new Type();
         type->type = data_type;
@@ -128,13 +138,11 @@ bool Parser::parse_type(Type** ptr)
         *ptr = type;
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_identifier(strptr* id)
 {
-    bool status = true;
-
     Token tk = m_stack->pop();
     if(tk.type == TK_IDENTIFIER)
     {
@@ -142,22 +150,21 @@ bool Parser::parse_identifier(strptr* id)
     }
     else
     {
-        status = false;
-        printf("error: expected identifier\n");
+        error(ERROR_UNEXPECTED_TOKEN);
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* stmt)
 {
-    bool status = expect(TK_OPEN_ROUND_BRACKET);
-
     uint8_t type = 0;
     List<Parameter>  params;
     List<Statement> body;
 
-    while(status)
+    expect(TK_OPEN_ROUND_BRACKET);
+    
+    while(m_status)
     {
         if(accept(TK_CLOSE_ROUND_BRACKET))
         {
@@ -170,14 +177,10 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
             {
                 params.insert(param);
             }
-            else
-            {
-                status = false;
-            }
         }
     }
 
-    if(status)
+    if(m_status)
     {
         if(accept(TK_SEMICOLON))
         {
@@ -186,16 +189,15 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
         else if(accept(TK_OPEN_CURLY_BRACKET))
         {
             type = STMT_FUNCTION_DEF;
-            status = parse_function_body(&body);
+            parse_function_body(&body);
         }
         else
         {
-            status = false;
-            printf("error: unexpected token\n");
+            error(ERROR_UNEXPECTED_TOKEN);
         }
     }
 
-    if(status)
+    if(m_status)
     {
         Function* func = new Function();
         func->name = name;
@@ -207,23 +209,20 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
         stmt->data.function = func;
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_parameter(Parameter** ptr)
 {
-    bool status = true;
-
-    Type* type = nullptr;
     strptr name;
+    Type* type = nullptr;
     
-    status = parse_type(&type);
-    if(status)
+    if(parse_type(&type))
     {
-        status = parse_identifier(&name);
+        parse_identifier(&name);
     }
 
-    if(status)
+    if(m_status)
     {
         Parameter* param = new Parameter();
         param->name = name;
@@ -232,58 +231,53 @@ bool Parser::parse_parameter(Parameter** ptr)
         *ptr = param;
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_function_body(List<Statement>* body)
 {
-    bool status = expect(TK_OPEN_CURLY_BRACKET);
+    expect(TK_OPEN_CURLY_BRACKET);
 
-    while(status)
+    while(m_status)
     {
         Statement* stmt = nullptr;
         if(parse_statement(&stmt))
         {
             body->insert(stmt);
         }
-        else
-        {
-            status = false;
-        }
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_statement(Statement** ptr)
 {
-    bool status = true;
-
     switch(m_stack->peek().type)
     {
-        case TK_RETURN:     { status = parse_return_statement(ptr); break; }
-        case TK_IDENTIFIER: { status = parse_expr_stmt(ptr);        break; }
+        case TK_RETURN:     { parse_return_statement(ptr); break; }
+        case TK_IDENTIFIER: { parse_expr_stmt(ptr);        break; }
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_return_statement(Statement** ptr)
 {
-    bool status = expect(TK_RETURN);
     Expression* expr = nullptr;
 
-    if(status)
+    expect(TK_RETURN);
+    
+    if(m_status)
     {
-        status = parse_expression(&expr);
+        parse_expression(&expr);
     }
 
-    if(status)
+    if(m_status)
     {
-        status = expect(TK_SEMICOLON);
+        expect(TK_SEMICOLON);
     }
 
-    if(status)
+    if(m_status)
     {
         Statement* stmt = new Statement();
         stmt->type = STMT_RETURN;
@@ -292,24 +286,64 @@ bool Parser::parse_return_statement(Statement** ptr)
         *ptr = stmt;
     }
 
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_expr_stmt(Statement** ptr)
 {
-    bool status = true;
-    return status;
+    return m_status;
 }
 
 bool Parser::parse_expression(Expression** ptr)
 {
-    bool status = true;
-
     switch(m_stack->peek().type)
     {
-        case TK_LITERAL: { break; }
-        case TK_IDENTIFIER: { break; }
+        case TK_LITERAL:    { parse_expr_literal(ptr);    break; }
+        case TK_IDENTIFIER: { parse_expr_identifier(ptr); break; }
+        default:
+        {
+            error(ERROR_UNEXPECTED_TOKEN);
+        }
     }
 
-    return status;
+    return m_status;
 }
+
+bool Parser::parse_expr_literal(Expression** ptr)
+{
+    Token tk = m_stack->pop();
+    if(tk.type == TK_LITERAL)
+    {
+        Expression* expr = new Expression();
+        expr->type = EXPR_LITERAL;
+        expr->data.literal = tk.data.literal;
+
+        *ptr = expr;
+    }
+    else
+    {
+        error(ERROR_UNEXPECTED_TOKEN);
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_expr_identifier(Expression** ptr)
+{
+    Token tk = m_stack->pop();
+    if(tk.type == TK_IDENTIFIER)
+    {
+        Expression* expr = new Expression();
+        expr->type = EXPR_IDENTIFIER;
+        expr->data.identifier = tk.data.identifier;
+
+        *ptr = expr;
+    }
+    else
+    {
+        error(ERROR_UNEXPECTED_TOKEN);
+    }
+
+    return m_status;
+}
+

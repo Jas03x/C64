@@ -218,7 +218,7 @@ struct Expression
 			Expression* function;
 			List<Expression*> arguments;
 		} call;
-    };
+    } data;
 };
 
 struct Statement
