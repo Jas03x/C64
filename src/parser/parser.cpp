@@ -255,7 +255,7 @@ bool Parser::parse_statement(Statement** ptr)
     switch(m_stack->peek().type)
     {
         case TK_RETURN:     { parse_return_statement(ptr); break; }
-        case TK_IDENTIFIER: { parse_expression(ptr);        break; }
+        case TK_IDENTIFIER: { parse_expression(ptr);       break; }
     }
 
     return m_status;
@@ -316,25 +316,31 @@ bool Parser::parse_expression(Expression** ptr)
         if(m_status)
         {
             m_expr_stack.push_back(expr);
+            
+            // parse function call arguments
+            while(m_status && accept(TK_OPEN_ROUND_BRACKET))
+            {
+                Expression* args = nullptr;
+                if(parse_expr_args(&args))
+                {
+                    m_expr_stack.push_back(args);
+                }
+            }
+        }
 
-            if(accept(TK_SEMICOLON))
+        if (m_status)
+        {
+            if (accept(TK_SEMICOLON))
             {
                 m_stack->pop();
                 break;
             }
             else
             {
-                while(m_status)
+                Expression* op = nullptr;
+                if (parse_expr_operator(&op))
                 {
-                    Expression* op = nullptr;
-                    if(parse_expr_operator(&op))
-                    {
-                        m_expr_stack.push_back(expr);
-                        if(op->type != EXPR_FUNCTION_CALL)
-                        {
-                            break;
-                        }
-                    }
+                    m_expr_stack.push_back(op);
                 }
             }
         }
@@ -345,18 +351,11 @@ bool Parser::parse_expression(Expression** ptr)
 
 bool Parser::parse_expr_operator(Expression** ptr)
 {
-    if(accept(TK_OPEN_ROUND_BRACKET))
+    switch (m_stack->peek().type)
     {
-        parse_expr_args(ptr);
-    }
-    else
-    {
-        switch(m_stack->peek().type)
+        default:
         {
-            default:
-            {
-                error(ERROR_UNEXPECTED_TOKEN);
-            }
+            error(ERROR_UNEXPECTED_TOKEN);
         }
     }
     return m_status;
