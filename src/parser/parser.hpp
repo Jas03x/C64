@@ -5,6 +5,7 @@
 
 #include <ast.hpp>
 #include <token_stack.hpp>
+#include <expression_stack.hpp>
 
 class Parser
 {
@@ -12,7 +13,7 @@ private:
     bool m_status;
 	TokenStack* m_stack;
 
-    std::vector<Expression*> m_expr_stack;
+    ExpressionStack m_expr_stack;
 
 private:
     Parser(TokenStack& stack);
@@ -20,7 +21,10 @@ private:
     void error(const char* format, ...);
 
     bool accept(uint8_t type);
-    bool expect(uint8_t type); 
+    bool expect(uint8_t type);
+
+    unsigned int get_op_precedence(uint8_t op);
+    Expression* process_expression(Expression* lhs, uint8_t min);
 
     bool parse_type(Type** ptr);
     bool parse_identifier(strptr* id);

@@ -298,6 +298,55 @@ bool Parser::parse_expression(Statement** ptr)
     return m_status;
 }
 
+unsigned int Parser::get_op_precedence(uint8_t op)
+{
+    unsigned int ret = 0;
+    switch(op)
+    {
+        default: { break; }
+    }
+    return ret;
+}
+
+Expression* Parser::process_expression(Expression* lhs, uint8_t min)
+{
+    // i + a * b(c)(d) / h - (e + f) * g
+    while(m_status && !m_expr_stack.is_empty())
+    {
+        Expression* op1 = m_expr_stack.pop();
+        Expression* rhs = m_expr_stack.pop();
+        Expression* op2 = m_expr_stack.peek();
+
+        unsigned int op1_prec = get_op_precedence(op1->type);
+        unsigned int op2_prec = get_op_precedence(op2->type);
+
+        if(op2_prec > op1_prec)
+        {
+            rhs = process_expression(rhs, op2_prec);
+        }
+        else
+        {
+            switch(op1->type)
+            {
+                case EXPR_FUNCTION_CALL:
+                {
+                    op1->data.function_call.function = lhs;
+                    lhs = op1;
+                    break;
+                }
+                default:
+                {
+                    m_status = false;
+                    error("unknown operator");
+                    break;
+                }
+            }
+        }
+    }
+
+    return lhs;
+}
+
 bool Parser::parse_expression(Expression** ptr)
 {
     while(m_status)
@@ -315,7 +364,7 @@ bool Parser::parse_expression(Expression** ptr)
 
         if(m_status)
         {
-            m_expr_stack.push_back(expr);
+            m_expr_stack.insert(expr);
             
             // parse function call arguments
             while(m_status && accept(TK_OPEN_ROUND_BRACKET))
@@ -323,7 +372,7 @@ bool Parser::parse_expression(Expression** ptr)
                 Expression* args = nullptr;
                 if(parse_expr_args(&args))
                 {
-                    m_expr_stack.push_back(args);
+                    m_expr_stack.insert(args);
                 }
             }
         }
@@ -340,10 +389,15 @@ bool Parser::parse_expression(Expression** ptr)
                 Expression* op = nullptr;
                 if (parse_expr_operator(&op))
                 {
-                    m_expr_stack.push_back(op);
+                    m_expr_stack.insert(op);
                 }
             }
         }
+    }
+
+    if(m_status)
+    {
+        process_expression(m_expr_stack.pop(), 0);
     }
 
     return m_status;
