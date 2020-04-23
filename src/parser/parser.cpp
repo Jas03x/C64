@@ -313,33 +313,40 @@ Expression* Parser::process_expression(Expression* lhs, uint8_t min)
     // i + a * b(c)(d) / h - (e + f) * g
     while(m_status && !m_expr_stack.is_empty())
     {
-        Expression* op1 = m_expr_stack.pop();
+        Expression* op1 = m_expr_stack.peek();
+        unsigned int op1_prec = get_op_precedence(op1->type);
+
+        if(op1_prec < min)
+        {
+            break;
+        }
+        else
+        {
+            m_expr_stack.pop();
+        }
+
         Expression* rhs = m_expr_stack.pop();
         Expression* op2 = m_expr_stack.peek();
-
-        unsigned int op1_prec = get_op_precedence(op1->type);
         unsigned int op2_prec = get_op_precedence(op2->type);
 
         if(op2_prec > op1_prec)
         {
             rhs = process_expression(rhs, op2_prec);
         }
-        else
+        
+        switch(op1->type)
         {
-            switch(op1->type)
+            case EXPR_FUNCTION_CALL:
             {
-                case EXPR_FUNCTION_CALL:
-                {
-                    op1->data.function_call.function = lhs;
-                    lhs = op1;
-                    break;
-                }
-                default:
-                {
-                    m_status = false;
-                    error("unknown operator");
-                    break;
-                }
+                op1->data.function_call.function = lhs;
+                lhs = op1;
+                break;
+            }
+            default:
+            {
+                m_status = false;
+                error("unknown operator");
+                break;
             }
         }
     }
