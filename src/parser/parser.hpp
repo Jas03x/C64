@@ -13,7 +13,7 @@ private:
     bool m_status;
 	TokenStack* m_stack;
 
-    ExpressionStack m_expr_stack;
+    std::vector<Expression*> m_expr_stack;
 
 private:
     Parser(TokenStack& stack);
@@ -24,7 +24,8 @@ private:
     bool expect(uint8_t type);
 
     unsigned int get_op_precedence(uint8_t op);
-    Expression* process_expression(Expression* lhs, uint8_t min);
+    Expression* process_expr_operand(ExpressionStack* stack);
+    Expression* process_expression(ExpressionStack* stack, Expression* lhs, uint8_t min);
 
     bool parse_type(Type** ptr);
     bool parse_identifier(strptr* id);

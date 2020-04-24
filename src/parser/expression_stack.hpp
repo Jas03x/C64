@@ -8,14 +8,16 @@
 class ExpressionStack
 {
 private:
-    std::vector<Expression*> m_expr_list;
+    std::vector<Expression*>* m_buffer;
+    unsigned int m_start;
+    unsigned int m_length;
     unsigned int m_index;
 
 public:
-    ExpressionStack();
+    ExpressionStack(std::vector<Expression*>* buffer);
+    ~ExpressionStack();
 
     void insert(Expression* expr);
-    void clear();
 
     bool is_empty();
 

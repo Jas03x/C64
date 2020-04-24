@@ -3,6 +3,7 @@
 #include <stdarg.h>
 
 static const char* ERROR_UNEXPECTED_TOKEN = "unexpected token\n";
+static const char* ERROR_BAD_EXPRESSION = "malformed expression\n";
 
 Parser::Parser(TokenStack& stack)
 {
@@ -308,45 +309,85 @@ unsigned int Parser::get_op_precedence(uint8_t op)
     return ret;
 }
 
-Expression* Parser::process_expression(Expression* lhs, uint8_t min)
+Expression* Parser::process_expr_operand(ExpressionStack* stack)
 {
-    // i + a * b(c)(d) / h - (e + f) * g
-    while(m_status && !m_expr_stack.is_empty())
+    Expression* operand = stack->pop();
+    if (operand == nullptr)
     {
-        Expression* op1 = m_expr_stack.peek();
-        unsigned int op1_prec = get_op_precedence(op1->type);
+        error(ERROR_BAD_EXPRESSION);
+    }
 
-        if(op1_prec < min)
+    if (m_status)
+    {
+        if (operand->type == EXPR_OPERATION)
         {
-            break;
+            if ((operand->type == EXPR_OP_REFERENCE) || (operand->type == EXPR_OP_DEREFERENCE))
+            {
+                operand->data.operation.rhs = process_expr_operand(stack);
+            }
+            else
+            {
+                error(ERROR_BAD_EXPRESSION);
+            }
         }
         else
         {
-            m_expr_stack.pop();
-        }
-
-        Expression* rhs = m_expr_stack.pop();
-        Expression* op2 = m_expr_stack.peek();
-        unsigned int op2_prec = get_op_precedence(op2->type);
-
-        if(op2_prec > op1_prec)
-        {
-            rhs = process_expression(rhs, op2_prec);
-        }
-        
-        switch(op1->type)
-        {
-            case EXPR_FUNCTION_CALL:
+            while (stack->peek()->type == EXPR_FUNCTION_CALL)
             {
-                op1->data.function_call.function = lhs;
-                lhs = op1;
+                Expression* func_call = stack->pop();
+                func_call->data.function_call.function = operand;
+                operand = func_call;
+            }
+        }
+    }
+
+    return operand;
+}
+
+Expression* Parser::process_expression(ExpressionStack* stack, Expression* lhs, uint8_t min)
+{
+    // **p(q, r, s) + a * b(c)(d) / h - (e + f) * g
+    
+    Expression* expr = (lhs == nullptr) ? process_expr_operand(stack) : lhs;
+
+    while (m_status && !stack->is_empty())
+    {
+        Expression* op1 = stack->peek();
+        if (op1->type != EXPR_OPERATION)
+        {
+            error(ERROR_BAD_EXPRESSION);
+        }
+        else
+        {
+            unsigned int op1_prec = get_op_precedence(op1->type);
+            if (op1_prec < min)
+            {
                 break;
             }
-            default:
+            else
             {
-                m_status = false;
-                error("unknown operator");
-                break;
+                stack->pop(); // consume the first operator
+                Expression* rhs = process_expr_operand(stack);
+
+                Expression* op2 = nullptr;
+                if (!stack->is_empty())
+                {
+                    op2 = stack->peek();
+                    if (op2->type != EXPR_OPERATION)
+                    {
+                        error(ERROR_BAD_EXPRESSION);
+                    }
+                }
+
+                unsigned int op2_prec = (op2 == nullptr) ? 0 : get_op_precedence(op2->type);
+                if ((op2 != nullptr) && (op1_prec < op2_prec))
+                {
+                    rhs = process_expression(stack, rhs, op2_prec);
+                }
+
+                op1->data.operation.lhs = expr;
+                op1->data.operation.rhs = rhs;
+                expr = rhs;
             }
         }
     }
@@ -356,6 +397,7 @@ Expression* Parser::process_expression(Expression* lhs, uint8_t min)
 
 bool Parser::parse_expression(Expression** ptr)
 {
+    ExpressionStack stack(&m_expr_stack);
     while(m_status)
     {
         Expression* expr = nullptr;
@@ -371,7 +413,7 @@ bool Parser::parse_expression(Expression** ptr)
 
         if(m_status)
         {
-            m_expr_stack.insert(expr);
+            stack.insert(expr);
             
             // parse function call arguments
             while(m_status && accept(TK_OPEN_ROUND_BRACKET))
@@ -379,7 +421,7 @@ bool Parser::parse_expression(Expression** ptr)
                 Expression* args = nullptr;
                 if(parse_expr_args(&args))
                 {
-                    m_expr_stack.insert(args);
+                    stack.insert(args);
                 }
             }
         }
@@ -396,7 +438,7 @@ bool Parser::parse_expression(Expression** ptr)
                 Expression* op = nullptr;
                 if (parse_expr_operator(&op))
                 {
-                    m_expr_stack.insert(op);
+                    stack.insert(op);
                 }
             }
         }
@@ -404,7 +446,7 @@ bool Parser::parse_expression(Expression** ptr)
 
     if(m_status)
     {
-        process_expression(m_expr_stack.pop(), 0);
+        process_expression(&stack, nullptr, 0);
     }
 
     return m_status;

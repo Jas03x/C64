@@ -196,7 +196,7 @@ struct Expression
 
         struct
         {
-            uint8_t     op;
+            uint8_t op;
 			union
 			{
 				struct
