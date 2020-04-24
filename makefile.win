@@ -44,8 +44,9 @@ $(BIN)/parser/%.o: $(SRC)/parser/%.cpp
 $(EXE): $(ROOT_OBJECTS) $(UTIL_OBJECTS) $(PARSER_OBJECTS)
 	$(LINK) $(LINK_OPTIONS) $(LIB_PATH) $^ /OUT:$(BIN)/$@
 
+.PHONY: debug
 debug:
-	$(DBG) $(DBG_OPTIONS) $(BIN)/$(EXE) ./test/main.c
+	$(DBG) $(DBG_OPTIONS) $(BIN)/$(EXE) ./test/hello_world.c
 
 .PHONY: test
 test:

@@ -3,7 +3,7 @@
 ExpressionStack::ExpressionStack(std::vector<Expression*>* buffer)
 {
     m_buffer = buffer;
-    m_start = buffer->size;
+    m_start = buffer->size();
     m_length = 0;
     m_index = 0;
 }

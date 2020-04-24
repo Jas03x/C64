@@ -122,6 +122,7 @@ bool Tokenizer::read_string()
 	{
         if(m_input[0] == '"')
         {
+			pop();
             break;
         }
         else if(m_input[0] != '\\')
@@ -354,13 +355,13 @@ bool Tokenizer::read_identifier()
 	{
 		Token tk = { 0, { 0 }};
 
-		m_buffer.push_back(0);
+		m_buffer.push_back(0); // null-terminate
 		const char* str = m_buffer.data();
 		unsigned int len = m_buffer.size();
 
 		switch(len)
 		{
-			case 2:
+			case 3:
 			{
 				switch(str[0])
 				{
@@ -385,7 +386,7 @@ bool Tokenizer::read_identifier()
 				}
 				break;
 			}
-			case 3:
+			case 4:
 			{
 				switch(str[0])
 				{
@@ -423,7 +424,7 @@ bool Tokenizer::read_identifier()
 				}
 				break;
 			}
-			case 4:
+			case 5:
 			{
 				switch(str[0])
 				{
@@ -449,7 +450,7 @@ bool Tokenizer::read_identifier()
 				}
 				break;
 			}
-			case 5:
+			case 6:
 			{
 				switch(str[0])
 				{
@@ -459,7 +460,7 @@ bool Tokenizer::read_identifier()
 				}
 				break;
 			}
-			case 6:
+			case 7:
 			{
 				switch(str[0])
 				{
@@ -477,7 +478,7 @@ bool Tokenizer::read_identifier()
 				}
 				break;
 			}
-			case 7:
+			case 8:
 			{
 				switch(str[0])
 				{
@@ -485,7 +486,7 @@ bool Tokenizer::read_identifier()
 				}
 				break;
 			}
-			case 8:
+			case 9:
 			{
 				switch(str[0])
 				{
@@ -498,20 +499,21 @@ bool Tokenizer::read_identifier()
 		if(tk.type == TK_INVALID) // this is an identifier
 		{
             strptr key = { str, len };
-			const char* id = m_stack->find_identifier(key);
-			if(id == nullptr)
+
+			key.ptr = m_stack->find_identifier(key);
+			if(key.ptr == nullptr)
 			{
 				char* ptr = new char[len];
 				memcpy(ptr, str, len); // 'str' is already null terminated
-				
-				id = ptr;
+
+				key.ptr = ptr;
 				m_stack->insert_identifier(key);
 			}
 			
 
 			tk.type = TK_IDENTIFIER;
 			tk.data.identifier.len = len;
-			tk.data.identifier.ptr = id;
+			tk.data.identifier.ptr = key.ptr;
 		}
 
 		if(status)

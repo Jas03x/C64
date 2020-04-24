@@ -114,11 +114,36 @@ bool Parser::parse_definition(Statement* stmt)
 bool Parser::parse_type(Type** ptr)
 {
     uint8_t data_type = 0;
+    TypeFlags flags = {};
+
+    while (m_status)
+    {
+        Token tk = m_stack->peek();
+        if (tk.type == TK_CONST)
+        {
+            if (flags.bits.is_constant == 0)
+            {
+                flags.bits.is_constant = 1;
+            }
+            else
+            {
+                error("duplicate const specifier\n");
+            }
+        }
+        else
+        {
+            break;
+        }
+
+        m_stack->pop(); // consume the token
+    }
+
     if(accept(TK_TYPE))
     {
-        switch(m_stack->pop().type)
+        switch(m_stack->pop().data.subtype)
         {
-            case TK_TYPE_U32:  { data_type = TYPE_U8;   break; }
+            case TK_TYPE_U8:   { data_type = TYPE_U8;   break; }
+            case TK_TYPE_U32:  { data_type = TYPE_U32;  break; }
             case TK_TYPE_VOID: { data_type = TYPE_VOID; break; }
             default:
             {
@@ -135,6 +160,7 @@ bool Parser::parse_type(Type** ptr)
     {
         Type* type = new Type();
         type->type = data_type;
+        type->flags = flags;
 
         *ptr = type;
     }
@@ -538,4 +564,3 @@ bool Parser::parse_expr_identifier(Expression** ptr)
 
     return m_status;
 }
-

@@ -119,7 +119,21 @@ void print_token(const Token& tk)
     }
 }
 
+void print_statement(Statement* stmt, unsigned int level)
+{
+    switch (stmt->type)
+    {
+        default:
+        {
+            print(level, "unknown\n");
+        }
+    }
+}
+
 void print_ast(const AST& ast)
 {
-    
+    for (List<Statement>::Element* it = ast.statements.head; it != nullptr; it = it->next)
+    {
+        print_statement(it->ptr, 0);
+    }
 }

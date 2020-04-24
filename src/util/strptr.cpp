@@ -17,6 +17,10 @@ bool strptr::operator < (const strptr& rhs) const
                 ret = true;
                 break;
             }
+            else if (this->ptr[i] != rhs.ptr[i])
+            {
+                break;
+            }
         }
     }
 
