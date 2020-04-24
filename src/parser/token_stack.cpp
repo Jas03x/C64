@@ -5,9 +5,14 @@ TokenStack::TokenStack()
     m_position = 0;
 }
 
+#include <debug.hpp>
 const Token& TokenStack::pop()
 {
-    return m_tokens[m_position++];
+    Token tk = m_tokens[m_position++];
+    printf("consume: ");
+    print_token(tk);
+    return tk;
+    //return m_tokens[m_position++];
 }
 
 const Token& TokenStack::peek()

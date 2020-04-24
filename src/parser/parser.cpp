@@ -162,6 +162,16 @@ bool Parser::parse_type(Type** ptr)
         type->type = data_type;
         type->flags = flags;
 
+        while(accept(TK_ASTERISK))
+        {
+            m_stack->pop();
+            Type* type_ptr = new Type();
+            type_ptr->type = TYPE_PTR;
+            type_ptr->data.pointer = type;
+
+            type = type_ptr;
+        }
+
         *ptr = type;
     }
 
@@ -191,26 +201,37 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
 
     expect(TK_OPEN_ROUND_BRACKET);
     
-    while(m_status)
+    if(!accept(TK_CLOSE_ROUND_BRACKET))
     {
-        if(accept(TK_CLOSE_ROUND_BRACKET))
-        {
-            break;
-        }
-        else
+        while(m_status)
         {
             Parameter* param = nullptr;
             if(parse_parameter(&param))
             {
                 params.insert(param);
             }
+
+            if(m_status)
+            {
+                if(accept(TK_CLOSE_ROUND_BRACKET))
+                {
+                    break;
+                }
+                else
+                {
+                    expect(TK_COMMA);
+                }
+            }
         }
     }
+
+    expect(TK_CLOSE_ROUND_BRACKET);
 
     if(m_status)
     {
         if(accept(TK_SEMICOLON))
         {
+            m_stack->pop();
             type = STMT_FUNCTION_DECL;
         }
         else if(accept(TK_OPEN_CURLY_BRACKET))
@@ -241,12 +262,15 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
 
 bool Parser::parse_parameter(Parameter** ptr)
 {
-    strptr name;
+    strptr name = {};
     Type* type = nullptr;
     
     if(parse_type(&type))
     {
-        parse_identifier(&name);
+        if(accept(TK_IDENTIFIER))
+        {
+            parse_identifier(&name);
+        }
     }
 
     if(m_status)
