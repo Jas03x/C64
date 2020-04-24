@@ -88,6 +88,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\parser\ast.cpp" />
     <ClCompile Include="src\parser\debug.cpp" />
+    <ClCompile Include="src\parser\expression_stack.cpp" />
     <ClCompile Include="src\parser\parser.cpp" />
     <ClCompile Include="src\parser\tokenizer.cpp" />
     <ClCompile Include="src\parser\token_stack.cpp" />
@@ -104,6 +105,7 @@
     <ClInclude Include="src\inc\literal.hpp" />
     <ClInclude Include="src\parser\ast.hpp" />
     <ClInclude Include="src\parser\debug.hpp" />
+    <ClInclude Include="src\parser\expression_stack.hpp" />
     <ClInclude Include="src\parser\parser.hpp" />
     <ClInclude Include="src\parser\token.hpp" />
     <ClInclude Include="src\parser\tokenizer.hpp" />

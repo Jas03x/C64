@@ -58,6 +58,9 @@
     <ClCompile Include="test\example.c">
       <Filter>test</Filter>
     </ClCompile>
+    <ClCompile Include="src\parser\expression_stack.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\inc\literal.hpp">
@@ -92,6 +95,9 @@
     </ClInclude>
     <ClInclude Include="src\util\list.hpp">
       <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\expression_stack.hpp">
+      <Filter>src\parser</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
