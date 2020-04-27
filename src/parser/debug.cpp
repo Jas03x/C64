@@ -6,16 +6,18 @@
 
 void indent(unsigned int level)
 {
-    for(unsigned int i = 0; i < level; i++) {
-        printf("    ");
+    if (level > 0)
+    {
+        for (unsigned int i = 0; i < level - 1; i++) {
+            printf("       ");
+        }
+        printf("   |--> ");
     }
 }
 
 void print(unsigned int level, const char* format, ...)
 {
-    for(unsigned int i = 0; i < level; i++) {
-        printf("\t");
-    }
+    indent(level);
 
     va_list args;
     va_start(args, format);
@@ -119,13 +121,108 @@ void print_token(const Token& tk)
     }
 }
 
-void print_statement(Statement* stmt, unsigned int level)
+void print_expr(unsigned int level, Expression* expr)
+{
+
+}
+
+void print_parameter(unsigned int level, const Parameter* param)
+{
+
+}
+
+void print_parameter_list(unsigned int level, const List<Parameter>* list)
+{
+    for (List<Parameter>::Element* it = list->head; it != nullptr; it = it->next)
+    {
+        print(level, "PARAM:\n");
+        print_parameter(level + 1, it->ptr);
+    }
+}
+
+void print_identifier(unsigned int level, const strptr* id)
+{
+    print(level, "%.*s\n", id->len, id->ptr);
+}
+
+void print_type(unsigned int level, Type* type)
+{
+    indent(level);
+    if (type->flags.bits.is_external_symbol)
+    {
+        printf("EXTERN ");
+    }
+    if (type->flags.bits.is_constant)
+    {
+        printf("CONST ");
+    }
+
+    switch (type->type)
+    {
+        case TYPE_VOID: { printf("VOID\n"); break; }
+        case TYPE_U8:   { printf("U8\n");   break; }
+        case TYPE_U16:  { printf("U16\n");  break; }
+        case TYPE_U32:  { printf("U32\n");  break; }
+        case TYPE_U64:  { printf("U64\n");  break; }
+        case TYPE_I8:   { printf("I8\n");   break; }
+        case TYPE_I16:  { printf("I16\n");  break; }
+        case TYPE_I32:  { printf("I32\n");  break; }
+        case TYPE_I64:  { printf("I64\n");  break; }
+        case TYPE_F32:  { printf("F32\n");  break; }
+        case TYPE_F64:  { printf("F64\n");  break; }
+        case TYPE_IDENTIFIER:
+        {
+            print_identifier(level + 1, &type->data.identifier);
+            break;
+        }
+        case TYPE_PTR:
+        {
+            print(level, "PTR:\n");
+            print_type(level + 1, type->data.pointer);
+            break;
+        }
+        case TYPE_FUNC_PTR:
+        {
+            print(level, "FUNC PTR:\n");
+            print(level + 1, "TYPE:\n");
+            print_type(level + 2, type->data.func_ptr.ret_type);
+            break;
+        }
+        case TYPE_ARRAY:
+        {
+            print(level, "ARRAY:\n");
+            print(level + 1, "TYPE:\n");
+            print_type(level + 2, type->data.array.elements);
+            print(level + 1, "SIZE:\n");
+            print_expr(level + 2, type->data.array.size);
+            break;
+        }
+    }
+}
+
+void print_function_decl(unsigned int level, Function* func)
+{
+    print(level, "DECL:\n");
+    print(level + 1, "TYPE:\n");
+    print_type(level + 2, func->ret_type);
+    print(level + 1, "PARAMS:\n");
+    print_parameter_list(level + 2, &func->parameters);
+}
+
+void print_function_def(unsigned int level, Function* func)
+{
+
+}
+
+void print_statement(unsigned int level, Statement* stmt)
 {
     switch (stmt->type)
     {
+        case STMT_FUNCTION_DECL: { print_function_decl(level, stmt->data.function); break; }
+        case STMT_FUNCTION_DEF:  { print_function_def(level, stmt->data.function);  break; }
         default:
         {
-            print(level, "unknown\n");
+            print(level, "UNKNOWN\n");
         }
     }
 }
@@ -134,6 +231,6 @@ void print_ast(const AST& ast)
 {
     for (List<Statement>::Element* it = ast.statements.head; it != nullptr; it = it->next)
     {
-        print_statement(it->ptr, 0);
+        print_statement(0, it->ptr);
     }
 }

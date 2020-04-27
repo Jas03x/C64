@@ -94,11 +94,9 @@ enum TYPE
     TYPE_F32        = 0x0A,
     TYPE_F64        = 0x0B,
     TYPE_PTR        = 0x0C,
-    TYPE_COMPOSITE  = 0x0D,
-    TYPE_ENUMERATOR = 0x0E,
-	TYPE_FUNCTION_POINTER     = 0x0F,
-    TYPE_CONSTANT_SIZED_ARRAY = 0x10,
-    TYPE_VARIABLE_SIZED_ARRAY = 0x11
+    TYPE_ARRAY      = 0x0D,
+    TYPE_IDENTIFIER = 0x0E,
+	TYPE_FUNC_PTR   = 0x0F
 };
 
 enum COMPOSITE_TYPE
@@ -164,8 +162,6 @@ struct Type
 
     union
     {
-        Enumerator* enumerator;
-        Composite*  composite;
         strptr      identifier;
         Type*       pointer;
 

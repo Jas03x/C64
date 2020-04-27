@@ -623,7 +623,13 @@ bool Tokenizer::tokenize(FILE* file, TokenStack* stack)
 				}
 			}
 		}
-		
+	}
+
+	// append EOF token
+	if (status)
+	{
+		const Token eof = { TK_EOF, {} };
+		stack->push(eof);
 	}
 
 	return status;

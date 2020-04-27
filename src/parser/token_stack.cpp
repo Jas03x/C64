@@ -8,11 +8,14 @@ TokenStack::TokenStack()
 #include <debug.hpp>
 const Token& TokenStack::pop()
 {
-    Token tk = m_tokens[m_position++];
+    Token tk = m_tokens[m_position];
+    if (m_position < m_tokens.size() - 1)
+    {
+        m_position++;
+    }
     printf("consume: ");
     print_token(tk);
     return tk;
-    //return m_tokens[m_position++];
 }
 
 const Token& TokenStack::peek()

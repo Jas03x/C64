@@ -196,8 +196,8 @@ bool Parser::parse_identifier(strptr* id)
 bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* stmt)
 {
     uint8_t type = 0;
-    List<Parameter>  params;
-    List<Statement> body;
+    List<Parameter> params = {};
+    List<Statement> body = {};
 
     expect(TK_OPEN_ROUND_BRACKET);
     
@@ -291,10 +291,18 @@ bool Parser::parse_function_body(List<Statement>* body)
 
     while(m_status)
     {
-        Statement* stmt = nullptr;
-        if(parse_statement(&stmt))
+        if (accept(TK_CLOSE_CURLY_BRACKET))
         {
-            body->insert(stmt);
+            m_stack->pop();
+            break;
+        }
+        else
+        {
+            Statement* stmt = nullptr;
+            if (parse_statement(&stmt))
+            {
+                body->insert(stmt);
+            }
         }
     }
 
@@ -307,6 +315,10 @@ bool Parser::parse_statement(Statement** ptr)
     {
         case TK_RETURN:     { parse_return_statement(ptr); break; }
         case TK_IDENTIFIER: { parse_expression(ptr);       break; }
+        default:
+        {
+            error(ERROR_UNEXPECTED_TOKEN);
+        }
     }
 
     return m_status;
@@ -345,6 +357,14 @@ bool Parser::parse_expression(Statement** ptr)
     Expression* expr = nullptr;
     if(parse_expression(&expr))
     {
+        if (expect(TK_SEMICOLON))
+        {
+            Statement* stmt = new Statement();
+            stmt->type = STMT_EXPR;
+            stmt->data.expr = expr;
+
+            *ptr = stmt;
+        }
     }
     return m_status;
 }
@@ -382,11 +402,19 @@ Expression* Parser::process_expr_operand(ExpressionStack* stack)
         }
         else
         {
-            while (stack->peek()->type == EXPR_FUNCTION_CALL)
+            while (m_status)
             {
-                Expression* func_call = stack->pop();
-                func_call->data.function_call.function = operand;
-                operand = func_call;
+                Expression* look_ahead = stack->peek();
+                if ((look_ahead != nullptr) && (look_ahead->type == EXPR_FUNCTION_CALL))
+                {
+                    Expression* func_call = stack->pop();
+                    func_call->data.function_call.function = operand;
+                    operand = func_call;
+                }
+                else
+                {
+                    break;
+                }
             }
         }
     }
@@ -478,9 +506,8 @@ bool Parser::parse_expression(Expression** ptr)
 
         if (m_status)
         {
-            if (accept(TK_SEMICOLON))
+            if (accept(TK_SEMICOLON) || accept(TK_CLOSE_ROUND_BRACKET))
             {
-                m_stack->pop();
                 break;
             }
             else
@@ -518,7 +545,7 @@ bool Parser::parse_expr_args(Expression** ptr)
 {
     expect(TK_OPEN_ROUND_BRACKET);
 
-    List<Expression> args;
+    List<Expression> args = {};
 
     while(m_status)
     {
