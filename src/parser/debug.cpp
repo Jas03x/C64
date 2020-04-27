@@ -9,9 +9,9 @@ void indent(unsigned int level)
     if (level > 0)
     {
         for (unsigned int i = 0; i < level - 1; i++) {
-            printf("       ");
+            printf("  |    ");
         }
-        printf("   |--> ");
+        printf("  |--> ");
     }
 }
 
@@ -128,7 +128,10 @@ void print_expr(unsigned int level, Expression* expr)
 
 void print_parameter(unsigned int level, const Parameter* param)
 {
-
+    print(level, "NAME:\n");
+    print_identifier(level + 1, &param->name);
+    print(level, "TYPE:\n");
+    print_type(level + 1, param->type);
 }
 
 void print_parameter_list(unsigned int level, const List<Parameter>* list)
@@ -142,7 +145,14 @@ void print_parameter_list(unsigned int level, const List<Parameter>* list)
 
 void print_identifier(unsigned int level, const strptr* id)
 {
-    print(level, "%.*s\n", id->len, id->ptr);
+    if(id->len > 0)
+    {
+        print(level, "%.*s\n", id->len, id->ptr);
+    }
+    else
+    {
+        print(level, "NULL\n");
+    }
 }
 
 void print_type(unsigned int level, Type* type)
@@ -177,20 +187,20 @@ void print_type(unsigned int level, Type* type)
         }
         case TYPE_PTR:
         {
-            print(level, "PTR:\n");
+            printf("PTR:\n");
             print_type(level + 1, type->data.pointer);
             break;
         }
         case TYPE_FUNC_PTR:
         {
-            print(level, "FUNC PTR:\n");
+            printf("FUNC PTR:\n");
             print(level + 1, "TYPE:\n");
             print_type(level + 2, type->data.func_ptr.ret_type);
             break;
         }
         case TYPE_ARRAY:
         {
-            print(level, "ARRAY:\n");
+            printf("ARRAY:\n");
             print(level + 1, "TYPE:\n");
             print_type(level + 2, type->data.array.elements);
             print(level + 1, "SIZE:\n");
@@ -205,7 +215,7 @@ void print_function_decl(unsigned int level, Function* func)
     print(level, "DECL:\n");
     print(level + 1, "TYPE:\n");
     print_type(level + 2, func->ret_type);
-    print(level + 1, "PARAMS:\n");
+    print(level + 1, "PARAMETERS:\n");
     print_parameter_list(level + 2, &func->parameters);
 }
 

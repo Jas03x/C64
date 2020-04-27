@@ -6,7 +6,7 @@ TokenStack::TokenStack()
 }
 
 #include <debug.hpp>
-const Token& TokenStack::pop()
+Token TokenStack::pop()
 {
     Token tk = m_tokens[m_position];
     if (m_position < m_tokens.size() - 1)
@@ -18,7 +18,7 @@ const Token& TokenStack::pop()
     return tk;
 }
 
-const Token& TokenStack::peek()
+Token TokenStack::peek()
 {
     return m_tokens[m_position];
 }

@@ -20,8 +20,8 @@ public:
     void insert_identifier(const strptr& ptr);
     const char* find_identifier(const strptr& ptr);
 
-    const Token& pop();
-    const Token& peek();
+    Token pop();
+    Token peek();
     
     void push(const Token& tk);
 

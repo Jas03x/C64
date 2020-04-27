@@ -34,6 +34,10 @@ $(EXE): $(ROOT_OBJECTS) $(UTIL_OBJECTS) $(PARSER_OBJECTS)
 test:
 	$(BIN)/$(EXE) ./test/hello_world.c
 
+.PHONY: debug
+debug:
+	lldb $(BIN)/$(EXE)
+
 .PHONY: clean
 clean:
 	/bin/rm -f $(BIN)/*.o

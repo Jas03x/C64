@@ -8,6 +8,14 @@
 #include <ast.hpp>
 #include <token.hpp>
 
+void print_expr(unsigned int level, Expression* expr);
+void print_parameter_list(unsigned int level, const List<Parameter>* list);
+void print_identifier(unsigned int level, const strptr* id);
+void print_type(unsigned int level, Type* type);
+void print_function_decl(unsigned int level, Function* func);
+void print_function_def(unsigned int level, Function* func);
+void print_statement(unsigned int level, Statement* stmt);
+
 void print_token(const Token& tk);
 void print_ast(const AST& ast);
 
