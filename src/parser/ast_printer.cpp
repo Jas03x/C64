@@ -44,7 +44,20 @@ void AST_Printer::print_statment(unsigned int indent, const Statement* stmt)
             print_function_decl(indent, stmt->data.function);
             break;
         }
+        case STMT_EXPR:
+        {
+            print("EXPR:\n");
+            print_expr_stmt(indent, stmt);
+            break;
+        }
     }
+}
+
+void AST_Printer::print_expr_stmt(unsigned int indent, const Statement* stmt)
+{
+    m_tab_stack.push_back(indent);
+    print_expr(TAB::LINE, stmt->data.expr);
+    m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_body(const List<Statement>* body)
@@ -57,7 +70,32 @@ void AST_Printer::print_body(const List<Statement>* body)
 
 void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
 {
+    switch(expr->type)
+    {
+        case EXPR_FUNCTION_CALL:
+        {
+            print("FUNC CALL:\n");
+            print_func_call(TAB::LINE, &expr->data.func_call);
+            break;
+        }
+    }
+}
 
+void AST_Printer::print_func_call(unsigned int indent, const Expression::Func_Call* f_call)
+{
+    m_tab_stack.push_back(indent);
+
+    print("FUNCTION:\n");
+    print_expr(TAB::SPACE, f_call->function);
+
+    print("ARGUMENTS:\n");
+    for(List<Expression>::Element* it = f_call->arguments.head; it != nullptr; it = it->next)
+    {
+        print("ARG");
+        print_expr(TAB::LINE, it->ptr);
+    }
+
+    m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_parameter(unsigned int indent, const Function::Parameter* param)

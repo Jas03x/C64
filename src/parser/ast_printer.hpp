@@ -25,8 +25,12 @@ private:
     void print_body(const List<Statement>* body);
     void print_statment(unsigned int indent, const Statement* stmt);
 
-    void print_array(unsigned int indent, const Type::Array* array);
+    void print_expr_stmt(unsigned int indent, const Statement* stmt);
+
     void print_expr(unsigned int indent, const Expression* expr);
+    void print_func_call(unsigned int indent, const Expression::Func_Call* expr);
+
+    void print_array(unsigned int indent, const Type::Array* array);
     void print_parameter(unsigned int indent, const Function::Parameter* param);
     void print_parameter_list(unsigned int indent, const List<Function::Parameter>* list);
     void print_identifier(unsigned int indent, const strptr* id);
