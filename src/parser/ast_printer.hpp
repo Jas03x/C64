@@ -23,7 +23,7 @@ private:
     void print(const char* format, ...);
 
     void print_body(const List<Statement>* body);
-    void print_statment(unsigned int statement, const Statement* stmt);
+    void print_statment(unsigned int indent, const Statement* stmt);
 
     void print_array(unsigned int indent, const Type::Array* array);
     void print_expr(unsigned int indent, const Expression* expr);
