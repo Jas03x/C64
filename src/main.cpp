@@ -4,8 +4,8 @@
 #include "tokenizer.hpp"
 
 #include <parser.hpp>
-
 #include <debug.hpp>
+#include <ast_printer.hpp>
 
 bool process(const char* path)
 {
@@ -23,7 +23,7 @@ bool process(const char* path)
         AST* ast = Parser::Parse(token_stack);
         if(ast != nullptr)
         {
-            print_ast(*ast);
+            AST_Printer::Print(ast);
         }
         else
         {

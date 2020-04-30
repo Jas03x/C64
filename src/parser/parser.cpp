@@ -114,7 +114,7 @@ bool Parser::parse_definition(Statement* stmt)
 bool Parser::parse_type(Type** ptr)
 {
     uint8_t data_type = 0;
-    TypeFlags flags = {};
+    Type::Flags flags = {};
 
     while (m_status)
     {
@@ -160,7 +160,7 @@ bool Parser::parse_type(Type** ptr)
     {
         Type* type = new Type();
         type->type = data_type;
-        type->flags = flags;
+        // type->flags = flags;
 
         while(accept(TK_ASTERISK))
         {
@@ -172,6 +172,7 @@ bool Parser::parse_type(Type** ptr)
             type = type_ptr;
         }
 
+        type->flags = flags;
         *ptr = type;
     }
 
@@ -196,7 +197,7 @@ bool Parser::parse_identifier(strptr* id)
 bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* stmt)
 {
     uint8_t type = 0;
-    List<Parameter> params = {};
+    List<Function::Parameter> params = {};
     List<Statement> body = {};
 
     expect(TK_OPEN_ROUND_BRACKET);
@@ -205,7 +206,7 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
     {
         while(m_status)
         {
-            Parameter* param = nullptr;
+            Function::Parameter* param = nullptr;
             if(parse_parameter(&param))
             {
                 params.insert(param);
@@ -260,7 +261,7 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
     return m_status;
 }
 
-bool Parser::parse_parameter(Parameter** ptr)
+bool Parser::parse_parameter(Function::Parameter** ptr)
 {
     strptr name = {};
     Type* type = nullptr;
@@ -275,7 +276,7 @@ bool Parser::parse_parameter(Parameter** ptr)
 
     if(m_status)
     {
-        Parameter* param = new Parameter();
+        Function::Parameter* param = new Function::Parameter();
         param->name = name;
         param->type = type;
 
@@ -408,7 +409,7 @@ Expression* Parser::process_expr_operand(ExpressionStack* stack)
                 if ((look_ahead != nullptr) && (look_ahead->type == EXPR_FUNCTION_CALL))
                 {
                     Expression* func_call = stack->pop();
-                    func_call->data.function_call.function = operand;
+                    func_call->data.func_call.function = operand;
                     operand = func_call;
                 }
                 else
@@ -570,7 +571,7 @@ bool Parser::parse_expr_args(Expression** ptr)
     {
         Expression* expr = new Expression();
         expr->type = EXPR_FUNCTION_CALL;
-        expr->data.function_call.arguments = args;
+        expr->data.func_call.arguments = args;
 
         *ptr = expr;
     }

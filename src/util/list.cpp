@@ -29,6 +29,6 @@ void List<T>::insert(T* ptr)
 
 // instantiate the template for whatever classes use it
 template class List<Statement>;
-template class List<Parameter>;
 template class List<Expression>;
+template class List<Function::Parameter>;
 

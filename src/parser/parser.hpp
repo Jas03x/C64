@@ -31,7 +31,7 @@ private:
     bool parse_identifier(strptr* id);
     bool parse_definition(Statement* stmt);
     bool parse_statement(Statement** ptr);
-    bool parse_parameter(Parameter** ptr);
+    bool parse_parameter(Function::Parameter** ptr);
     bool parse_global_statement(Statement* stmt);
     bool parse_function_body(List<Statement>* body);
     bool parse_return_statement(Statement** ptr);

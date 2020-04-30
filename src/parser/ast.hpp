@@ -130,175 +130,179 @@ struct Enumerator
     List<Value> values;
 };
 
-struct Parameter
-{
-    strptr name;
-    Type*  type;
-};
-
 struct Function
 {
+    struct Parameter
+    {
+        strptr name;
+        Type*  type;
+    };
+
     strptr name;
     Type*  ret_type;
     List<Parameter> parameters;
     List<Statement> body;
 };
 
-union TypeFlags
-{
-    struct
-    {
-        unsigned int is_constant        : 1;
-        unsigned int is_external_symbol : 1;
-    } bits;
-
-    uint8_t all;
-};
-
 struct Type
 {
+    union Flags
+    {
+        struct
+        {
+            unsigned int is_constant        : 1;
+            unsigned int is_external_symbol : 1;
+        } bits;
+
+        uint8_t all;
+    };
+
+    struct Array
+    {
+        Expression* size;
+        Type* elements;
+    };
+
+    struct Func_Ptr
+    {
+        Type* ret_type;
+		List<Function::Parameter> parameters;
+    };
+
     uint8_t type;
-    TypeFlags flags;
+    Flags flags;
 
     union
     {
-        strptr      identifier;
-        Type*       pointer;
-
-        struct
-        {
-            Expression* size;
-            Type*   elements;
-        } array;
-
-		struct
-		{
-			Type*  ret_type;
-			List<Parameter> parameters;
-		} func_ptr;
+        strptr    identifier;
+        Type*     pointer;
+        Array*    array;
+		Func_Ptr* func_ptr;
     } data;
 };
 
 struct Expression
 {
+    struct Operation
+    {
+        uint8_t op;
+        Expression* lhs;
+        Expression* rhs;
+    };
+
+    struct Cast
+    {
+        Type* type;
+        Expression* expr;
+    };
+
+    struct Func_Call
+    {
+        Expression* function;
+        List<Expression> arguments;
+    };
+
     uint8_t type;
 
     union
     {
-        Literal     literal;
+        Cast       cast;
+        strptr     identifier;
+        Literal    literal;
+        Operation  operation;
+		Func_Call  func_call;
+
         Expression* sub_expr;
-		strptr      identifier;
         List<Expression*> initializer;
-
-        struct
-        {
-            uint8_t op;
-			union
-			{
-				struct
-				{
-					Expression* lhs;
-					Expression* rhs;
-				};
-			};
-        } operation;
-		
-		struct
-		{
-			Type* type;
-			Expression* expr;
-		} cast;
-
-		struct
-		{
-			Expression* function;
-			List<Expression> arguments;
-		} function_call;
     } data;
 };
 
 struct Statement
 {
+    struct Variable
+    {
+        strptr      name;
+        Type*       type;
+        Expression* value;
+    };
+
+    struct CondExec
+    {
+        Expression* condition;
+        Statement*  on_true;
+        Statement*  on_false;
+    };
+
+    struct WhileLoop
+    {
+        Expression* condition;
+        Statement*  body;
+    };
+
+    struct ForLoop
+    {
+        Statement*  variable;
+        Expression* condition;
+        Expression* step;
+        Statement*  body;
+    };
+    
+    struct TypeDef
+    {
+        strptr  name;
+        Type*   variable;
+    };
+
+    struct Return
+    {
+        Expression* expression;
+    };
+
+    struct Goto
+    {
+        strptr target;
+    };
+
+    struct Switch
+    {
+        Expression* expr;
+        Statement*  body;
+    };
+
+    struct Case
+    {
+        Expression* value;
+    };
+
+    struct Label
+    {
+        strptr name;
+    };
+
     uint8_t type;
 
     union
     {
         Expression* expr;
         Function*   function;
-        Composite*  composite;
-        Enumerator* enumerator;
-
-        struct
-        {
-            strptr      name;
-            Type*       type;
-            Expression* value;
-        } variable_decl;
-
-        struct
-        {
-            Expression* condition;
-            List<Statement> body;
-            
-            Statement*  else_stmt;
-        } if_stmt;
-
-        struct
-        {
-            List<Statement> body;
-        } else_stmt;
-
-        struct
-        {
-            Expression* condition;
-            List<Statement> body;
-        } while_stmt;
-
-        struct
-        {
-            Statement*  variable;
-            Expression* condition;
-            Expression* step;
-            List<Statement> body;
-        } for_stmt;
-
-        struct
-        {
-            List<Statement> statements;
-        } compound_stmt;
-
-        struct
-        {
-            strptr  name;
-            Type*   variable;
-        } type_def;
-
-        struct
-        {
-            Expression* expression;
-        } ret_stmt;
-
-        struct
-        {
-            strptr target;
-        } goto_stmt;
-
-        struct
-        {
-            Expression* expr;
-            Statement*  body;
-        } switch_stmt;
-
-        struct
-        {
-            Expression* value;
-        } case_stmt;
-
-        struct
-        {
-            strptr name;
-        } label;
+        Composite   composite;
+        Enumerator  enumerator;
+        Variable    variable;
+        CondExec    cond_exec;
+        WhileLoop   while_loop;
+        ForLoop     for_loop;
+        TypeDef     type_def;
+        Return      ret_stmt;
+        Case        case_stmt;
+        Goto        goto_stmt;
+        Switch      switch_stmt;
+        Label       label;
     } data;
+};
+
+struct CompoundStatement
+{
+    List<Statement> statements;
 };
 
 struct AST
