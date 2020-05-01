@@ -2,6 +2,8 @@
 
 #include <stdarg.h>
 
+#include <ascii.hpp>
+
 const char* TAB_STR[] =
 {
     "     ",
@@ -80,7 +82,7 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
         case EXPR_FUNCTION_CALL:
         {
             print("FUNC CALL:\n");
-            print_func_call(TAB::LINE, &expr->data.func_call);
+            print_func_call(TAB::SPACE, &expr->data.func_call);
             break;
         }
         case EXPR_LITERAL:
@@ -123,7 +125,17 @@ void AST_Printer::print_literal(unsigned int indent, const Literal* literal)
         }
         case LITERAL_STRING:
         {
-            print("STRING: %.*s\n", literal->data.string.len, literal->data.string.ptr);
+            print("STRING: \"");
+            for (unsigned int i = 0; i < literal->data.string.len; i++)
+            {
+                char c = literal->data.string.ptr[i];
+                if (IS_ALPHA_NUM(c) || (c == ' ')) {
+                    putchar(c);
+                } else {
+                    printf("'0x%hhX'", c);
+                }
+            }
+            printf("\"\n");
             break;
         }
     }
@@ -136,7 +148,7 @@ void AST_Printer::print_func_call(unsigned int indent, const Expression::Func_Ca
     m_tab_stack.push_back(indent);
 
     print("FUNCTION:\n");
-    print_expr(TAB::SPACE, f_call->function);
+    print_expr(TAB::LINE, f_call->function);
 
     print("ARGUMENTS:\n");
     m_tab_stack.push_back(TAB::SPACE);
