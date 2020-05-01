@@ -59,12 +59,16 @@ void AST_Printer::print_statment(unsigned int indent, const Statement* stmt)
     }
 }
 
-void AST_Printer::print_body(const List<Statement>* body)
+void AST_Printer::print_body(unsigned int indent, const List<Statement>* body)
 {
+    m_tab_stack.push_back(indent);
+
     for(List<Statement>::Element* it = body->head; it != nullptr; it = it->next)
     {
         print_statment((it->next == nullptr) ? TAB::SPACE : TAB::LINE, it->ptr);
     }
+
+    m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
@@ -87,7 +91,8 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
         }
         case EXPR_IDENTIFIER:
         {
-            print_identifier(&expr->data.identifier);
+            print("EXPR:\n");
+            print_identifier(TAB::SPACE, &expr->data.identifier);
             break;
         }
     }
@@ -138,7 +143,7 @@ void AST_Printer::print_func_call(unsigned int indent, const Expression::Func_Ca
     for(List<Expression>::Element* it = f_call->arguments.head; it != nullptr; it = it->next)
     {
         print("ARG\n");
-        print_expr(TAB::LINE, it->ptr);
+        print_expr((it->next == nullptr) ? TAB::SPACE : TAB::LINE, it->ptr);
     }
 
     m_tab_stack.pop_back();
@@ -169,17 +174,20 @@ void AST_Printer::print_parameter_list(unsigned int indent, const List<Function:
     m_tab_stack.pop_back();
 }
 
-void AST_Printer::print_identifier(const strptr* id)
+void AST_Printer::print_identifier(unsigned int indent, const strptr* id)
 {
-    print("IDENTIFIER: ");
+    m_tab_stack.push_back(indent);
+
     if(id->len > 0)
     {
-        printf("%.*s\n", id->len, id->ptr);
+        print("IDENTIFIER: %.*s\n", id->len, id->ptr);
     }
     else
     {
-        printf("NULL\n");
+        print("IDENTIFIER: NULL\n");
     }
+
+    m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_array(unsigned int indent, const Type::Array* array)
@@ -240,9 +248,7 @@ void AST_Printer::print_type(unsigned int indent, const Type* type)
         case TYPE_IDENTIFIER:
         {
             print("TYPE:\n");
-            m_tab_stack.push_back(TAB::SPACE);
-            print_identifier(&type->data.identifier);
-            m_tab_stack.pop_back();
+            print_identifier(TAB::SPACE, &type->data.identifier);
             break;
         }
         case TYPE_PTR:
@@ -295,10 +301,8 @@ void AST_Printer::print_function_def(unsigned int indent, const Function* func)
     print_parameter_list(TAB::LINE, &func->parameters);
 
     print("BODY:\n");
-    m_tab_stack.push_back(TAB::SPACE);
-    print_body(&func->body);
+    print_body(TAB::SPACE, &func->body);
 
-    m_tab_stack.pop_back();
     m_tab_stack.pop_back();
 }
 
@@ -307,5 +311,8 @@ void AST_Printer::Print(const AST* ast)
     AST_Printer printer;
 
     printf("AST:\n");
-    printer.print_body(&ast->statements);
+    for (List<Statement>::Element* it = ast->statements.head; it != nullptr; it = it->next)
+    {
+        printer.print_statment((it->next == nullptr) ? TAB::SPACE : TAB::LINE, it->ptr);
+    }
 }

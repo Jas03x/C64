@@ -22,8 +22,8 @@ private:
 
     void print(const char* format, ...);
 
-    void print_identifier(const strptr* id);
-    void print_body(const List<Statement>* body);
+    void print_identifier(unsigned int indent, const strptr* id);
+    void print_body(unsigned int indent, const List<Statement>* body);
 
     void print_statment(unsigned int indent, const Statement* stmt);
 
