@@ -87,6 +87,7 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\parser\ast.cpp" />
+    <ClCompile Include="src\parser\ast_printer.cpp" />
     <ClCompile Include="src\parser\debug.cpp" />
     <ClCompile Include="src\parser\expression_stack.cpp" />
     <ClCompile Include="src\parser\parser.cpp" />
@@ -104,6 +105,7 @@
     <ClInclude Include="src\inc\ascii.hpp" />
     <ClInclude Include="src\inc\literal.hpp" />
     <ClInclude Include="src\parser\ast.hpp" />
+    <ClInclude Include="src\parser\ast_printer.hpp" />
     <ClInclude Include="src\parser\debug.hpp" />
     <ClInclude Include="src\parser\expression_stack.hpp" />
     <ClInclude Include="src\parser\parser.hpp" />

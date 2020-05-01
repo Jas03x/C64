@@ -26,11 +26,19 @@ bool ExpressionStack::is_empty()
 
 Expression* ExpressionStack::peek()
 {
-    return m_index < m_length ? (*m_buffer)[m_index] : nullptr;
+    return m_index < m_length ? (*m_buffer)[m_start + m_index] : nullptr;
 }
 
 Expression* ExpressionStack::pop()
 {
-    return m_index < m_length ? (*m_buffer)[m_index++] : nullptr;
+    Expression* expr = nullptr;
+
+    if (m_index < m_length)
+    {
+        expr = (*m_buffer)[m_start + m_index];
+        m_index++;
+    }
+
+    return expr;
 }
 

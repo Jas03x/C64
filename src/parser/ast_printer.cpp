@@ -47,17 +47,16 @@ void AST_Printer::print_statment(unsigned int indent, const Statement* stmt)
         case STMT_EXPR:
         {
             print("EXPR:\n");
-            print_expr_stmt(indent, stmt);
+            print_expr(indent, stmt->data.expr);
+            break;
+        }
+        case STMT_RETURN:
+        {
+            print("RETURN:\n");
+            print_expr(indent, stmt->data.ret_stmt.expression);
             break;
         }
     }
-}
-
-void AST_Printer::print_expr_stmt(unsigned int indent, const Statement* stmt)
-{
-    m_tab_stack.push_back(indent);
-    print_expr(TAB::LINE, stmt->data.expr);
-    m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_body(const List<Statement>* body)
@@ -70,6 +69,8 @@ void AST_Printer::print_body(const List<Statement>* body)
 
 void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
 {
+    m_tab_stack.push_back(indent);
+
     switch(expr->type)
     {
         case EXPR_FUNCTION_CALL:
@@ -78,7 +79,51 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
             print_func_call(TAB::LINE, &expr->data.func_call);
             break;
         }
+        case EXPR_LITERAL:
+        {
+            print("LITERAL:\n");
+            print_literal(TAB::SPACE, &expr->data.literal);
+            break;
+        }
+        case EXPR_IDENTIFIER:
+        {
+            print_identifier(&expr->data.identifier);
+            break;
+        }
     }
+
+    m_tab_stack.pop_back();
+}
+
+void AST_Printer::print_literal(unsigned int indent, const Literal* literal)
+{
+    m_tab_stack.push_back(indent);
+
+    switch (literal->type)
+    {
+        case LITERAL_INTEGER:
+        {
+            print("INTEGER: %llu\n", literal->data.integer_value);
+            break;
+        }
+        case LITERAL_FLOAT:
+        {
+            print("FLOAT: %f\n", literal->data.float_value);
+            break;
+        }
+        case LITERAL_CHAR:
+        {
+            print("CHAR: '%c'\n", literal->data.character);
+            break;
+        }
+        case LITERAL_STRING:
+        {
+            print("STRING: %.*s\n", literal->data.string.len, literal->data.string.ptr);
+            break;
+        }
+    }
+
+    m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_func_call(unsigned int indent, const Expression::Func_Call* f_call)
@@ -89,12 +134,14 @@ void AST_Printer::print_func_call(unsigned int indent, const Expression::Func_Ca
     print_expr(TAB::SPACE, f_call->function);
 
     print("ARGUMENTS:\n");
+    m_tab_stack.push_back(TAB::SPACE);
     for(List<Expression>::Element* it = f_call->arguments.head; it != nullptr; it = it->next)
     {
-        print("ARG");
+        print("ARG\n");
         print_expr(TAB::LINE, it->ptr);
     }
 
+    m_tab_stack.pop_back();
     m_tab_stack.pop_back();
 }
 
@@ -122,20 +169,17 @@ void AST_Printer::print_parameter_list(unsigned int indent, const List<Function:
     m_tab_stack.pop_back();
 }
 
-void AST_Printer::print_identifier(unsigned int indent, const strptr* id)
+void AST_Printer::print_identifier(const strptr* id)
 {
-    m_tab_stack.push_back(indent);
-
+    print("IDENTIFIER: ");
     if(id->len > 0)
     {
-        print("%.*s\n", id->len, id->ptr);
+        printf("%.*s\n", id->len, id->ptr);
     }
     else
     {
-        print("NULL\n");
+        printf("NULL\n");
     }
-
-    m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_array(unsigned int indent, const Type::Array* array)
@@ -195,8 +239,10 @@ void AST_Printer::print_type(unsigned int indent, const Type* type)
         case TYPE_F64:  { print("TYPE: F64\n");  break; }
         case TYPE_IDENTIFIER:
         {
-            print("TYPE: IDENTIFIER\n");
-            print_identifier(TAB::LINE, &type->data.identifier);
+            print("TYPE:\n");
+            m_tab_stack.push_back(TAB::SPACE);
+            print_identifier(&type->data.identifier);
+            m_tab_stack.pop_back();
             break;
         }
         case TYPE_PTR:

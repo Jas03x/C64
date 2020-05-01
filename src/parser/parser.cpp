@@ -471,7 +471,7 @@ Expression* Parser::process_expression(ExpressionStack* stack, Expression* lhs, 
         }
     }
 
-    return lhs;
+    return expr;
 }
 
 bool Parser::parse_expression(Expression** ptr)
@@ -524,7 +524,7 @@ bool Parser::parse_expression(Expression** ptr)
 
     if(m_status)
     {
-        process_expression(&stack, nullptr, 0);
+        *ptr = process_expression(&stack, nullptr, 0);
     }
 
     return m_status;

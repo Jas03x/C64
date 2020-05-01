@@ -61,6 +61,9 @@
     <ClCompile Include="src\parser\expression_stack.cpp">
       <Filter>src\parser</Filter>
     </ClCompile>
+    <ClCompile Include="src\parser\ast_printer.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\inc\literal.hpp">
@@ -97,6 +100,9 @@
       <Filter>src\util</Filter>
     </ClInclude>
     <ClInclude Include="src\parser\expression_stack.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\ast_printer.hpp">
       <Filter>src\parser</Filter>
     </ClInclude>
   </ItemGroup>
