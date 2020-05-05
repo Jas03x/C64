@@ -1,64 +1,52 @@
 #include <token_stack.hpp>
 
-#include <debug.hpp>
-
 TokenStack::TokenStack()
 {
-    m_index = 0;
+    m_position = 0;
+}
+
+#include <debug.hpp>
+Token TokenStack::pop()
+{
+    Token tk = m_tokens[m_position];
+    if (m_position < m_tokens.size() - 1)
+    {
+        m_position++;
+    }
+    printf("consume: ");
+    print_token(tk);
+    return tk;
+}
+
+Token TokenStack::peek()
+{
+    return m_tokens[m_position];
 }
 
 void TokenStack::push(const Token& tk)
 {
-    m_stack.push_back(tk);
+    m_tokens.push_back(tk);
 }
 
-Token TokenStack::pop()
+void TokenStack::insert_identifier(const strptr& ptr)
 {
-    Token tk = { TK_INVALID };
-    if(m_index < m_stack.size())
-    {
-        tk = m_stack[m_index++];
-    }
-
-    printf("POP: %s", token_to_str(tk));
-    switch(tk.type)
-    {
-        case TK_IDENTIFIER:
-        {
-            printf(" - %.*s\n", tk.identifier.string.len, tk.identifier.string.ptr);
-            break;
-        }
-        case TK_LITERAL:
-        {
-            switch(tk.literal.type)
-            {
-                case LITERAL_INTEGER: { printf(" - integer = %llu\n", tk.literal.integer.value); break; }
-                case LITERAL_DECIMAL: { printf(" - decimal = %f\n",   tk.literal.decimal.value); break; }
-                case LITERAL_CHAR:    { printf(" - char = %hhu\n",    tk.literal.character);     break; }
-                case LITERAL_STRING:  { printf(" - string = \"%.*s\"\n",  tk.literal.string.len, tk.literal.string.ptr); break; }
-                default:              { printf(" - invalid\n"); }
-            }
-            break;
-        }
-        default: { printf("\n"); break; }
-    }
-
-    return tk;
+    m_identifier_set[ptr] = ptr;
 }
 
-Token TokenStack::peek(unsigned int offset)
+const char* TokenStack::find_identifier(const strptr& ptr)
 {
-    Token tk = { TK_INVALID };
-    if(m_index + offset < m_stack.size())
+    const char* str = nullptr;
+
+    std::map<strptr, strptr>::const_iterator it = m_identifier_set.find(ptr);
+    if(it != m_identifier_set.end())
     {
-        tk = m_stack[m_index + offset];
+        str = it->second.ptr;
     }
-    
-    return tk;
+
+    return str;
 }
 
-void TokenStack::clear()
+const std::vector<Token>& TokenStack::get_tokens()
 {
-    m_index = 0;
-    m_stack.clear();
+    return m_tokens;
 }

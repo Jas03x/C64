@@ -4,54 +4,47 @@
 #include <string>
 
 #include <ast.hpp>
-#include <symbol_table.hpp>
 #include <token_stack.hpp>
-#include <expression_list.hpp>
 #include <expression_stack.hpp>
 
 class Parser
 {
 private:
-    SymbolTable    m_symbols;
-	TokenStack*    m_stack;
-	ExpressionList m_list;
+    bool m_status;
+	TokenStack* m_stack;
+
+    std::vector<Expression*> m_expr_stack;
 
 private:
-    Parser(TokenStack* stack);
-    
-    uint8_t scan_identifier();
+    Parser(TokenStack& stack);
 
-    // stmt:
-    bool parse_body(list& stmt_list);
-    bool parse_statement(list& stmt_list);    
-    bool parse_definition(list& stmt_list);
-    bool parse_declaration(list& stmt_list);
-    bool parse_expression(list& stmt_list);
-    bool parse_typedef(list& stmt_list);
-    bool parse_composite_definition(list& stmt_list);
-    bool parse_enumerator_definition(list& stmt_list);
-    bool parse_function_declaration(list& stmt_list, Variable* var, strptr name);
-    bool parse_variable_declaration(list& stmt_list, Variable* type, Variable* var, strptr name);
-    bool parse_namespace(list& stmt_list);
-    bool parse_if_statement(list& stmt_list);
-    bool parse_if_statement(Statement** ptr);
-    bool parse_return_statement(list& stmt_list);
+    void error(const char* format, ...);
 
-    // type:
-    bool parse_variable(Variable** var);
-    bool parse_variable_modifiers(VariableFlags& flags);
-    bool parse_composite(Composite** ptr);
-    bool parse_enumerator(Enumerator** ptr);
-    bool parse_pointer(Variable** ptr);
-    bool parse_array(Variable** ptr);
-    bool parse_identifier(Identifier** ptr);
-    bool parse_parameter(Parameter** ptr);
+    bool accept(uint8_t type);
+    bool expect(uint8_t type);
 
-    // expr:
+    unsigned int get_op_precedence(uint8_t op);
+    Expression* process_expr_operand(ExpressionStack* stack);
+    Expression* process_expression(ExpressionStack* stack, Expression* lhs, uint8_t min);
+
+    bool parse_type(Type** ptr);
+    bool parse_identifier(strptr* id);
+    bool parse_definition(Statement* stmt);
+    bool parse_statement(Statement** ptr);
+    bool parse_parameter(Function::Parameter** ptr);
+    bool parse_global_statement(Statement* stmt);
+    bool parse_function_body(List<Statement>* body);
+    bool parse_return_statement(Statement** ptr);
     bool parse_expression(Expression** ptr);
+    bool parse_expression(Statement** ptr);
+    bool parse_function_definition(Type* ret_type, strptr name, Statement* stmt);
+    bool parse_expr_literal(Expression** ptr);
+    bool parse_expr_identifier(Expression** ptr);
+    bool parse_expr_operator(Expression** ptr);
+    bool parse_expr_args(Expression** ptr);
 
 public:
-    static AST* Parse(TokenStack* stack);
+    static AST* Parse(TokenStack& stack);
 };
 
 #endif // PARSER_HPP

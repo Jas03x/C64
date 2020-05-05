@@ -37,8 +37,8 @@ enum TOKEN
     TK_CARET,
     TK_EXPLANATION_MARK,
     TK_AMPERSAND,
+    TK_VERTICAL_BAR,
     TK_PERCENT,
-    TK_NAMESPACE,
     TK_TYPE,
     TK_FOR,
     TK_WHILE,
@@ -72,7 +72,8 @@ enum
     TK_TYPE_I32     = 0x8,
     TK_TYPE_I64     = 0x9,
     TK_TYPE_F32     = 0xA,
-    TK_TYPE_F64     = 0xB
+    TK_TYPE_F64     = 0xB,
+    TK_TYPE_COUNT   = 0xC
 };
 
 struct Token
@@ -82,14 +83,9 @@ struct Token
     union
     {
         uint8_t subtype;
-
         Literal literal;
-
-        struct
-        {
-            strptr string;
-        } identifier;
-    };
+        strptr  identifier;
+    } data;
 };
 
 #endif // TOKEN_HPP

@@ -6,8 +6,6 @@
 
 #include <util/list.hpp>
 
-// forward declare some of the ast structures since they contain pointers to each other
-
 enum
 {
     EXPR_INVALID          = 0x0,
@@ -63,23 +61,22 @@ enum
     STMT_VARIABLE_DECL = 0x04,
     STMT_IF            = 0x05,
     STMT_ELSE          = 0x06,
-    STMT_RET           = 0x07,
+    STMT_RETURN        = 0x07,
     STMT_COMP_DEF      = 0x08,
     STMT_COMP_DECL     = 0x09,
     STMT_FOR           = 0x0A,
     STMT_WHILE         = 0x0B,
-    STMT_NAMESPACE     = 0x0C,
-    STMT_TYPEDEF       = 0x0D,
-    STMT_COMPOUND_STMT = 0x0E,
-    STMT_BREAK         = 0x0F,
-    STMT_CONTINUE      = 0x10,
-    STMT_GOTO          = 0x11,
-    STMT_SWITCH        = 0x12,
-    STMT_CASE          = 0x13,
-    STMT_LABEL         = 0x14,
-    STMT_DEFAULT_CASE  = 0x15,
-    STMT_ENUM_DEF      = 0x16,
-    STMT_ENUM_DECL     = 0x17
+    STMT_TYPEDEF       = 0x0C,
+    STMT_COMPOUND_STMT = 0x0D,
+    STMT_BREAK         = 0x0E,
+    STMT_CONTINUE      = 0x0F,
+    STMT_GOTO          = 0x10,
+    STMT_SWITCH        = 0x11,
+    STMT_CASE          = 0x12,
+    STMT_LABEL         = 0x13,
+    STMT_DEFAULT_CASE  = 0x14,
+    STMT_ENUM_DEF      = 0x15,
+    STMT_ENUM_DECL     = 0x16
 };
 
 enum TYPE
@@ -97,11 +94,9 @@ enum TYPE
     TYPE_F32        = 0x0A,
     TYPE_F64        = 0x0B,
     TYPE_PTR        = 0x0C,
-    TYPE_COMPOSITE  = 0x0D,
-    TYPE_ENUMERATOR = 0x0E,
-	TYPE_FUNCTION_POINTER     = 0x0F,
-    TYPE_CONSTANT_SIZED_ARRAY = 0x10,
-    TYPE_VARIABLE_SIZED_ARRAY = 0x11
+    TYPE_ARRAY      = 0x0D,
+    TYPE_IDENTIFIER = 0x0E,
+	TYPE_FUNC_PTR   = 0x0F
 };
 
 enum COMPOSITE_TYPE
@@ -111,20 +106,15 @@ enum COMPOSITE_TYPE
     COMP_TYPE_UNION   = 2
 };
 
-struct Variable;
 struct Expression;
-
-struct Identifier
-{
-	strptr      str;
-	Identifier* next;
-};
+struct Statement;
+struct Type;
 
 struct Composite
 {
     uint8_t type;
     strptr  name;
-    list    body;
+    List<Statement> body;
 };
 
 struct Enumerator
@@ -137,191 +127,189 @@ struct Enumerator
         Expression* value;
     };
 
-    list values;
-};
-
-struct Parameter
-{
-    strptr     name;
-    Variable*  type;
+    List<Value> values;
 };
 
 struct Function
 {
-    strptr     name;
-    Variable*  ret_type;
-    list       parameters;
-    list       body;
-};
-
-union VariableFlags
-{
-    struct
+    struct Parameter
     {
-        unsigned int is_constant         : 1;
-        unsigned int is_external_symbol  : 1;
+        strptr name;
+        Type*  type;
     };
 
-    uint8_t value;
+    strptr name;
+    Type*  ret_type;
+    List<Parameter> parameters;
+    List<Statement> body;
 };
 
-struct Variable
+struct Type
 {
+    union Flags
+    {
+        struct
+        {
+            unsigned int is_constant        : 1;
+            unsigned int is_external_symbol : 1;
+        } bits;
+
+        uint8_t all;
+    };
+
+    struct Array
+    {
+        Expression* size;
+        Type* elements;
+    };
+
+    struct Func_Ptr
+    {
+        Type* ret_type;
+		List<Function::Parameter> parameters;
+    };
+
     uint8_t type;
-    VariableFlags flags;
+    Flags flags;
 
     union
     {
-        Enumerator* enumerator;
-        Composite*  composite;
-        Identifier* identifier;
-        Variable*   pointer;
-
-        struct
-        {
-            Expression* size;
-            Variable*   elements;
-        } array;
-
-		struct
-		{
-			Variable*  ret_type;
-			list       parameters;
-		} func_ptr;
-    };
+        strptr    identifier;
+        Type*     pointer;
+        Array*    array;
+		Func_Ptr* func_ptr;
+    } data;
 };
 
 struct Expression
 {
+    struct Operation
+    {
+        uint8_t op;
+        Expression* lhs;
+        Expression* rhs;
+    };
+
+    struct Cast
+    {
+        Type* type;
+        Expression* expr;
+    };
+
+    struct Func_Call
+    {
+        Expression* function;
+        List<Expression> arguments;
+    };
+
     uint8_t type;
 
     union
     {
-        Literal     literal;
+        Cast       cast;
+        strptr     identifier;
+        Literal    literal;
+        Operation  operation;
+		Func_Call  func_call;
+
         Expression* sub_expr;
-		Identifier* identifier;
-        list        initializer;
-
-        struct
-        {
-            uint8_t     op;
-			union
-			{
-				struct
-				{
-					Expression* lhs;
-					Expression* rhs;
-				};
-			};
-        } operation;
-		
-		struct
-		{
-			Variable* type;
-			Expression* expr;
-		} cast;
-
-		struct
-		{
-			Expression* function;
-			list        arguments;
-		} call;
-    };
+        List<Expression*> initializer;
+    } data;
 };
 
 struct Statement
 {
+    struct Variable
+    {
+        strptr      name;
+        Type*       type;
+        Expression* value;
+    };
+
+    struct CondExec
+    {
+        Expression* condition;
+        Statement*  on_true;
+        Statement*  on_false;
+    };
+
+    struct WhileLoop
+    {
+        Expression* condition;
+        Statement*  body;
+    };
+
+    struct ForLoop
+    {
+        Statement*  variable;
+        Expression* condition;
+        Expression* step;
+        Statement*  body;
+    };
+    
+    struct TypeDef
+    {
+        strptr  name;
+        Type*   variable;
+    };
+
+    struct Return
+    {
+        Expression* expression;
+    };
+
+    struct Goto
+    {
+        strptr target;
+    };
+
+    struct Switch
+    {
+        Expression* expr;
+        Statement*  body;
+    };
+
+    struct Case
+    {
+        Expression* value;
+    };
+
+    struct Label
+    {
+        strptr name;
+    };
+
     uint8_t type;
 
     union
     {
         Expression* expr;
         Function*   function;
-        Composite*  composite;
-        Enumerator* enumerator;
+        Composite   composite;
+        Enumerator  enumerator;
+        Variable    variable;
+        CondExec    cond_exec;
+        WhileLoop   while_loop;
+        ForLoop     for_loop;
+        TypeDef     type_def;
+        Return      ret_stmt;
+        Case        case_stmt;
+        Goto        goto_stmt;
+        Switch      switch_stmt;
+        Label       label;
+    } data;
+};
 
-        struct
-        {
-            strptr      name;
-            Variable*   type;
-            Expression* value;
-        } variable_decl;
-
-        struct
-        {
-            Expression* condition;
-            list        body;
-            
-            Statement*  else_stmt;
-        } if_stmt;
-
-        struct
-        {
-            list body;
-        } else_stmt;
-
-        struct
-        {
-            Expression* condition;
-            list        body;
-        } while_stmt;
-
-        struct
-        {
-            Statement*  variable;
-            Expression* condition;
-            Expression* step;
-            list        body;
-        } for_stmt;
-
-        struct
-        {
-            strptr      name;
-            list        statements;
-        } name_space;
-
-        struct
-        {
-            list statements;
-        } compound_stmt;
-
-        struct
-        {
-            strptr      name;
-            Variable*   variable;
-        } type_def;
-
-        struct
-        {
-            Expression* expression;
-        } ret_stmt;
-
-        struct
-        {
-            strptr target;
-        } goto_stmt;
-
-        struct
-        {
-            Expression* expr;
-            Statement*  body;
-        } switch_stmt;
-
-        struct
-        {
-            Expression* value;
-        } case_stmt;
-
-        struct
-        {
-            strptr name;
-        } label;
-    };
+struct CompoundStatement
+{
+    List<Statement> statements;
 };
 
 struct AST
 {
-    list statements;
+    List<Statement> statements;
 };
+
+void delete_ast(AST* ast);
 
 #endif // AST_HPP

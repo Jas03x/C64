@@ -1,71 +1,44 @@
-#include <expression_stack.hpp>
+#include "expression_stack.hpp"
 
-ExpressionStack::ExpressionStack(ExpressionList* list)
+ExpressionStack::ExpressionStack(std::vector<Expression*>* buffer)
 {
-	m_list = list;
-
-	m_head = nullptr;
-	m_tail = nullptr;
+    m_buffer = buffer;
+    m_start = buffer->size();
+    m_length = 0;
+    m_index = 0;
 }
 
 ExpressionStack::~ExpressionStack()
 {
-	ExpressionList::Entry* it = m_head;
-	while (it != nullptr)
-	{
-		ExpressionList::Entry* entry = it;
-		it = it->next;
-
-		m_list->ret_entry(entry);
-	}
+    m_buffer->resize(m_buffer->size() - m_length);
 }
 
-void ExpressionStack::push(Expression* expr)
+void ExpressionStack::insert(Expression* expr)
 {
-	ExpressionList::Entry* entry = m_list->get_entry();
-
-	if (entry != nullptr)
-	{
-		entry->expr = expr;
-		
-		if (m_head == nullptr)
-		{
-			m_head = entry;
-			m_tail = entry;
-		}
-		else
-		{
-			m_tail->next = entry;
-			entry->prev = m_tail;
-			m_tail = entry;
-		}
-	}
+    m_buffer->push_back(expr);
+    m_length++;
 }
 
-Expression* ExpressionStack::pop()
+bool ExpressionStack::is_empty()
 {
-	Expression* expr = nullptr;
-
-	if (m_head != nullptr)
-	{
-		ExpressionList::Entry* entry = m_head;
-		m_head = m_head->next;
-
-		expr = entry->expr;
-		m_list->ret_entry(entry);
-	}
-
-	return expr;
+    return m_index >= m_length;
 }
 
 Expression* ExpressionStack::peek()
 {
-	Expression* expr = nullptr;
-
-	if (m_head != nullptr)
-	{
-		expr = m_head->expr;
-	}
-
-	return expr;
+    return m_index < m_length ? (*m_buffer)[m_start + m_index] : nullptr;
 }
+
+Expression* ExpressionStack::pop()
+{
+    Expression* expr = nullptr;
+
+    if (m_index < m_length)
+    {
+        expr = (*m_buffer)[m_start + m_index];
+        m_index++;
+    }
+
+    return expr;
+}
+

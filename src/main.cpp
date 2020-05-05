@@ -4,20 +4,26 @@
 #include "tokenizer.hpp"
 
 #include <parser.hpp>
-
 #include <debug.hpp>
+#include <ast_printer.hpp>
 
 bool process(const char* path)
 {
-	TokenStack tokens;
-    
-    bool status = Tokenizer::Tokenize(path, tokens);
+	TokenStack token_stack;
+    bool status = Tokenizer::Tokenize(path, &token_stack);
+
+    const std::vector<Token>& tokens = token_stack.get_tokens();
+    for(unsigned int i = 0; i < tokens.size(); i++)
+    {
+        print_token(tokens[i]);
+    }
+
     if(status)
     {
-        AST* ast = Parser::Parse(&tokens);
+        AST* ast = Parser::Parse(token_stack);
         if(ast != nullptr)
         {
-            print_ast(ast);
+            AST_Printer::Print(ast);
         }
         else
         {

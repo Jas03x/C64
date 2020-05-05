@@ -1,15 +1,16 @@
-CC   = "g++"
+CC = "g++"
 
 INC_PATH += -I ./src/
 INC_PATH += -I ./src/inc/
 INC_PATH += -I ./src/parser/
+INC_PATH += -I ./src/util/
 
 BIN = ./bin
 SRC = ./src
 
 EXE = C64.exe
 
-CC_OPTIONS   = -std=c++11 -Wall -g
+CC_OPTIONS   = -std=c++11 -Wall -Wextra -g
 
 ROOT_OBJECTS   = $(patsubst $(SRC)/%.cpp,        $(BIN)/%.o,        $(wildcard $(SRC)/*.cpp))
 UTIL_OBJECTS   = $(patsubst $(SRC)/util/%.cpp,   $(BIN)/util/%.o,   $(wildcard $(SRC)/util/*.cpp))
@@ -31,7 +32,11 @@ $(EXE): $(ROOT_OBJECTS) $(UTIL_OBJECTS) $(PARSER_OBJECTS)
 
 .PHONY: test
 test:
-	$(BIN)/$(EXE) ./test/example.c
+	$(BIN)/$(EXE) ./test/hello_world.c
+
+.PHONY: debug
+debug:
+	lldb $(BIN)/$(EXE)
 
 .PHONY: clean
 clean:

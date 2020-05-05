@@ -14,4 +14,10 @@ enum
     ASCII_BACK_SLASH      = 0x5C
 };
 
+#define IS_NUM(x) (((x) >= '0') && ((x) <= '9'))
+#define IS_ALPHA(x) ((((x) >= 'a') && ((x) <= 'z')) || (((x) >= 'A') && ((x) <= 'Z')))
+#define IS_ALPHA_NUM(x) (IS_ALPHA(x) || IS_NUM(x))
+#define IS_SPACE(x) (((x) == ' ') || ((x) == '\t') || ((x) == '\n'))
+#define IS_HEXADECIMAL(x) (IS_NUM(x) || ((x >= 'A') && (x <= 'F')))
+
 #endif // ASCII_H

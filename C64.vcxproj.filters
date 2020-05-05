@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="src\inc">
+      <UniqueIdentifier>{40fdfd50-567a-405b-8326-e0865a31f466}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\util">
+      <UniqueIdentifier>{4d5c9267-852b-4465-85e2-90904a8de5b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\parser">
+      <UniqueIdentifier>{fea377a8-8b74-46e2-94ff-5866142351ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="test">
+      <UniqueIdentifier>{fe73fd5f-3d72-4958-b3ba-f09151ce690d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\main.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\token_stack.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\tokenizer.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\ast.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\debug.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\parser.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util\strptr.cpp">
+      <Filter>src\util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util\file.cpp">
+      <Filter>src\util</Filter>
+    </ClCompile>
+    <ClCompile Include="src\util\list.cpp">
+      <Filter>src\util</Filter>
+    </ClCompile>
+    <ClCompile Include="test\hello_world.c">
+      <Filter>test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\main.c">
+      <Filter>test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\pfn.c">
+      <Filter>test</Filter>
+    </ClCompile>
+    <ClCompile Include="test\example.c">
+      <Filter>test</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\expression_stack.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\ast_printer.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\inc\literal.hpp">
+      <Filter>src\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\inc\ascii.hpp">
+      <Filter>src\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\token.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\token_stack.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\tokenizer.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\ast.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\debug.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\parser.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\util\strptr.hpp">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\util\file.hpp">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\util\list.hpp">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\expression_stack.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\ast_printer.hpp">
+      <Filter>src\parser</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="makefile.win" />
+    <None Include="test\bootloader.asm">
+      <Filter>test</Filter>
+    </None>
+  </ItemGroup>
+</Project>
