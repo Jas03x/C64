@@ -1,6 +1,6 @@
 #include "list.hpp"
 
-#include <parser/ast.hpp>
+#include <ast.hpp>
 
 template <typename T>
 void List<T>::free()

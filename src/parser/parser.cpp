@@ -1,8 +1,5 @@
 #include <parser.hpp>
 
-#include <stdarg.h>
-
-static const char* ERROR_UNEXPECTED_TOKEN = "unexpected token\n";
 static const char* ERROR_BAD_EXPRESSION = "malformed expression\n";
 
 Parser::Parser(TokenStack& stack)
@@ -57,33 +54,99 @@ bool Parser::accept(uint8_t type)
     return ret;
 }
 
-void Parser::error(const char* format, ...)
+void Parser::error(const char* msg)
 {
     m_status = false;
+    puts(msg);
+}
 
-    va_list args;
-    va_start(args, format);
-    vfprintf(stdout, format, args);
-    va_end(args);
+void Parser::unexpected_token(uint8_t tk, uint8_t ex)
+{
+    const char* TK_TBL[] =
+    {
+        "INVALID", // TK_INVALID
+        "CONST", // TK_CONST
+        "EXTERN", // TK_EXTERN
+        "STRUCT", // TK_STRUCT
+        "RETURN", // TK_RETURN
+        "IF", // TK_IF
+        "=", // TK_EQUAL
+        "<", // TK_LEFT_ARROW_HEAD
+        ">", // TK_RIGHT_ARROW_HEAD
+        "+", // TK_PLUS
+        "-", // TK_MINUS
+        ".", // TK_DOT
+        "*", // TK_ASTERISK
+        "/", // TK_FORWARD_SLASH
+        "{", // TK_OPEN_CURLY_BRACKET
+        "}", // TK_CLOSE_CURLY_BRACKET
+        "(", // TK_OPEN_ROUND_BRACKET
+        ")", // TK_CLOSE_ROUND_BRACKET
+        "[", // TK_OPEN_SQUARE_BRACKET
+        "]", // TK_CLOSE_SQUARE_BRACKET
+        ";", // TK_SEMICOLON
+        "LITERAL", // TK_LITERAL
+        "IDENTIFIER", // TK_IDENTIFIER
+        ",", // TK_COMMA
+        "OR", // TK_OR
+        "AND", // TK_AND
+        "^", // TK_CARET
+        "!", // TK_EXPLANATION_MARK
+        "&", // TK_AMPERSAND
+        "|", // TK_VERTICAL_BAR
+        "%", // TK_PERCENT
+        "TYPE", // TK_TYPE
+        "FOR", // TK_FOR
+        "WHILE", // TK_WHILE
+        ":", // TK_COLON
+        "TYPEDEF", // TK_TYPEDEF
+        "BREAK", // TK_BREAK
+        "GOTO", // TK_GOTO
+        "ELSE", // TK_ELSE
+        "CONTINUE", // TK_CONTINUE
+        "SWITCH", // TK_SWITCH
+        "UNION", // TK_UNION
+        "CASE", // TK_CASE
+        "DEFAULT", // TK_DEFAULT
+        "ENUM", // TK_ENUM
+        "STATIC_CAST", // TK_STATIC_CAST
+        "REINTERPRET_CAST", // TK_REINTERPRET_CAST
+        "EOF" // TK_EOF
+    };
+
+    const char* _tk = ((tk > 0) && (tk < TK_COUNT)) ? TK_TBL[tk] : TK_TBL[0];
+
+    m_status = false;
+    if(ex == 0)
+    {
+        printf("error: unexpected token '%s'\n", _tk);
+    }
+    else
+    {
+        const char* _ex = (ex < TK_COUNT) ? TK_TBL[ex] : TK_TBL[0];
+        printf("error: expected token '%s' but got '%s'\n", _tk, _ex);
+    }
 }
 
 bool Parser::expect(uint8_t type)
 {
-    if(m_stack->pop().type != type)
+    Token tk = m_stack->pop();
+    if(tk.type != type)
     {
-        error(ERROR_UNEXPECTED_TOKEN);
+        unexpected_token(tk.type, type);
     }
     return m_status;
 }
 
 bool Parser::parse_global_statement(Statement* stmt)
 {
-    switch(m_stack->peek().type)
+    Token tk = m_stack->peek();
+    switch(tk.type)
     {
         case TK_TYPE: { parse_definition(stmt); break; }
         default:
         {
-            error(ERROR_UNEXPECTED_TOKEN);
+            unexpected_token(tk.type, 0);
         }
     }
 
@@ -115,10 +178,11 @@ bool Parser::parse_type(Type** ptr)
 {
     uint8_t data_type = 0;
     Type::Flags flags = {};
+    Token tk;
 
     while (m_status)
     {
-        Token tk = m_stack->peek();
+        tk = m_stack->peek();
         if (tk.type == TK_CONST)
         {
             if (flags.bits.is_constant == 0)
@@ -140,7 +204,8 @@ bool Parser::parse_type(Type** ptr)
 
     if(accept(TK_TYPE))
     {
-        switch(m_stack->pop().data.subtype)
+        tk = m_stack->pop();
+        switch(tk.data.subtype)
         {
             case TK_TYPE_U8:   { data_type = TYPE_U8;   break; }
             case TK_TYPE_U32:  { data_type = TYPE_U32;  break; }
@@ -153,7 +218,7 @@ bool Parser::parse_type(Type** ptr)
     }
     else
     {
-        error(ERROR_UNEXPECTED_TOKEN);
+        unexpected_token(m_stack->peek().type, 0);
     }
 
     if(m_status)
@@ -188,7 +253,7 @@ bool Parser::parse_identifier(strptr* id)
     }
     else
     {
-        error(ERROR_UNEXPECTED_TOKEN);
+        unexpected_token(tk.type, 0);
     }
 
     return m_status;
@@ -242,7 +307,7 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
         }
         else
         {
-            error(ERROR_UNEXPECTED_TOKEN);
+            unexpected_token(m_stack->peek().type, 0);
         }
     }
 
@@ -312,13 +377,14 @@ bool Parser::parse_function_body(List<Statement>* body)
 
 bool Parser::parse_statement(Statement** ptr)
 {
-    switch(m_stack->peek().type)
+    Token tk = m_stack->peek();
+    switch(tk.type)
     {
         case TK_RETURN:     { parse_return_statement(ptr); break; }
         case TK_IDENTIFIER: { parse_expression(ptr);       break; }
         default:
         {
-            error(ERROR_UNEXPECTED_TOKEN);
+            unexpected_token(tk.type, 0);
         }
     }
 
@@ -385,7 +451,7 @@ Expression* Parser::process_expr_operand(ExpressionStack* stack)
     Expression* operand = stack->pop();
     if (operand == nullptr)
     {
-        error(ERROR_BAD_EXPRESSION);
+        error("ERROR_BAD_EXPRESSION");
     }
 
     if (m_status)
@@ -480,13 +546,14 @@ bool Parser::parse_expression(Expression** ptr)
     while(m_status)
     {
         Expression* expr = nullptr;
-        switch(m_stack->peek().type)
+        Token tk = m_stack->peek();
+        switch(tk.type)
         {
             case TK_LITERAL:    { parse_expr_literal(&expr);    break; }
             case TK_IDENTIFIER: { parse_expr_identifier(&expr); break; }
             default:
             {
-                error(ERROR_UNEXPECTED_TOKEN);
+                unexpected_token(tk.type, 0);
             }
         }
 
@@ -532,11 +599,12 @@ bool Parser::parse_expression(Expression** ptr)
 
 bool Parser::parse_expr_operator(Expression** ptr)
 {
-    switch (m_stack->peek().type)
+    Token tk = m_stack->peek();
+    switch (tk.type)
     {
         default:
         {
-            error(ERROR_UNEXPECTED_TOKEN);
+            unexpected_token(tk.type, 0);
         }
     }
     return m_status;
@@ -592,7 +660,7 @@ bool Parser::parse_expr_literal(Expression** ptr)
     }
     else
     {
-        error(ERROR_UNEXPECTED_TOKEN);
+        unexpected_token(tk.type, 0);
     }
 
     return m_status;
@@ -611,7 +679,7 @@ bool Parser::parse_expr_identifier(Expression** ptr)
     }
     else
     {
-        error(ERROR_UNEXPECTED_TOKEN);
+        unexpected_token(tk.type, 0);
     }
 
     return m_status;

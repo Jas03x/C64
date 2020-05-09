@@ -17,8 +17,9 @@ private:
 
 private:
     Parser(TokenStack& stack);
-
-    void error(const char* format, ...);
+    
+    void error(const char* msg);
+    void unexpected_token(uint8_t tk, uint8_t ex);
 
     bool accept(uint8_t type);
     bool expect(uint8_t type);

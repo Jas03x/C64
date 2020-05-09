@@ -88,4 +88,6 @@ struct Token
     } data;
 };
 
+void print_token(const Token& tk);
+
 #endif // TOKEN_HPP
