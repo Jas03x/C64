@@ -30,7 +30,7 @@ void AST_Printer::print(const char* format, ...)
     va_end(args);
 }
 
-void AST_Printer::print_statment(unsigned int indent, const Statement* stmt)
+void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
 {
     switch(stmt->type)
     {
@@ -67,7 +67,7 @@ void AST_Printer::print_body(unsigned int indent, const List<Statement>* body)
 
     for(List<Statement>::Element* it = body->head; it != nullptr; it = it->next)
     {
-        print_statment((it->next == nullptr) ? TAB::SPACE : TAB::LINE, it->ptr);
+        print_statement((it->next == nullptr) ? TAB::SPACE : TAB::LINE, it->ptr);
     }
 
     m_tab_stack.pop_back();
@@ -75,74 +75,75 @@ void AST_Printer::print_body(unsigned int indent, const List<Statement>* body)
 
 void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
 {
-    m_tab_stack.push_back(indent);
-
-    switch(expr->type)
+    if(expr->type == EXPR_LITERAL)
     {
-        case EXPR_FUNCTION_CALL:
-        {
-            print("FUNC CALL:\n");
-            print_func_call(TAB::SPACE, &expr->data.func_call);
-            break;
-        }
-        case EXPR_LITERAL:
-        {
-            print("LITERAL:\n");
-            print_literal(TAB::SPACE, &expr->data.literal);
-            break;
-        }
-        case EXPR_IDENTIFIER:
-        {
-            print("EXPR:\n");
-            print_identifier(TAB::SPACE, &expr->data.identifier);
-            break;
-        }
-        case EXPR_SUB_EXPR:
-        {
-            print("SUB-EXPR:\n");
-            print_expr(TAB::SPACE, expr->data.sub_expr);
-            break;
-        }
-        case EXPR_OPERATION:
-        {
-            switch(expr->data.operation.op)
-            {
-                case EXPR_OP_ADD:
-                {
-                    print("ADD:\n");
-                    print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                    break;
-                }
-                case EXPR_OP_SUB:
-                {
-                    print("SUB:\n");
-                    print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                    break;
-                }
-                case EXPR_OP_MUL:
-                {
-                    print("MUL:\n");
-                    print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                    break;
-                }
-                case EXPR_OP_DIV:
-                {
-                    print("DIV:\n");
-                    print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                    break;
-                }
-                case EXPR_OP_DEREFERENCE:
-                {
-                    print("DEREFERENCE:\n");
-                    print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
-                    break;
-                }
-            }
-            break;
-        }
+        print_literal(TAB::SPACE, &expr->data.literal);
     }
+    else
+    {
+        m_tab_stack.push_back(indent);
 
-    m_tab_stack.pop_back();
+        switch(expr->type)
+        {
+            case EXPR_FUNCTION_CALL:
+            {
+                print("FUNC CALL:\n");
+                print_func_call(TAB::SPACE, &expr->data.func_call);
+                break;
+            }
+            case EXPR_IDENTIFIER:
+            {
+                print("EXPR:\n");
+                print_identifier(TAB::SPACE, &expr->data.identifier);
+                break;
+            }
+            case EXPR_SUB_EXPR:
+            {
+                print("SUB-EXPR:\n");
+                print_expr(TAB::SPACE, expr->data.sub_expr);
+                break;
+            }
+            case EXPR_OPERATION:
+            {
+                switch(expr->data.operation.op)
+                {
+                    case EXPR_OP_ADD:
+                    {
+                        print("ADD:\n");
+                        print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                        break;
+                    }
+                    case EXPR_OP_SUB:
+                    {
+                        print("SUB:\n");
+                        print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                        break;
+                    }
+                    case EXPR_OP_MUL:
+                    {
+                        print("MUL:\n");
+                        print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                        break;
+                    }
+                    case EXPR_OP_DIV:
+                    {
+                        print("DIV:\n");
+                        print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                        break;
+                    }
+                    case EXPR_OP_DEREFERENCE:
+                    {
+                        print("DEREFERENCE:\n");
+                        print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        m_tab_stack.pop_back();
+    }
 }
 
 void AST_Printer::print_expr_operation(unsigned int indent, const Expression* expr)
@@ -390,6 +391,6 @@ void AST_Printer::Print(const AST* ast)
     printf("AST:\n");
     for (List<Statement>::Element* it = ast->statements.head; it != nullptr; it = it->next)
     {
-        printer.print_statment((it->next == nullptr) ? TAB::SPACE : TAB::LINE, it->ptr);
+        printer.print_statement((it->next == nullptr) ? TAB::SPACE : TAB::LINE, it->ptr);
     }
 }

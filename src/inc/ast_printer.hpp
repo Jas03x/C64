@@ -25,7 +25,7 @@ private:
     void print_identifier(unsigned int indent, const strptr* id);
     void print_body(unsigned int indent, const List<Statement>* body);
 
-    void print_statment(unsigned int indent, const Statement* stmt);
+    void print_statement(unsigned int indent, const Statement* stmt);
 
     void print_expr(unsigned int indent, const Expression* expr);
     void print_expr_operation(unsigned int indent, const Expression* expr);
