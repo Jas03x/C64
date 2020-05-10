@@ -524,14 +524,7 @@ Expression* Parser::process_expr_operand(ExpressionStack* stack)
 
 Expression* Parser::process_expression(ExpressionStack* stack, Expression* lhs, uint8_t min)
 {
-    // **p(q, r, s) + a * b(c)(d) / h - (e + f) * g
-    
     Expression* expr = (lhs == nullptr) ? process_expr_operand(stack) : lhs;
-
-    if(expr->type == EXPR_LITERAL && expr->data.literal.type == LITERAL_INTEGER && expr->data.literal.data.integer_value == 1)
-    {
-        printf("DEBUG\n");
-    }
 
     while (m_status && !stack->is_empty())
     {
