@@ -79,69 +79,68 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
     {
         print_literal(TAB::SPACE, &expr->data.literal);
     }
+    else if(expr->type == EXPR_IDENTIFIER)
+    {
+        print_identifier(TAB::SPACE, &expr->data.identifier);
+    }
     else
     {
         m_tab_stack.push_back(indent);
 
-        switch(expr->type)
+        if(expr->type == EXPR_FUNCTION_CALL)
         {
-            case EXPR_FUNCTION_CALL:
+            print("FUNC CALL:\n");
+            print_func_call(TAB::SPACE, &expr->data.func_call);
+        }
+        else if(expr->type == EXPR_SUB_EXPR)
+        {
+            print("SUB-EXPR:\n");
+            print_expr(TAB::SPACE, expr->data.sub_expr);
+        }
+        else if(expr->type == EXPR_OPERATION)
+        {
+            switch(expr->type)
             {
-                print("FUNC CALL:\n");
-                print_func_call(TAB::SPACE, &expr->data.func_call);
-                break;
-            }
-            case EXPR_IDENTIFIER:
-            {
-                print("EXPR:\n");
-                print_identifier(TAB::SPACE, &expr->data.identifier);
-                break;
-            }
-            case EXPR_SUB_EXPR:
-            {
-                print("SUB-EXPR:\n");
-                print_expr(TAB::SPACE, expr->data.sub_expr);
-                break;
-            }
-            case EXPR_OPERATION:
-            {
-                switch(expr->data.operation.op)
+                case EXPR_OPERATION:
                 {
-                    case EXPR_OP_ADD:
+                    switch(expr->data.operation.op)
                     {
-                        print("ADD:\n");
-                        print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                        break;
+                        case EXPR_OP_ADD:
+                        {
+                            print("ADD:\n");
+                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                            break;
+                        }
+                        case EXPR_OP_SUB:
+                        {
+                            print("SUB:\n");
+                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                            break;
+                        }
+                        case EXPR_OP_MUL:
+                        {
+                            print("MUL:\n");
+                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                            break;
+                        }
+                        case EXPR_OP_DIV:
+                        {
+                            print("DIV:\n");
+                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                            break;
+                        }
+                        case EXPR_OP_DEREFERENCE:
+                        {
+                            print("DEREFERENCE:\n");
+                            print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
+                            break;
+                        }
                     }
-                    case EXPR_OP_SUB:
-                    {
-                        print("SUB:\n");
-                        print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                        break;
-                    }
-                    case EXPR_OP_MUL:
-                    {
-                        print("MUL:\n");
-                        print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                        break;
-                    }
-                    case EXPR_OP_DIV:
-                    {
-                        print("DIV:\n");
-                        print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                        break;
-                    }
-                    case EXPR_OP_DEREFERENCE:
-                    {
-                        print("DEREFERENCE:\n");
-                        print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
-                        break;
-                    }
+                    break;
                 }
-                break;
             }
         }
-
+        
         m_tab_stack.pop_back();
     }
 }
