@@ -28,6 +28,7 @@ private:
     void print_statment(unsigned int indent, const Statement* stmt);
 
     void print_expr(unsigned int indent, const Expression* expr);
+    void print_expr_operation(unsigned int indent, const Expression* expr);
     void print_expr_operation(unsigned int indent, const Expression* lhs, const Expression* rhs);
     void print_func_call(unsigned int indent, const Expression::Func_Call* expr);
 

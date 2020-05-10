@@ -41,8 +41,11 @@ private:
     bool parse_function_definition(Type* ret_type, strptr name, Statement* stmt);
     bool parse_expr_literal(Expression** ptr);
     bool parse_expr_identifier(Expression** ptr);
+    bool parse_expr_lhs_op(Expression** ptr);
+    bool parse_expr_rhs_op(Expression** ptr);
     bool parse_expr_operator(Expression** ptr);
     bool parse_expr_args(Expression** ptr);
+    bool parse_sub_expr(Expression** ptr);
 
 public:
     static AST* Parse(TokenStack& stack);

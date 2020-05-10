@@ -1,6 +1,6 @@
 #include <parser.hpp>
 
-static const char* ERROR_BAD_EXPRESSION = "malformed expression\n";
+static const char* ERROR_BAD_EXPRESSION = "malformed expression";
 
 Parser::Parser(TokenStack& stack)
 {
@@ -124,7 +124,7 @@ void Parser::unexpected_token(uint8_t tk, uint8_t ex)
     else
     {
         const char* _ex = (ex < TK_COUNT) ? TK_TBL[ex] : TK_TBL[0];
-        printf("error: expected token '%s' but got '%s'\n", _tk, _ex);
+        printf("error: expected token '%s' but got '%s'\n", _ex, _tk);
     }
 }
 
@@ -381,7 +381,12 @@ bool Parser::parse_statement(Statement** ptr)
     switch(tk.type)
     {
         case TK_RETURN:     { parse_return_statement(ptr); break; }
-        case TK_IDENTIFIER: { parse_expression(ptr);       break; }
+        case TK_IDENTIFIER:
+        case TK_OPEN_ROUND_BRACKET:
+        {
+            parse_expression(ptr);
+            break;
+        }
         default:
         {
             unexpected_token(tk.type, 0);
@@ -484,14 +489,14 @@ Expression* Parser::process_expr_operand(ExpressionStack* stack)
     Expression* operand = stack->pop();
     if (operand == nullptr)
     {
-        error("ERROR_BAD_EXPRESSION");
+        error(ERROR_BAD_EXPRESSION);
     }
 
     if (m_status)
     {
         if (operand->type == EXPR_OPERATION)
         {
-            if ((operand->type == EXPR_OP_REFERENCE) || (operand->type == EXPR_OP_DEREFERENCE))
+            if ((operand->data.operation.op == EXPR_OP_REFERENCE) || (operand->data.operation.op == EXPR_OP_DEREFERENCE))
             {
                 operand->data.operation.rhs = process_expr_operand(stack);
             }
@@ -577,21 +582,49 @@ bool Parser::parse_expression(Expression** ptr)
     while(m_status)
     {
         Expression* expr = nullptr;
-        Token tk = m_stack->peek();
-        switch(tk.type)
+
+        while(m_status)
         {
-            case TK_LITERAL:    { parse_expr_literal(&expr);    break; }
-            case TK_IDENTIFIER: { parse_expr_identifier(&expr); break; }
-            default:
+            expr = nullptr;
+            if(parse_expr_lhs_op(&expr))
             {
-                unexpected_token(tk.type, 0);
+                if(expr == nullptr) { break; }
+                else { stack.insert(expr); }
             }
         }
 
         if(m_status)
         {
-            stack.insert(expr);
-            
+            Token tk = m_stack->peek();
+            switch(tk.type)
+            {
+                case TK_LITERAL:            { parse_expr_literal(&expr);    break; }
+                case TK_IDENTIFIER:         { parse_expr_identifier(&expr); break; }
+                case TK_OPEN_ROUND_BRACKET: { parse_sub_expr(&expr);        break; }
+                default:
+                {
+                    unexpected_token(tk.type, 0);
+                }
+            }
+
+            if(m_status)
+            {
+                stack.insert(expr);
+            }
+        }
+
+        while(m_status)
+        {
+            expr = nullptr;
+            if(parse_expr_rhs_op(&expr))
+            {
+                if(expr == nullptr) { break; }
+                else { stack.insert(expr); }
+            }
+        }
+
+        if(m_status)
+        {
             // parse function call arguments
             while(m_status && accept(TK_OPEN_ROUND_BRACKET))
             {
@@ -625,6 +658,59 @@ bool Parser::parse_expression(Expression** ptr)
         *ptr = process_expression(&stack, nullptr, 0);
     }
 
+    return m_status;
+}
+
+bool Parser::parse_sub_expr(Expression** ptr)
+{
+    Expression* sub_expr = nullptr;
+    
+    expect(TK_OPEN_ROUND_BRACKET);
+    if(m_status && parse_expression(&sub_expr))
+    {
+        expect(TK_CLOSE_ROUND_BRACKET);
+    }
+
+    if(m_status)
+    {
+        Expression* expr = new Expression();
+        expr->type = EXPR_SUB_EXPR;
+        expr->data.sub_expr = sub_expr;
+
+        *ptr = expr;
+    }
+    
+    return m_status;
+}
+
+bool Parser::parse_expr_lhs_op(Expression** ptr)
+{
+    uint8_t op = EXPR_OP_INVALID;
+
+    Token tk = m_stack->peek();
+    switch(tk.type)
+    {
+        case TK_AMPERSAND: { op = EXPR_OP_REFERENCE;   break; }
+        case TK_ASTERISK:  { op = EXPR_OP_DEREFERENCE; break; }
+        default:      { break; }
+    }
+
+    if(op != EXPR_OP_INVALID)
+    {
+        m_stack->pop();
+
+        Expression* expr = new Expression();
+        expr->type = EXPR_OPERATION;
+        expr->data.operation.op = op;
+
+        *ptr = expr;
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_expr_rhs_op(Expression** ptr)
+{
     return m_status;
 }
 
@@ -746,16 +832,16 @@ bool Parser::parse_expr_args(Expression** ptr)
                 if(parse_expression(&expr))
                 {
                     args.insert(expr);
-                }
 
-                if(accept(TK_CLOSE_ROUND_BRACKET))
-                {
-                    m_stack->pop();
-                    break;
-                }
-                else
-                {
-                    expect(TK_COMMA);
+                    if(accept(TK_CLOSE_ROUND_BRACKET))
+                    {
+                        m_stack->pop();
+                        break;
+                    }
+                    else
+                    {
+                        expect(TK_COMMA);
+                    }
                 }
             }
         }

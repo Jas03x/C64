@@ -97,6 +97,12 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
             print_identifier(TAB::SPACE, &expr->data.identifier);
             break;
         }
+        case EXPR_SUB_EXPR:
+        {
+            print("SUB-EXPR:\n");
+            print_expr(TAB::SPACE, expr->data.sub_expr);
+            break;
+        }
         case EXPR_OPERATION:
         {
             switch(expr->data.operation.op)
@@ -125,10 +131,25 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
                     print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
                     break;
                 }
+                case EXPR_OP_DEREFERENCE:
+                {
+                    print("DEREFERENCE:\n");
+                    print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
+                    break;
+                }
             }
             break;
         }
     }
+
+    m_tab_stack.pop_back();
+}
+
+void AST_Printer::print_expr_operation(unsigned int indent, const Expression* expr)
+{
+    m_tab_stack.push_back(indent);
+
+    print_expr(TAB::SPACE, expr);
 
     m_tab_stack.pop_back();
 }
