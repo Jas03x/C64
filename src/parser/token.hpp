@@ -35,6 +35,7 @@ enum TOKEN
     TK_OR,
     TK_AND,
     TK_CARET,
+    TK_TILDE,
     TK_EXPLANATION_MARK,
     TK_AMPERSAND,
     TK_VERTICAL_BAR,

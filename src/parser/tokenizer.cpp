@@ -334,7 +334,7 @@ bool Tokenizer::read_identifier()
 	while(status)
 	{
 		c = m_input[0];
-		if(IS_ALPHA_NUM(c))
+		if(IS_ALPHA_NUM(c) || (c == '_'))
 		{
 			pop();
 			m_buffer.push_back(c);
@@ -557,6 +557,7 @@ bool Tokenizer::read_punctuator()
 		case '|': { tk.type = TK_VERTICAL_BAR; break; }
 		case '%': { tk.type = TK_PERCENT; break; }
 		case ':': { tk.type = TK_COLON; break; }
+		case '~': { tk.type = TK_TILDE; break; }
 		default:
 		{
 			status = false;

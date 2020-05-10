@@ -46,11 +46,11 @@ $(EXE): $(ROOT_OBJECTS) $(UTIL_OBJECTS) $(PARSER_OBJECTS)
 
 .PHONY: debug
 debug:
-	$(DBG) $(DBG_OPTIONS) $(BIN)/$(EXE) ./test/hello_world.c
+	$(DBG) $(DBG_OPTIONS) $(BIN)/$(EXE) ./test/test.c
 
 .PHONY: test
 test:
-	$(BIN)/$(EXE) ./test/hello_world.c
+	$(BIN)/$(EXE) ./test/test.c
 
 .PHONY: clean
 clean:

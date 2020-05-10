@@ -438,10 +438,43 @@ bool Parser::parse_expression(Statement** ptr)
 
 unsigned int Parser::get_op_precedence(uint8_t op)
 {
-    unsigned int ret = 0;
-    switch(op)
+    static const unsigned int TBL[] =
     {
-        default: { break; }
+         0, // EXPR_OP_INVALID
+        10, // EXPR_OP_ADD
+        10, // EXPR_OP_SUB
+        11, // EXPR_OP_MUL
+        11, // EXPR_OP_DIV
+        11, // EXPR_OP_MOD
+        13, // EXPR_OP_INCREMENT
+        13, // EXPR_OP_DECREMENT
+        12, // EXPR_OP_LOGICAL_NOT
+         3, // EXPR_OP_LOGICAL_AND
+         2, // EXPR_OP_LOGICAL_OR
+        12, // EXPR_OP_BITWISE_COMPLEMENT
+         5, // EXPR_OP_BITWISE_XOR
+         6, // EXPR_OP_BITWISE_AND
+         4, // EXPR_OP_BITWISE_OR
+         8, // EXPR_OP_BITWISE_L_SHIFT
+         8, // EXPR_OP_BITWISE_R_SHIFT
+         7, // EXPR_OP_CMP_EQUAL
+         7, // EXPR_OP_CMP_NOT_EQUAL
+         9, // EXPR_OP_CMP_LESS_THAN
+         9, // EXPR_OP_CMP_MORE_THAN
+         9, // EXPR_OP_CMP_LESS_THAN_OR_EQUAL
+         9, // EXPR_OP_CMP_MORE_THAN_OR_EQUAL
+        12, // EXPR_OP_REFERENCE
+        12, // EXPR_OP_DEREFERENCE
+         1, // EXPR_OP_ASSIGN
+        13, // EXPR_OP_ACCESS_FIELD
+        13, // EXPR_OP_ACCESS_FIELD_PTR
+        13  // EXPR_OP_INDEX
+    };
+
+    unsigned int ret = 0;
+    if((op > EXPR_OP_INVALID) && (op < EXPR_OP_COUNT))
+    {
+        ret = TBL[op];
     }
     return ret;
 }
@@ -495,6 +528,11 @@ Expression* Parser::process_expression(ExpressionStack* stack, Expression* lhs, 
     
     Expression* expr = (lhs == nullptr) ? process_expr_operand(stack) : lhs;
 
+    if(expr->type == EXPR_LITERAL && expr->data.literal.type == LITERAL_INTEGER && expr->data.literal.data.integer_value == 1)
+    {
+        printf("DEBUG\n");
+    }
+
     while (m_status && !stack->is_empty())
     {
         Expression* op1 = stack->peek();
@@ -504,7 +542,7 @@ Expression* Parser::process_expression(ExpressionStack* stack, Expression* lhs, 
         }
         else
         {
-            unsigned int op1_prec = get_op_precedence(op1->type);
+            unsigned int op1_prec = get_op_precedence(op1->data.operation.op);
             if (op1_prec < min)
             {
                 break;
@@ -524,15 +562,15 @@ Expression* Parser::process_expression(ExpressionStack* stack, Expression* lhs, 
                     }
                 }
 
-                unsigned int op2_prec = (op2 == nullptr) ? 0 : get_op_precedence(op2->type);
-                if ((op2 != nullptr) && (op1_prec < op2_prec))
+                unsigned int op2_prec = (op2 == nullptr) ? 0 : get_op_precedence(op2->data.operation.op);
+                if ((op2 != nullptr) && (op2_prec > op1_prec))
                 {
                     rhs = process_expression(stack, rhs, op2_prec);
                 }
 
                 op1->data.operation.lhs = expr;
                 op1->data.operation.rhs = rhs;
-                expr = rhs;
+                expr = op1;
             }
         }
     }
@@ -599,14 +637,99 @@ bool Parser::parse_expression(Expression** ptr)
 
 bool Parser::parse_expr_operator(Expression** ptr)
 {
-    Token tk = m_stack->peek();
+    uint8_t op = 0;
+
+    Token tk = m_stack->pop();
     switch (tk.type)
     {
+        case TK_PLUS:             { op = EXPR_OP_ADD; break; }
+        case TK_ASTERISK:         { op = EXPR_OP_MUL; break; }
+        case TK_FORWARD_SLASH:    { op = EXPR_OP_DIV; break; }
+        case TK_PERCENT:          { op = EXPR_OP_MOD; break; }
+        case TK_DOT:              { op = EXPR_OP_ACCESS_FIELD; break; }
+        case TK_OR:               { op = EXPR_OP_LOGICAL_OR;   break; }
+        case TK_AND:              { op = EXPR_OP_LOGICAL_AND;  break; }
+        case TK_EXPLANATION_MARK: { op = EXPR_OP_LOGICAL_NOT;  break; }
+        case TK_VERTICAL_BAR:     { op = EXPR_OP_BITWISE_OR;   break; }
+        case TK_AMPERSAND:        { op = EXPR_OP_BITWISE_AND;  break; }
+        case TK_TILDE:            { op = EXPR_OP_BITWISE_COMPLEMENT; break; }
+        case TK_MINUS:
+        {
+            if(accept(TK_RIGHT_ARROW_HEAD))
+            {
+                m_stack->pop();
+                op = EXPR_OP_ACCESS_FIELD_PTR;
+            }
+            else
+            {
+                op = EXPR_OP_SUB;
+            }
+            break;
+        }
+        case TK_RIGHT_ARROW_HEAD:
+        {
+            if(accept(TK_RIGHT_ARROW_HEAD))
+            {
+                m_stack->pop();
+                op = EXPR_OP_BITWISE_R_SHIFT;
+            }
+            else if(accept(TK_EQUAL))
+            {
+                m_stack->pop();
+                op = EXPR_OP_CMP_LESS_THAN_OR_EQUAL;
+            }
+            else
+            {
+                op = EXPR_OP_CMP_LESS_THAN;
+            }
+            break;
+        }
+        case TK_LEFT_ARROW_HEAD:
+        {
+            if(accept(TK_LEFT_ARROW_HEAD))
+            {
+                m_stack->pop();
+                op = EXPR_OP_BITWISE_L_SHIFT;
+            }
+            else if(accept(TK_EQUAL))
+            {
+                m_stack->pop();
+                op = EXPR_OP_CMP_MORE_THAN_OR_EQUAL;
+            }
+            else
+            {
+                op = EXPR_OP_CMP_MORE_THAN;
+            }
+            break;
+        }
+        case TK_EQUAL:
+        {
+            if(accept(TK_EQUAL))
+            {
+                m_stack->pop();
+                op = EXPR_OP_CMP_EQUAL;
+            }
+            else
+            {
+                op = EXPR_OP_ASSIGN;
+            }
+            break;
+        }
         default:
         {
             unexpected_token(tk.type, 0);
         }
     }
+
+    if(m_status)
+    {
+        Expression* expr = new Expression();
+        expr->type = EXPR_OPERATION;
+        expr->data.operation.op = op;
+
+        *ptr = expr;
+    }
+
     return m_status;
 }
 
@@ -616,22 +739,32 @@ bool Parser::parse_expr_args(Expression** ptr)
 
     List<Expression> args = {};
 
-    while(m_status)
+    if(m_status)
     {
-        Expression* expr = nullptr;
-        if(parse_expression(&expr))
-        {
-            args.insert(expr);
-        }
-
         if(accept(TK_CLOSE_ROUND_BRACKET))
         {
             m_stack->pop();
-            break;
         }
         else
         {
-            expect(TK_COMMA);
+            while(m_status)
+            {
+                Expression* expr = nullptr;
+                if(parse_expression(&expr))
+                {
+                    args.insert(expr);
+                }
+
+                if(accept(TK_CLOSE_ROUND_BRACKET))
+                {
+                    m_stack->pop();
+                    break;
+                }
+                else
+                {
+                    expect(TK_COMMA);
+                }
+            }
         }
     }
 

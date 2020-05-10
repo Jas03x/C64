@@ -48,8 +48,9 @@ enum
     EXPR_OP_DEREFERENCE            = 0x18,
     EXPR_OP_ASSIGN                 = 0x19,
     EXPR_OP_ACCESS_FIELD           = 0x1A,
-    EXPR_OP_ARROW                  = 0x1B,
-    EXPR_OP_INDEX                  = 0x1C
+    EXPR_OP_ACCESS_FIELD_PTR       = 0x1B,
+    EXPR_OP_INDEX                  = 0x1C,
+    EXPR_OP_COUNT                  = 0x1D
 };
 
 enum
