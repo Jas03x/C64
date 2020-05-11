@@ -23,8 +23,8 @@ AST* Parser::Parse(TokenStack& stack)
         }
         else
         {
-            Statement* stmt = new Statement();
-            if(parser.parse_global_statement(stmt))
+            Statement* stmt = nullptr;
+            if(parser.parse_global_statement(&stmt))
             {
                 ast->statements.insert(stmt);
             }
@@ -91,6 +91,7 @@ void Parser::unexpected_token(uint8_t tk, uint8_t ex)
         "OR", // TK_OR
         "AND", // TK_AND
         "^", // TK_CARET
+        "~", // TK_TILDE
         "!", // TK_EXPLANATION_MARK
         "&", // TK_AMPERSAND
         "|", // TK_VERTICAL_BAR
@@ -138,22 +139,13 @@ bool Parser::expect(uint8_t type)
     return m_status;
 }
 
-bool Parser::parse_global_statement(Statement* stmt)
+bool Parser::parse_global_statement(Statement** ptr)
 {
-    Token tk = m_stack->peek();
-    switch(tk.type)
-    {
-        case TK_TYPE: { parse_definition(stmt); break; }
-        default:
-        {
-            unexpected_token(tk.type, 0);
-        }
-    }
-
+    parse_statement(ptr);
     return m_status;
 }
 
-bool Parser::parse_definition(Statement* stmt)
+bool Parser::parse_definition(Statement** ptr)
 {
     strptr name;
     Type* type = nullptr;
@@ -167,7 +159,11 @@ bool Parser::parse_definition(Statement* stmt)
     {
         if(accept(TK_OPEN_ROUND_BRACKET))
         {
-            parse_function_definition(type, name, stmt);
+            parse_function_definition(type, name, ptr);
+        }
+        else
+        {
+            parse_variable_definition(type, name, ptr);
         }
     }
 
@@ -259,7 +255,7 @@ bool Parser::parse_identifier(strptr* id)
     return m_status;
 }
 
-bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* stmt)
+bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement** ptr)
 {
     uint8_t type = 0;
     List<Function::Parameter> params = {};
@@ -303,7 +299,7 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
         else if(accept(TK_OPEN_CURLY_BRACKET))
         {
             type = STMT_FUNCTION_DEF;
-            parse_function_body(&body);
+            parse_body(&body);
         }
         else
         {
@@ -313,14 +309,42 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement* s
 
     if(m_status)
     {
-        Function* func = new Function();
-        func->name = name;
-        func->ret_type = ret_type;
-        func->parameters = params;
-        func->body = body;
-
+        Statement* stmt = new Statement();
         stmt->type = type;
-        stmt->data.function = func;
+        stmt->data.function.name = name;
+        stmt->data.function.ret_type = ret_type;
+        stmt->data.function.parameters = params;
+        stmt->data.function.body = body;
+
+        *ptr = stmt;
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_variable_definition(Type* type, strptr name, Statement** ptr)
+{
+    Expression* value = nullptr;
+    if(accept(TK_EQUAL))
+    {
+        m_stack->pop();
+        parse_expression(&value);
+    }
+
+    if(m_status)
+    {
+        expect(TK_SEMICOLON);
+    }
+
+    if(m_status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_VARIABLE_DEF;
+        stmt->data.variable.type = type;
+        stmt->data.variable.name = name;
+        stmt->data.variable.value = value;
+
+        *ptr = stmt;
     }
 
     return m_status;
@@ -351,7 +375,7 @@ bool Parser::parse_parameter(Function::Parameter** ptr)
     return m_status;
 }
 
-bool Parser::parse_function_body(List<Statement>* body)
+bool Parser::parse_body(List<Statement>* body)
 {
     expect(TK_OPEN_CURLY_BRACKET);
 
@@ -375,12 +399,54 @@ bool Parser::parse_function_body(List<Statement>* body)
     return m_status;
 }
 
+bool Parser::parse_compound_stmt(Statement** ptr)
+{
+    expect(TK_OPEN_CURLY_BRACKET);
+
+    List<Statement> body = {};
+    while(m_status)
+    {
+        Statement* stmt = nullptr;
+        if(accept(TK_CLOSE_CURLY_BRACKET))
+        {
+            break;
+        }
+        else if(parse_statement(&stmt))
+        {
+            body.insert(stmt);
+        }
+    }
+
+    if(m_status)
+    {
+        expect(TK_CLOSE_CURLY_BRACKET);
+    }
+
+    if(m_status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_COMPOUND_STMT;
+        stmt->data.compound_stmt = body;
+
+        *ptr = stmt;
+    }
+
+    return m_status;
+}
+
 bool Parser::parse_statement(Statement** ptr)
 {
     Token tk = m_stack->peek();
     switch(tk.type)
     {
-        case TK_RETURN:     { parse_return_statement(ptr); break; }
+        case TK_FOR:    { parse_for_stmt(ptr); break; }
+        case TK_RETURN: { parse_return_statement(ptr); break; }
+        case TK_TYPE:   { parse_definition(ptr); break; }
+        case TK_OPEN_CURLY_BRACKET:
+        {
+            parse_compound_stmt(ptr);
+            break;
+        }
         case TK_IDENTIFIER:
         case TK_OPEN_ROUND_BRACKET:
         {
@@ -417,6 +483,75 @@ bool Parser::parse_return_statement(Statement** ptr)
         Statement* stmt = new Statement();
         stmt->type = STMT_RETURN;
         stmt->data.ret_stmt.expression = expr;
+
+        *ptr = stmt;
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_for_stmt(Statement** ptr)
+{
+    if(expect(TK_FOR))
+    {
+        expect(TK_OPEN_ROUND_BRACKET);
+    }
+
+    Statement* init = nullptr;
+    if(m_status)
+    {
+        if(accept(TK_SEMICOLON))
+        {
+            m_stack->pop();
+        }
+        else
+        {
+            parse_definition(&init);
+        }
+    }
+
+    Expression* cond = nullptr;
+    if(m_status)
+    {
+        if(!accept(TK_SEMICOLON))
+        {
+            parse_expression(&cond);
+        }
+
+        if(m_status)
+        {
+            expect(TK_SEMICOLON);
+        }
+    }
+
+    Expression* step = nullptr;
+    if(m_status)
+    {
+        if(!accept(TK_CLOSE_ROUND_BRACKET))
+        {
+            parse_expression(&step);
+        }
+
+        if(m_status)
+        {
+            expect(TK_CLOSE_ROUND_BRACKET);
+        }
+    }
+
+    Statement* body = nullptr;
+    if(m_status)
+    {
+        parse_statement(&body);
+    }
+
+    if(m_status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_FOR;
+        stmt->data.for_loop.init = init;
+        stmt->data.for_loop.cond = cond;
+        stmt->data.for_loop.step = step;
+        stmt->data.for_loop.body = body;
 
         *ptr = stmt;
     }
@@ -755,11 +890,11 @@ bool Parser::parse_expr_operator(Expression** ptr)
             else if(accept(TK_EQUAL))
             {
                 m_stack->pop();
-                op = EXPR_OP_CMP_LESS_THAN_OR_EQUAL;
+                op = EXPR_OP_CMP_MORE_THAN_OR_EQUAL;
             }
             else
             {
-                op = EXPR_OP_CMP_LESS_THAN;
+                op = EXPR_OP_CMP_MORE_THAN;
             }
             break;
         }
@@ -773,11 +908,11 @@ bool Parser::parse_expr_operator(Expression** ptr)
             else if(accept(TK_EQUAL))
             {
                 m_stack->pop();
-                op = EXPR_OP_CMP_MORE_THAN_OR_EQUAL;
+                op = EXPR_OP_CMP_LESS_THAN_OR_EQUAL;
             }
             else
             {
-                op = EXPR_OP_CMP_MORE_THAN;
+                op = EXPR_OP_CMP_LESS_THAN;
             }
             break;
         }

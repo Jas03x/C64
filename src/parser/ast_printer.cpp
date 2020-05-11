@@ -36,20 +36,38 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
     {
         case STMT_FUNCTION_DEF:
         {
-            print("DEF:\n");
-            print_function_def(indent, stmt->data.function);
+            print("FUNCTION DEF:\n");
+            print_function_def(indent, &stmt->data.function);
             break;
         }
         case STMT_FUNCTION_DECL:
         {
-            print("DECL:\n");
-            print_function_decl(indent, stmt->data.function);
+            print("FUNCTION DECL:\n");
+            print_function_decl(indent, &stmt->data.function);
+            break;
+        }
+        case STMT_VARIABLE_DEF:
+        {
+            print("VARIABLE DEF:\n");
+            print_variable_def(indent, &stmt->data.variable);
             break;
         }
         case STMT_EXPR:
         {
             print("EXPR:\n");
             print_expr(indent, stmt->data.expr);
+            break;
+        }
+        case STMT_FOR:
+        {
+            print("FOR:\n");
+            print_for_stmt(indent, &stmt->data.for_loop);
+            break;
+        }
+        case STMT_COMPOUND_STMT:
+        {
+            print("COMPOUND STMT:\n");
+            print_body(TAB::SPACE, &stmt->data.compound_stmt);
             break;
         }
         case STMT_RETURN:
@@ -59,6 +77,29 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
             break;
         }
     }
+}
+
+void AST_Printer::print_for_stmt(unsigned int indent, const Statement::ForLoop* loop)
+{
+    m_tab_stack.push_back(indent);
+
+    print("INIT:\n");
+    m_tab_stack.push_back(indent);
+    print_statement(TAB::SPACE, loop->init);
+    m_tab_stack.pop_back();
+
+    print("COND:\n");
+    print_expr(TAB::LINE, loop->cond);
+
+    print("STEP:\n");
+    print_expr(TAB::LINE, loop->step);
+
+    print("BODY:\n");
+    m_tab_stack.push_back(TAB::SPACE);
+    print_statement(TAB::SPACE, loop->body);
+    m_tab_stack.pop_back();
+
+    m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_body(unsigned int indent, const List<Statement>* body)
@@ -133,6 +174,18 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
                         {
                             print("DEREFERENCE:\n");
                             print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
+                            break;
+                        }
+                        case EXPR_OP_ASSIGN:
+                        {
+                            print("ASSIGN:\n");
+                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
+                            break;
+                        }
+                        case EXPR_OP_CMP_LESS_THAN:
+                        {
+                            print("LT:\n");
+                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
                             break;
                         }
                     }
@@ -379,6 +432,28 @@ void AST_Printer::print_function_def(unsigned int indent, const Function* func)
 
     print("BODY:\n");
     print_body(TAB::SPACE, &func->body);
+
+    m_tab_stack.pop_back();
+}
+
+void AST_Printer::print_variable_def(unsigned int indent, const Statement::Variable* var)
+{
+    m_tab_stack.push_back(indent);
+
+    print("NAME: %s\n", (var->name.len > 0) ? var->name.ptr : "NULL");
+
+    print("DATATYPE:\n");
+    print_type(TAB::LINE, var->type);
+
+    if(var->value == nullptr)
+    {
+        print("VALUE: NULL\n");
+    }
+    else
+    {
+        print("VALUE:\n");
+        print_expr(TAB::SPACE, var->value);
+    }
 
     m_tab_stack.pop_back();
 }

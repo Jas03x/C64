@@ -4,7 +4,9 @@ void print_int(U32);
 
 U32 main(U32 argc, const U8** argv)
 {
-    print("hello world\n");
-    (print_int + 0)(1 + *2 * 3 + 4 * 5 * 6 + 7);
+    for(U32 i = 0; i < 10; i = i + 1)
+    {
+        print("hello world\n");
+    }
     return 0;
 }

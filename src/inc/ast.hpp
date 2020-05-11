@@ -16,7 +16,8 @@ enum
     EXPR_INITIALIZER      = 0x5,
 	EXPR_FUNCTION_CALL    = 0x6,
 	EXPR_STATIC_CAST      = 0x7,
-	EXPR_REINTERPRET_CAST = 0x8
+	EXPR_REINTERPRET_CAST = 0x8,
+    EXPR_COMPOUND_EXPR    = 0x9
 };
 
 enum
@@ -59,7 +60,7 @@ enum
     STMT_FUNCTION_DEF  = 0x01,
     STMT_FUNCTION_DECL = 0x02,
     STMT_EXPR          = 0x03,
-    STMT_VARIABLE_DECL = 0x04,
+    STMT_VARIABLE_DEF  = 0x04,
     STMT_IF            = 0x05,
     STMT_ELSE          = 0x06,
     STMT_RETURN        = 0x07,
@@ -214,7 +215,8 @@ struct Expression
 		Func_Call  func_call;
 
         Expression* sub_expr;
-        List<Expression*> initializer;
+        List<Expression> initializer;
+        List<Expression> compound_expr;
     } data;
 };
 
@@ -242,8 +244,8 @@ struct Statement
 
     struct ForLoop
     {
-        Statement*  variable;
-        Expression* condition;
+        Statement*  init;
+        Expression* cond;
         Expression* step;
         Statement*  body;
     };
@@ -285,7 +287,7 @@ struct Statement
     union
     {
         Expression* expr;
-        Function*   function;
+        Function    function;
         Composite   composite;
         Enumerator  enumerator;
         Variable    variable;
@@ -298,6 +300,8 @@ struct Statement
         Goto        goto_stmt;
         Switch      switch_stmt;
         Label       label;
+
+        List<Statement> compound_stmt;
     } data;
 };
 

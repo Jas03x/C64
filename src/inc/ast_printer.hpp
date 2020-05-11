@@ -38,8 +38,10 @@ private:
     void print_parameter_list(unsigned int indent, const List<Function::Parameter>* list);
     void print_type(unsigned int indent, const Type* type);
     void print_type_flags(unsigned int indent, const Type::Flags* flags);
+    void print_for_stmt(unsigned int indent, const Statement::ForLoop* loop);
     void print_function_decl(unsigned int indent, const Function* func);
     void print_function_def(unsigned int indent, const Function* func);
+    void print_variable_def(unsigned int indent, const Statement::Variable* var);
 
 public:
     static void Print(const AST* ast);
