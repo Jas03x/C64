@@ -22,6 +22,7 @@ public:
 
     Token pop();
     Token peek();
+    Token look_ahead();
     
     void push(const Token& tk);
 

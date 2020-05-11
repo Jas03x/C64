@@ -23,6 +23,16 @@ Token TokenStack::peek()
     return m_tokens[m_position];
 }
 
+Token TokenStack::look_ahead()
+{
+    Token tk = {};
+    if(m_position + 1 < m_tokens.size() - 1)
+    {
+        tk = m_tokens[m_position];
+    }
+    return tk;
+}
+
 void TokenStack::push(const Token& tk)
 {
     m_tokens.push_back(tk);

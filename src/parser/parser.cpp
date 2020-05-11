@@ -629,15 +629,22 @@ Expression* Parser::process_expr_operand(ExpressionStack* stack)
 
     if (m_status)
     {
-        if (operand->type == EXPR_OPERATION)
+        if (operand->type == EXPR_OPERATION) // process lhs operands
         {
-            if ((operand->data.operation.op == EXPR_OP_REFERENCE) || (operand->data.operation.op == EXPR_OP_DEREFERENCE))
+            switch(operand->data.operation.op)
             {
-                operand->data.operation.rhs = process_expr_operand(stack);
-            }
-            else
-            {
-                error(ERROR_BAD_EXPRESSION);
+                case EXPR_OP_REFERENCE:
+                case EXPR_OP_DEREFERENCE:
+                case EXPR_OP_DECREMENT:
+                case EXPR_OP_INCREMENT:
+                {
+                    operand->data.operation.rhs = process_expr_operand(stack);
+                    break;
+                }
+                default:
+                {
+                    error(ERROR_BAD_EXPRESSION);
+                }
             }
         }
         else
@@ -656,6 +663,22 @@ Expression* Parser::process_expr_operand(ExpressionStack* stack)
                     break;
                 }
             }
+        }
+    }
+
+    // process rhs operands
+    while(m_status)
+    {
+        Expression* look_ahead = stack->peek();
+        if ((look_ahead != nullptr) && (look_ahead->type == EXPR_OPERATION) && (look_ahead->data.operation.op == EXPR_OP_INCREMENT))
+        {
+            Expression* op = stack->pop();
+            op->data.operation.lhs = operand;
+            operand = op;
+        }
+        else
+        {
+            break;
         }
     }
 
@@ -827,7 +850,7 @@ bool Parser::parse_expr_lhs_op(Expression** ptr)
     {
         case TK_AMPERSAND: { op = EXPR_OP_REFERENCE;   break; }
         case TK_ASTERISK:  { op = EXPR_OP_DEREFERENCE; break; }
-        default:      { break; }
+        default: { break; }
     }
 
     if(op != EXPR_OP_INVALID)
@@ -846,6 +869,34 @@ bool Parser::parse_expr_lhs_op(Expression** ptr)
 
 bool Parser::parse_expr_rhs_op(Expression** ptr)
 {
+    uint8_t op = EXPR_OP_INVALID;
+
+    Token tk = m_stack->peek();
+    switch(tk.type)
+    {
+        case TK_PLUS:
+        {
+            if(m_stack->look_ahead().type == TK_PLUS)
+            {
+                m_stack->pop();
+                op = EXPR_OP_INCREMENT;
+            }
+            break;
+        }
+        default: { break; }
+    }
+
+    if(op != EXPR_OP_INVALID)
+    {
+        m_stack->pop();
+
+        Expression* expr = new Expression();
+        expr->type = EXPR_OPERATION;
+        expr->data.operation.op = op;
+
+        *ptr = expr;
+    }
+
     return m_status;
 }
 

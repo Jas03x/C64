@@ -188,6 +188,18 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
                             print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
                             break;
                         }
+                        case EXPR_OP_INCREMENT:
+                        {
+                            print("INCREMENT:\n");
+                            const Expression* lhs = expr->data.operation.lhs;
+                            const Expression* rhs = expr->data.operation.rhs;
+                            if(lhs != nullptr) {
+                                print_expr(TAB::SPACE, lhs);
+                            } else {
+                                print_expr(TAB::SPACE, rhs);
+                            }
+                            break;
+                        }
                     }
                     break;
                 }
