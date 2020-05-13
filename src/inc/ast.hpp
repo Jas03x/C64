@@ -4,7 +4,7 @@
 #include <literal.hpp>
 #include <token.hpp>
 
-#include <util/list.hpp>
+#include <list.hpp>
 
 enum
 {

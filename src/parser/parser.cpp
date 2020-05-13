@@ -850,6 +850,15 @@ bool Parser::parse_expr_lhs_op(Expression** ptr)
     {
         case TK_AMPERSAND: { op = EXPR_OP_REFERENCE;   break; }
         case TK_ASTERISK:  { op = EXPR_OP_DEREFERENCE; break; }
+        case TK_PLUS:
+        {
+            if(m_stack->look_ahead().type == TK_PLUS)
+            {
+                m_stack->pop();
+                op = EXPR_OP_INCREMENT;
+            }
+            break;
+        }
         default: { break; }
     }
 

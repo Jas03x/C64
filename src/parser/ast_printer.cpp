@@ -190,12 +190,16 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
                         }
                         case EXPR_OP_INCREMENT:
                         {
-                            print("INCREMENT:\n");
                             const Expression* lhs = expr->data.operation.lhs;
                             const Expression* rhs = expr->data.operation.rhs;
-                            if(lhs != nullptr) {
+                            if(lhs != nullptr)
+                            {
+                                print("POST-INCREMENT:\n");
                                 print_expr(TAB::SPACE, lhs);
-                            } else {
+                            }
+                            else
+                            {
+                                print("PRE-INCREMENT:\n");
                                 print_expr(TAB::SPACE, rhs);
                             }
                             break;
