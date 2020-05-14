@@ -238,7 +238,7 @@ struct Statement
 
     struct WhileLoop
     {
-        Expression* condition;
+        Expression* cond;
         Statement*  body;
     };
 

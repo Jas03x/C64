@@ -28,7 +28,7 @@ bool process(const char* path)
         else
         {
             status = false;
-            error("an error occured while parsing\n");
+            error("an error occurred while parsing\n");
         }
         
     }

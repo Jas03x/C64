@@ -440,6 +440,7 @@ bool Parser::parse_statement(Statement** ptr)
     switch(tk.type)
     {
         case TK_FOR:    { parse_for_stmt(ptr); break; }
+        case TK_WHILE:  { parse_while_stmt(ptr); break; }
         case TK_RETURN: { parse_return_statement(ptr); break; }
         case TK_TYPE:   { parse_definition(ptr); break; }
         case TK_OPEN_CURLY_BRACKET:
@@ -557,6 +558,47 @@ bool Parser::parse_for_stmt(Statement** ptr)
     }
 
     return m_status;
+}
+
+bool Parser::parse_while_stmt(Statement** ptr)
+{
+	expect(TK_WHILE);
+
+	Expression* expr = nullptr;
+	if(m_status)
+	{
+		if(expect(TK_OPEN_ROUND_BRACKET))
+		{
+			if(parse_expression(&expr))
+			{
+				expect(TK_CLOSE_ROUND_BRACKET);
+			}
+		}
+	}
+
+	Statement* body = nullptr;
+	if(m_status)
+	{
+		if(expect(TK_OPEN_CURLY_BRACKET))
+		{
+			if(parse_statement(&body))
+			{
+				expect(TK_CLOSE_CURLY_BRACKET);
+			}
+		}
+	}
+
+	if(m_status)
+	{
+		Statement* stmt = new Statement();
+		stmt->type = STMT_WHILE;
+		stmt->data.while_loop.body = body;
+		stmt->data.while_loop.cond = expr;
+
+		*ptr = body;
+	}
+
+	return m_status;
 }
 
 bool Parser::parse_expression(Statement** ptr)

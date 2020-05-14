@@ -64,6 +64,12 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
             print_for_stmt(indent, &stmt->data.for_loop);
             break;
         }
+        case STMT_WHILE:
+        {
+        	print("WHILE:\n");
+        	print_while_stmt(indent, &stmt->data.while_loop);
+        	break;
+        }
         case STMT_COMPOUND_STMT:
         {
             print("COMPOUND STMT:\n");
@@ -100,6 +106,21 @@ void AST_Printer::print_for_stmt(unsigned int indent, const Statement::ForLoop* 
     m_tab_stack.pop_back();
 
     m_tab_stack.pop_back();
+}
+
+void AST_Printer::print_while_stmt(unsigned int indent, const Statement::WhileLoop* loop)
+{
+	m_tab_stack.push_back(indent);
+
+	print("COND:\n");
+	print_expr(TAB::LINE, loop->cond);
+
+	print("BODY:\n");
+	m_tab_stack.push_back(TAB::SPACE);
+	print_statement(TAB::SPACE, loop->body);
+	m_tab_stack.pop_back();
+
+	m_tab_stack.pop_back();
 }
 
 void AST_Printer::print_body(unsigned int indent, const List<Statement>* body)

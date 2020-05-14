@@ -28,7 +28,8 @@ private:
     Expression* process_expr_operand(ExpressionStack* stack);
     Expression* process_expression(ExpressionStack* stack, Expression* lhs, uint8_t min);
 
-    bool parse_for_stmt(Statement** stmt);
+    bool parse_for_stmt(Statement** ptr);
+    bool parse_while_stmt(Statement** ptr);
     bool parse_type(Type** ptr);
     bool parse_identifier(strptr* id);
     bool parse_definition(Statement** ptr);
