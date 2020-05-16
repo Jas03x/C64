@@ -28,21 +28,22 @@ private:
     Expression* process_expr_operand(ExpressionStack* stack);
     Expression* process_expression(ExpressionStack* stack, Expression* lhs, uint8_t min);
 
-    bool parse_for_stmt(Statement** ptr);
-    bool parse_while_stmt(Statement** ptr);
+    bool parse_body(List<Statement>* body);
     bool parse_type(Type** ptr);
     bool parse_identifier(strptr* id);
+    bool parse_parameter(Function::Parameter** ptr);
+
+    bool parse_global_statement(Statement** ptr);
     bool parse_definition(Statement** ptr);
     bool parse_statement(Statement** ptr);
-    bool parse_parameter(Function::Parameter** ptr);
-    bool parse_global_statement(Statement** ptr);
-    bool parse_body(List<Statement>* body);
+    bool parse_for_stmt(Statement** ptr);
+    bool parse_while_stmt(Statement** ptr);
     bool parse_return_statement(Statement** ptr);
-    bool parse_expression(Expression** ptr);
     bool parse_compound_stmt(Statement** ptr);
     bool parse_expression(Statement** ptr);
-    bool parse_function_definition(Type* ret_type, strptr name, Statement** ptr);
-    bool parse_variable_definition(Type* type, strptr name, Statement** ptr);
+    bool parse_if_stmt(Statement** ptr);
+
+    bool parse_expression(Expression** ptr);
     bool parse_expr_literal(Expression** ptr);
     bool parse_expr_identifier(Expression** ptr);
     bool parse_expr_lhs_op(Expression** ptr);
@@ -50,6 +51,9 @@ private:
     bool parse_expr_operator(Expression** ptr);
     bool parse_expr_args(Expression** ptr);
     bool parse_sub_expr(Expression** ptr);
+
+    bool parse_function_definition(Type* ret_type, strptr name, Statement** ptr);
+    bool parse_variable_definition(Type* type, strptr name, Statement** ptr);
 
 public:
     static AST* Parse(TokenStack& stack);

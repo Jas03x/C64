@@ -40,6 +40,7 @@ private:
     void print_type_flags(unsigned int indent, const Type::Flags* flags);
     void print_for_stmt(unsigned int indent, const Statement::ForLoop* loop);
     void print_while_stmt(unsigned int indent, const Statement::WhileLoop* loop);
+    void print_if_stmt(unsigned int indent, const Statement::CondExec* stmt);
     void print_function_decl(unsigned int indent, const Function* func);
     void print_function_def(unsigned int indent, const Function* func);
     void print_variable_def(unsigned int indent, const Statement::Variable* var);

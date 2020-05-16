@@ -70,6 +70,12 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
         	print_while_stmt(indent, &stmt->data.while_loop);
         	break;
         }
+        case STMT_IF:
+        {
+            print("IF:\n");
+            print_if_stmt(indent, &stmt->data.cond_exec);
+            break;
+        }
         case STMT_COMPOUND_STMT:
         {
             print("COMPOUND STMT:\n");
@@ -123,6 +129,29 @@ void AST_Printer::print_while_stmt(unsigned int indent, const Statement::WhileLo
 	m_tab_stack.pop_back();
 }
 
+void AST_Printer::print_if_stmt(unsigned int indent, const Statement::CondExec* stmt)
+{
+    m_tab_stack.push_back(indent);
+
+	print("COND:\n");
+	print_expr(TAB::LINE, stmt->condition);
+
+	print("ON_TRUE:\n");
+	m_tab_stack.push_back(stmt->on_false == nullptr ? TAB::SPACE : TAB::LINE);
+	print_statement(TAB::SPACE, stmt->on_true);
+	m_tab_stack.pop_back();
+
+    if(stmt->on_false != nullptr)
+    {
+        print("ON_FALSE:\n");
+        m_tab_stack.push_back(TAB::SPACE);
+        print_statement(TAB::SPACE, stmt->on_false);
+        m_tab_stack.pop_back();
+    }
+
+	m_tab_stack.pop_back();
+}
+
 void AST_Printer::print_body(unsigned int indent, const List<Statement>* body)
 {
     m_tab_stack.push_back(indent);
@@ -161,73 +190,49 @@ void AST_Printer::print_expr(unsigned int indent, const Expression* expr)
         }
         else if(expr->type == EXPR_OPERATION)
         {
-            switch(expr->type)
+            const Expression::Operation* op = &expr->data.operation;
+            if(op->op == EXPR_OP_INCREMENT)
             {
-                case EXPR_OPERATION:
+                const Expression* lhs = expr->data.operation.lhs;
+                const Expression* rhs = expr->data.operation.rhs;
+                if(lhs != nullptr)
                 {
-                    switch(expr->data.operation.op)
-                    {
-                        case EXPR_OP_ADD:
-                        {
-                            print("ADD:\n");
-                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                            break;
-                        }
-                        case EXPR_OP_SUB:
-                        {
-                            print("SUB:\n");
-                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                            break;
-                        }
-                        case EXPR_OP_MUL:
-                        {
-                            print("MUL:\n");
-                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                            break;
-                        }
-                        case EXPR_OP_DIV:
-                        {
-                            print("DIV:\n");
-                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                            break;
-                        }
-                        case EXPR_OP_DEREFERENCE:
-                        {
-                            print("DEREFERENCE:\n");
-                            print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
-                            break;
-                        }
-                        case EXPR_OP_ASSIGN:
-                        {
-                            print("ASSIGN:\n");
-                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                            break;
-                        }
-                        case EXPR_OP_CMP_LESS_THAN:
-                        {
-                            print("LT:\n");
-                            print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
-                            break;
-                        }
-                        case EXPR_OP_INCREMENT:
-                        {
-                            const Expression* lhs = expr->data.operation.lhs;
-                            const Expression* rhs = expr->data.operation.rhs;
-                            if(lhs != nullptr)
-                            {
-                                print("POST-INCREMENT:\n");
-                                print_expr(TAB::SPACE, lhs);
-                            }
-                            else
-                            {
-                                print("PRE-INCREMENT:\n");
-                                print_expr(TAB::SPACE, rhs);
-                            }
-                            break;
-                        }
-                    }
-                    break;
+                    print("POST-INCREMENT:\n");
+                    print_expr(TAB::SPACE, lhs);
                 }
+                else
+                {
+                    print("PRE-INCREMENT:\n");
+                    print_expr(TAB::SPACE, rhs);
+                }
+            }
+            else if(op->op == EXPR_OP_DEREFERENCE)
+            {
+                print("DEREFERENCE:\n");
+                print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
+            }
+            else if(op->op == EXPR_OP_REFERENCE)
+            {
+                print("REFERENCE:\n");
+                print_expr_operation(TAB::SPACE, expr->data.operation.rhs);
+            }
+            else
+            {
+                switch(op->op)
+                {
+                    case EXPR_OP_ADD: { print("ADD:\n"); break; }
+                    case EXPR_OP_SUB: { print("SUB:\n"); break; }
+                    case EXPR_OP_MUL: { print("MUL:\n"); break; }
+                    case EXPR_OP_DIV: { print("DIV:\n"); break; }
+                    case EXPR_OP_ASSIGN: { print("ASSIGN:\n"); break; }
+                    case EXPR_OP_CMP_EQUAL: { print("EQ:\n"); break; }
+                    case EXPR_OP_CMP_NOT_EQUAL: { print("NEQ:\n"); break; }
+                    case EXPR_OP_CMP_LESS_THAN: { print("LT:\n"); break; }
+                    case EXPR_OP_CMP_MORE_THAN: { print("GT:\n"); break; }
+                    case EXPR_OP_CMP_LESS_THAN_OR_EQUAL: { print("LTEQ:\n"); break; }
+                    case EXPR_OP_CMP_MORE_THAN_OR_EQUAL: { print("GTEQ:\n"); break; }
+                }
+                print_expr_operation(TAB::SPACE, expr->data.operation.lhs, expr->data.operation.rhs);
             }
         }
         

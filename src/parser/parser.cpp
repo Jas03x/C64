@@ -443,6 +443,7 @@ bool Parser::parse_statement(Statement** ptr)
         case TK_WHILE:  { parse_while_stmt(ptr); break; }
         case TK_RETURN: { parse_return_statement(ptr); break; }
         case TK_TYPE:   { parse_definition(ptr); break; }
+        case TK_IF:     { parse_if_stmt(ptr); break; }
         case TK_OPEN_CURLY_BRACKET:
         {
             parse_compound_stmt(ptr);
@@ -593,6 +594,49 @@ bool Parser::parse_while_stmt(Statement** ptr)
 	}
 
 	return m_status;
+}
+
+bool Parser::parse_if_stmt(Statement** ptr)
+{
+    expect(TK_IF);
+
+    Expression* cond = nullptr;
+    if(m_status)
+    {
+        if(expect(TK_OPEN_ROUND_BRACKET))
+        {
+            if(parse_expression(&cond))
+            {
+                expect(TK_CLOSE_ROUND_BRACKET);
+            }
+        }
+    }
+
+    Statement* true_body = nullptr;
+    if(m_status)
+    {
+        parse_statement(&true_body);
+    }
+
+    Statement* false_body = nullptr;
+    if(m_status && accept(TK_ELSE))
+    {
+        m_stack->pop();
+        parse_statement(&false_body);
+    }
+
+    if(m_status)
+    {
+        Statement* stmt = new Statement();
+        stmt->type = STMT_IF;
+        stmt->data.cond_exec.condition = cond;
+        stmt->data.cond_exec.on_true = true_body;
+        stmt->data.cond_exec.on_false = false_body;
+
+        *ptr = stmt;
+    }
+
+    return m_status;
 }
 
 bool Parser::parse_expression(Statement** ptr)
