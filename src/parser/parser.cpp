@@ -589,7 +589,7 @@ bool Parser::parse_while_stmt(Statement** ptr)
 		stmt->data.while_loop.body = body;
 		stmt->data.while_loop.cond = expr;
 
-		*ptr = body;
+		*ptr = stmt;
 	}
 
 	return m_status;
