@@ -579,13 +579,7 @@ bool Parser::parse_while_stmt(Statement** ptr)
 	Statement* body = nullptr;
 	if(m_status)
 	{
-		if(expect(TK_OPEN_CURLY_BRACKET))
-		{
-			if(parse_statement(&body))
-			{
-				expect(TK_CLOSE_CURLY_BRACKET);
-			}
-		}
+        parse_statement(&body);
 	}
 
 	if(m_status)
@@ -838,7 +832,7 @@ bool Parser::parse_expression(Expression** ptr)
 
         if (m_status)
         {
-            if (accept(TK_SEMICOLON) || accept(TK_CLOSE_ROUND_BRACKET))
+            if (accept(TK_SEMICOLON) || accept(TK_CLOSE_ROUND_BRACKET) || accept(TK_COMMA))
             {
                 break;
             }
