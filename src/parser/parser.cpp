@@ -527,14 +527,21 @@ bool Parser::parse_variable_definition(Type* type, strptr name, Statement::Varia
 bool Parser::parse_parameter(Function::Parameter** ptr)
 {
     strptr name = {};
+    Type::Flags flags = {};
     Type* type = nullptr;
-    
-    if(parse_type(&type))
+
+    if (parse_type_flags(&flags))
     {
-        if(accept(TK_IDENTIFIER))
+        if (parse_type(&type))
         {
-            parse_identifier(&name);
+            type->flags.all = flags.all;
+            parse_type(type, &type);
         }
+    }
+
+    if(m_status)
+    {
+        parse_identifier(&name);
     }
 
     if(m_status)
