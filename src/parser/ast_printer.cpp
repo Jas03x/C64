@@ -46,11 +46,6 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
             print_function_decl(indent, &stmt->data.function);
             break;
         }
-        case STMT_VARIABLE_DECL:
-        {
-            print_variable_def(indent, &stmt->data.variable_decl);
-            break;
-        }
         case STMT_COMPOSITE_DECL:
         {
             print("COMPOSITE DECL:\n");
@@ -99,11 +94,25 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
             print_expr(indent, stmt->data.ret_stmt.expression);
             break;
         }
+        case STMT_VARIABLE_DECL:
+        {
+            print_variable_def(indent, &stmt->data.variable_decl);
+            break;
+        }
         case STMT_COMPOUND_STMT:
         {
             print_compound_stmt(indent, &stmt->data.compound_stmt);
             break;
         }
+    }
+}
+
+void AST_Printer::print_variable_def(unsigned int indent, const Statement::VariableDecl* decl)
+{
+    for (List<Statement::Variable>::Element* it = decl->variables.head; it != nullptr; it = it->next)
+    {
+        print("VARIABLE DECL:\n");
+        print_variable_def((it->next == nullptr) ? indent : TAB::LINE, it->ptr);
     }
 }
 
@@ -527,15 +536,6 @@ void AST_Printer::print_composite_stmt(unsigned int indent, const Statement* stm
     }
 
     m_tab_stack.pop_back();
-}
-
-void AST_Printer::print_variable_def(unsigned int indent, const Statement::VariableDecl* decl)
-{
-    for (List<Statement::Variable>::Element* it = decl->variables.head; it != nullptr; it = it->next)
-    {
-        print("VARIABLE DECL:\n");
-        print_variable_def((it->next == nullptr) ? indent : TAB::LINE, it->ptr);
-    }
 }
 
 void AST_Printer::print_variable_def(unsigned int indent, const Statement::Variable* var)
