@@ -111,7 +111,7 @@ void AST_Printer::print_compound_stmt(unsigned int indent, const Statement::Comp
 {
     for (List<Statement>::Element* it = stmt->statements.head; it != nullptr; it = it->next)
     {
-        print_statement(indent, it->ptr);
+        print_statement((it->next == nullptr) ? indent : TAB::LINE, it->ptr);
     }
 }
 
@@ -534,7 +534,7 @@ void AST_Printer::print_variable_def(unsigned int indent, const Statement::Varia
     for (List<Statement::Variable>::Element* it = decl->variables.head; it != nullptr; it = it->next)
     {
         print("VARIABLE DECL:\n");
-        print_variable_def(indent, it->ptr);
+        print_variable_def((it->next == nullptr) ? indent : TAB::LINE, it->ptr);
     }
 }
 

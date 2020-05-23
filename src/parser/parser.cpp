@@ -624,8 +624,9 @@ bool Parser::parse_statement(Statement** ptr)
         case TK_WHILE:  { parse_while_stmt(ptr); break; }
         case TK_RETURN: { parse_return_statement(ptr); break; }
         case TK_IF:     { parse_if_stmt(ptr); break; }
-        case TK_TYPE:
+        case TK_CONST:
         case TK_STRUCT:
+        case TK_TYPE:
         {
             parse_definition(ptr);
             break;
