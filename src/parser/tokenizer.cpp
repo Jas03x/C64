@@ -474,7 +474,15 @@ bool Tokenizer::read_identifier()
 						}
 						break;
 					}
-					case 's': { if(_strncmp(str, "switch", 6)) { tk.type = TK_SWITCH; } break; }
+					case 's':
+					{
+						switch(str[1])
+						{
+							case 't': { if(_strncmp(str, "struct", 6)) { tk.type = TK_STRUCT; } break; }
+							case 'w': { if(_strncmp(str, "switch", 6)) { tk.type = TK_SWITCH; } break; }
+						}
+						break;
+					}
 				}
 				break;
 			}

@@ -22,21 +22,6 @@
     <ClCompile Include="src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="src\parser\token_stack.cpp">
-      <Filter>src\parser</Filter>
-    </ClCompile>
-    <ClCompile Include="src\parser\tokenizer.cpp">
-      <Filter>src\parser</Filter>
-    </ClCompile>
-    <ClCompile Include="src\parser\ast.cpp">
-      <Filter>src\parser</Filter>
-    </ClCompile>
-    <ClCompile Include="src\parser\debug.cpp">
-      <Filter>src\parser</Filter>
-    </ClCompile>
-    <ClCompile Include="src\parser\parser.cpp">
-      <Filter>src\parser</Filter>
-    </ClCompile>
     <ClCompile Include="src\util\strptr.cpp">
       <Filter>src\util</Filter>
     </ClCompile>
@@ -58,19 +43,58 @@
     <ClCompile Include="test\example.c">
       <Filter>test</Filter>
     </ClCompile>
-    <ClCompile Include="src\parser\expression_stack.cpp">
+    <ClCompile Include="src\parser\token.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\token_stack.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\tokenizer.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\ast.cpp">
       <Filter>src\parser</Filter>
     </ClCompile>
     <ClCompile Include="src\parser\ast_printer.cpp">
       <Filter>src\parser</Filter>
     </ClCompile>
+    <ClCompile Include="src\parser\expression_stack.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="src\parser\parser.cpp">
+      <Filter>src\parser</Filter>
+    </ClCompile>
+    <ClCompile Include="test\test.c">
+      <Filter>test</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\util\strptr.hpp">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\util\file.hpp">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\util\list.hpp">
+      <Filter>src\util</Filter>
+    </ClInclude>
+    <ClInclude Include="src\inc\ast_printer.hpp">
+      <Filter>src\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\inc\debug.hpp">
+      <Filter>src\inc</Filter>
+    </ClInclude>
     <ClInclude Include="src\inc\literal.hpp">
       <Filter>src\inc</Filter>
     </ClInclude>
     <ClInclude Include="src\inc\ascii.hpp">
       <Filter>src\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\inc\ast.hpp">
+      <Filter>src\inc</Filter>
+    </ClInclude>
+    <ClInclude Include="src\parser\parser.hpp">
+      <Filter>src\parser</Filter>
     </ClInclude>
     <ClInclude Include="src\parser\token.hpp">
       <Filter>src\parser</Filter>
@@ -81,28 +105,7 @@
     <ClInclude Include="src\parser\tokenizer.hpp">
       <Filter>src\parser</Filter>
     </ClInclude>
-    <ClInclude Include="src\parser\ast.hpp">
-      <Filter>src\parser</Filter>
-    </ClInclude>
-    <ClInclude Include="src\parser\debug.hpp">
-      <Filter>src\parser</Filter>
-    </ClInclude>
-    <ClInclude Include="src\parser\parser.hpp">
-      <Filter>src\parser</Filter>
-    </ClInclude>
-    <ClInclude Include="src\util\strptr.hpp">
-      <Filter>src\util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\util\file.hpp">
-      <Filter>src\util</Filter>
-    </ClInclude>
-    <ClInclude Include="src\util\list.hpp">
-      <Filter>src\util</Filter>
-    </ClInclude>
     <ClInclude Include="src\parser\expression_stack.hpp">
-      <Filter>src\parser</Filter>
-    </ClInclude>
-    <ClInclude Include="src\parser\ast_printer.hpp">
       <Filter>src\parser</Filter>
     </ClInclude>
   </ItemGroup>

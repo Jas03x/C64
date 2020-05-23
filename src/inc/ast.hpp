@@ -56,34 +56,35 @@ enum
 
 enum
 {
-    STMT_INVALID       = 0x00,
-    STMT_FUNCTION_DEF  = 0x01,
-    STMT_FUNCTION_DECL = 0x02,
-    STMT_EXPR          = 0x03,
-    STMT_VARIABLE_DEF  = 0x04,
-    STMT_IF            = 0x05,
-    STMT_ELSE          = 0x06,
-    STMT_RETURN        = 0x07,
-    STMT_COMP_DEF      = 0x08,
-    STMT_COMP_DECL     = 0x09,
-    STMT_FOR           = 0x0A,
-    STMT_WHILE         = 0x0B,
-    STMT_TYPEDEF       = 0x0C,
-    STMT_COMPOUND_STMT = 0x0D,
-    STMT_BREAK         = 0x0E,
-    STMT_CONTINUE      = 0x0F,
-    STMT_GOTO          = 0x10,
-    STMT_SWITCH        = 0x11,
-    STMT_CASE          = 0x12,
-    STMT_LABEL         = 0x13,
-    STMT_DEFAULT_CASE  = 0x14,
-    STMT_ENUM_DEF      = 0x15,
-    STMT_ENUM_DECL     = 0x16
+    STMT_INVALID        = 0x00,
+    STMT_FUNCTION_DEF   = 0x01,
+    STMT_FUNCTION_DECL  = 0x02,
+    STMT_EXPR           = 0x03,
+    STMT_VARIABLE_DECL  = 0x04,
+    STMT_IF             = 0x05,
+    STMT_ELSE           = 0x06,
+    STMT_RETURN         = 0x07,
+    STMT_COMPOSITE_DEF  = 0x08,
+    STMT_COMPOSITE_DECL = 0x09,
+    STMT_FOR            = 0x0A,
+    STMT_WHILE          = 0x0B,
+    STMT_TYPEDEF        = 0x0C,
+    STMT_BLOCK          = 0x0D,
+    STMT_BREAK          = 0x0E,
+    STMT_CONTINUE       = 0x0F,
+    STMT_GOTO           = 0x10,
+    STMT_SWITCH         = 0x11,
+    STMT_CASE           = 0x12,
+    STMT_LABEL          = 0x13,
+    STMT_DEFAULT_CASE   = 0x14,
+    STMT_ENUM_DEF       = 0x15,
+    STMT_ENUM_DECL      = 0x16,
+    STMT_COMPOUND_STMT  = 0x17
 };
 
 enum TYPE
 {
-    TYPE_UNKNOWN    = 0x00,
+    TYPE_INVALID    = 0x00,
     TYPE_VOID       = 0x01,
     TYPE_U8         = 0x02,
     TYPE_U16        = 0x03,
@@ -97,15 +98,15 @@ enum TYPE
     TYPE_F64        = 0x0B,
     TYPE_PTR        = 0x0C,
     TYPE_ARRAY      = 0x0D,
-    TYPE_IDENTIFIER = 0x0E,
-	TYPE_FUNC_PTR   = 0x0F
+	TYPE_FUNC_PTR   = 0x0E,
+    TYPE_COMPOSITE  = 0x0F
 };
 
 enum COMPOSITE_TYPE
 {
-    COMP_TYPE_INVALID = 0,
-    COMP_TYPE_STRUCT  = 1,
-    COMP_TYPE_UNION   = 2
+    COMP_TYPE_INVALID = 0x0,
+    COMP_TYPE_STRUCT  = 0x1,
+    COMP_TYPE_UNION   = 0x2
 };
 
 struct Expression;
@@ -174,12 +175,12 @@ struct Type
     uint8_t type;
     Flags flags;
 
-    union
+    union Data
     {
-        strptr    identifier;
-        Type*     pointer;
-        Array*    array;
-		Func_Ptr* func_ptr;
+        Type*      pointer;
+        Array      array;
+		Func_Ptr   func_ptr;
+        Composite* composite;
     } data;
 };
 
@@ -253,7 +254,7 @@ struct Statement
     struct TypeDef
     {
         strptr  name;
-        Type*   variable;
+        Type*   type;
     };
 
     struct Return
@@ -282,32 +283,42 @@ struct Statement
         strptr name;
     };
 
+    struct Block
+    {
+        List<Statement> statements;
+    };
+
+    struct CompoundStmt
+    {
+        List<Statement> statements;
+    };
+
+    struct VariableDecl
+    {
+        List<Variable> variables;
+    };
+
     uint8_t type;
 
     union
     {
-        Expression* expr;
-        Function    function;
-        Composite   composite;
-        Enumerator  enumerator;
-        Variable    variable;
-        CondExec    cond_exec;
-        WhileLoop   while_loop;
-        ForLoop     for_loop;
-        TypeDef     type_def;
-        Return      ret_stmt;
-        Case        case_stmt;
-        Goto        goto_stmt;
-        Switch      switch_stmt;
-        Label       label;
-
-        List<Statement> compound_stmt;
+        Expression*  expr;
+        Function     function;
+        Composite*   composite;
+        Enumerator   enumerator;
+        CondExec     cond_exec;
+        WhileLoop    while_loop;
+        ForLoop      for_loop;
+        TypeDef      type_def;
+        Return       ret_stmt;
+        Case         case_stmt;
+        Goto         goto_stmt;
+        Switch       switch_stmt;
+        Label        label;
+        Block        block;
+        CompoundStmt compound_stmt;
+        VariableDecl variable_decl;
     } data;
-};
-
-struct CompoundStatement
-{
-    List<Statement> statements;
 };
 
 struct AST

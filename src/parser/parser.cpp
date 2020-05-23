@@ -147,38 +147,195 @@ bool Parser::parse_global_statement(Statement** ptr)
 
 bool Parser::parse_definition(Statement** ptr)
 {
-    strptr name;
     Type* type = nullptr;
+    Type::Flags flags = {};
 
-    if(parse_type(&type))
-    {
-        parse_identifier(&name);
-    }
+    parse_type_flags(&flags);
 
-    if(m_status)
+    if (accept(TK_STRUCT) || accept(TK_UNION))
     {
-        if(accept(TK_OPEN_ROUND_BRACKET))
+        Statement* comp_def = nullptr;
+        if (parse_composite_definition(&comp_def))
         {
-            parse_function_definition(type, name, ptr);
+            if (accept(TK_SEMICOLON))
+            {
+                *ptr = comp_def;
+                m_stack->pop();
+            }
+            else
+            {
+                if (comp_def->type == STMT_COMPOSITE_DEF)
+                {
+                    type = new Type();
+                    type->type = TYPE_COMPOSITE;
+                    type->flags.all = flags.all;
+                    type->data.composite = comp_def->data.composite;
+
+                    Statement* def = nullptr;
+                    if (parse_definition(type, &def))
+                    {
+                        Statement* cmp_stmt = new Statement();
+                        cmp_stmt->type = STMT_COMPOUND_STMT;
+                        cmp_stmt->data.compound_stmt.statements.insert(comp_def);
+                        cmp_stmt->data.compound_stmt.statements.insert(def);
+
+                        *ptr = cmp_stmt;
+                    }
+                }
+                else
+                {
+                    unexpected_token(m_stack->peek().type, TK_SEMICOLON);
+                }
+            }
         }
-        else
+    }
+    else
+    {
+        if (parse_type(&type))
         {
-            parse_variable_definition(type, name, ptr);
+            type->flags.all = flags.all;
+            parse_definition(type, ptr);
         }
     }
 
     return m_status;
 }
 
-bool Parser::parse_type(Type** ptr)
+bool Parser::parse_definition(Type* base_type, Statement** ptr)
 {
-    uint8_t data_type = 0;
+    Type* type = nullptr;
+    parse_type(base_type, &type);
+
+    strptr name = {};
+    if (m_status)
+    {
+        parse_identifier(&name);
+    }
+
+    if (m_status)
+    {
+        if (accept(TK_OPEN_ROUND_BRACKET))
+        {
+            parse_function_definition(type, name, ptr);
+        }
+        else
+        {
+            List<Statement::Variable> variables = {};
+            while (m_status)
+            {
+                Statement::Variable* var = nullptr;
+                if (parse_variable_definition(type, name, &var))
+                {
+                    variables.insert(var);
+                }
+
+                if (accept(TK_SEMICOLON))
+                {
+                    m_stack->pop();
+                    break;
+                }
+                else if(expect(TK_COMMA))
+                {
+                    if (parse_type(base_type, &type))
+                    {
+                        parse_identifier(&name);
+                    }
+                }
+            }
+
+            if (m_status)
+            {
+                Statement* stmt = new Statement();
+                stmt->type = STMT_VARIABLE_DECL;
+                stmt->data.variable_decl.variables = variables;
+
+                *ptr = stmt;
+            }
+        }
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_composite_definition(Statement** ptr)
+{
+    uint8_t stmt_type = STMT_INVALID;
+    uint8_t comp_type = COMP_TYPE_INVALID;
+
+    Token tk = m_stack->pop();
+    switch (tk.type)
+    {
+        case TK_STRUCT: { comp_type = COMP_TYPE_STRUCT; break; }
+        case TK_UNION: { comp_type = COMP_TYPE_UNION;  break; }
+        default:
+        {
+            unexpected_token(tk.type, 0);
+            break;
+        }
+    }
+
+    strptr comp_name = {};
+    if (m_status && accept(TK_IDENTIFIER))
+    {
+        parse_identifier(&comp_name);
+    }
+
+    List<Statement> comp_body = {};
+    if (m_status)
+    {
+        if (accept(TK_OPEN_CURLY_BRACKET))
+        {
+            m_stack->pop();
+            stmt_type = STMT_COMPOSITE_DEF;
+            
+            while (m_status)
+            {
+                if (accept(TK_CLOSE_CURLY_BRACKET))
+                {
+                    m_stack->pop();
+                    break;
+                }
+                else
+                {
+                    Statement* stmt = nullptr;
+                    if (parse_statement(&stmt))
+                    {
+                        comp_body.insert(stmt);
+                    }
+                }
+            }
+        }
+        else if(expect(TK_SEMICOLON))
+        {
+            
+            stmt_type = STMT_COMPOSITE_DECL;
+        }
+    }
+
+    if (m_status)
+    {
+        Composite* comp = new Composite();
+        comp->type = comp_type;
+        comp->name = comp_name;
+        comp->body = comp_body;
+
+        Statement* stmt = new Statement();
+        stmt->type = stmt_type;
+        stmt->data.composite = comp;
+
+        *ptr = stmt;
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_type_flags(Type::Flags* ptr)
+{
     Type::Flags flags = {};
-    Token tk;
 
     while (m_status)
     {
-        tk = m_stack->peek();
+        Token tk = m_stack->peek();
         if (tk.type == TK_CONST)
         {
             if (flags.bits.is_constant == 0)
@@ -198,9 +355,21 @@ bool Parser::parse_type(Type** ptr)
         m_stack->pop(); // consume the token
     }
 
+    if (m_status)
+    {
+        ptr->all = flags.all;
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_type(Type** ptr)
+{
+    uint8_t data_type = 0;
+
     if(accept(TK_TYPE))
     {
-        tk = m_stack->pop();
+        Token tk = m_stack->pop();
         switch(tk.data.subtype)
         {
             case TK_TYPE_U8:   { data_type = TYPE_U8;   break; }
@@ -217,23 +386,34 @@ bool Parser::parse_type(Type** ptr)
         unexpected_token(m_stack->peek().type, 0);
     }
 
-    if(m_status)
+    if (m_status)
     {
         Type* type = new Type();
         type->type = data_type;
-        // type->flags = flags;
 
-        while(accept(TK_ASTERISK))
-        {
-            m_stack->pop();
-            Type* type_ptr = new Type();
-            type_ptr->type = TYPE_PTR;
-            type_ptr->data.pointer = type;
+        *ptr = type;
+    }
 
-            type = type_ptr;
-        }
+    return m_status;
+}
 
-        type->flags = flags;
+bool Parser::parse_type(Type* base_type, Type** ptr)
+{
+    Type* type = base_type;
+
+    while (accept(TK_ASTERISK))
+    {
+        m_stack->pop();
+
+        Type* type_ptr = new Type();
+        type_ptr->type = TYPE_PTR;
+        type_ptr->data.pointer = type;
+
+        type = type_ptr;
+    }
+
+    if (m_status)
+    {
         *ptr = type;
     }
 
@@ -322,7 +502,7 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement** 
     return m_status;
 }
 
-bool Parser::parse_variable_definition(Type* type, strptr name, Statement** ptr)
+bool Parser::parse_variable_definition(Type* type, strptr name, Statement::Variable** ptr)
 {
     Expression* value = nullptr;
     if(accept(TK_EQUAL))
@@ -333,18 +513,12 @@ bool Parser::parse_variable_definition(Type* type, strptr name, Statement** ptr)
 
     if(m_status)
     {
-        expect(TK_SEMICOLON);
-    }
+        Statement::Variable* var = new Statement::Variable();
+        var->name = name;
+        var->type = type;
+        var->value = value;
 
-    if(m_status)
-    {
-        Statement* stmt = new Statement();
-        stmt->type = STMT_VARIABLE_DEF;
-        stmt->data.variable.type = type;
-        stmt->data.variable.name = name;
-        stmt->data.variable.value = value;
-
-        *ptr = stmt;
+        *ptr = var;
     }
 
     return m_status;
@@ -426,7 +600,7 @@ bool Parser::parse_compound_stmt(Statement** ptr)
     {
         Statement* stmt = new Statement();
         stmt->type = STMT_COMPOUND_STMT;
-        stmt->data.compound_stmt = body;
+        stmt->data.compound_stmt.statements = body;
 
         *ptr = stmt;
     }
@@ -442,8 +616,13 @@ bool Parser::parse_statement(Statement** ptr)
         case TK_FOR:    { parse_for_stmt(ptr); break; }
         case TK_WHILE:  { parse_while_stmt(ptr); break; }
         case TK_RETURN: { parse_return_statement(ptr); break; }
-        case TK_TYPE:   { parse_definition(ptr); break; }
         case TK_IF:     { parse_if_stmt(ptr); break; }
+        case TK_TYPE:
+        case TK_STRUCT:
+        {
+            parse_definition(ptr);
+            break;
+        }
         case TK_OPEN_CURLY_BRACKET:
         {
             parse_compound_stmt(ptr);

@@ -30,11 +30,14 @@ private:
 
     bool parse_body(List<Statement>* body);
     bool parse_type(Type** ptr);
+    bool parse_type(Type* base_type, Type** ptr);
+    bool parse_type_flags(Type::Flags* flags);
     bool parse_identifier(strptr* id);
     bool parse_parameter(Function::Parameter** ptr);
 
     bool parse_global_statement(Statement** ptr);
     bool parse_definition(Statement** ptr);
+    bool parse_definition(Type* base_type, Statement** ptr);
     bool parse_statement(Statement** ptr);
     bool parse_for_stmt(Statement** ptr);
     bool parse_while_stmt(Statement** ptr);
@@ -52,8 +55,9 @@ private:
     bool parse_expr_args(Expression** ptr);
     bool parse_sub_expr(Expression** ptr);
 
+    bool parse_composite_definition(Statement** ptr);
     bool parse_function_definition(Type* ret_type, strptr name, Statement** ptr);
-    bool parse_variable_definition(Type* type, strptr name, Statement** ptr);
+    bool parse_variable_definition(Type* type, strptr name, Statement::Variable** ptr);
 
 public:
     static AST* Parse(TokenStack& stack);

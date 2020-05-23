@@ -88,9 +88,9 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\parser\ast.cpp" />
     <ClCompile Include="src\parser\ast_printer.cpp" />
-    <ClCompile Include="src\parser\debug.cpp" />
     <ClCompile Include="src\parser\expression_stack.cpp" />
     <ClCompile Include="src\parser\parser.cpp" />
+    <ClCompile Include="src\parser\token.cpp" />
     <ClCompile Include="src\parser\tokenizer.cpp" />
     <ClCompile Include="src\parser\token_stack.cpp" />
     <ClCompile Include="src\util\file.cpp" />
@@ -100,13 +100,14 @@
     <ClCompile Include="test\hello_world.c" />
     <ClCompile Include="test\main.c" />
     <ClCompile Include="test\pfn.c" />
+    <ClCompile Include="test\test.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\inc\ascii.hpp" />
+    <ClInclude Include="src\inc\ast.hpp" />
+    <ClInclude Include="src\inc\ast_printer.hpp" />
+    <ClInclude Include="src\inc\debug.hpp" />
     <ClInclude Include="src\inc\literal.hpp" />
-    <ClInclude Include="src\parser\ast.hpp" />
-    <ClInclude Include="src\parser\ast_printer.hpp" />
-    <ClInclude Include="src\parser\debug.hpp" />
     <ClInclude Include="src\parser\expression_stack.hpp" />
     <ClInclude Include="src\parser\parser.hpp" />
     <ClInclude Include="src\parser\token.hpp" />

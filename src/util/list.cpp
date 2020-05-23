@@ -31,4 +31,4 @@ void List<T>::insert(T* ptr)
 template class List<Statement>;
 template class List<Expression>;
 template class List<Function::Parameter>;
-
+template class List<Statement::Variable>;

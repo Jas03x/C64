@@ -44,6 +44,9 @@ private:
     void print_function_decl(unsigned int indent, const Function* func);
     void print_function_def(unsigned int indent, const Function* func);
     void print_variable_def(unsigned int indent, const Statement::Variable* var);
+    void print_variable_def(unsigned int indent, const Statement::VariableDecl* var);
+    void print_composite_stmt(unsigned int indent, const Statement* stmt);
+    void print_compound_stmt(unsigned int indent, const Statement::CompoundStmt* stmt);
 
 public:
     static void Print(const AST* ast);
