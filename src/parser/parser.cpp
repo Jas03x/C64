@@ -207,49 +207,30 @@ bool Parser::parse_declaration(Type* base_type, Statement** ptr)
     strptr name = {};
     parse_type(base_type, &type, &name);
 
-    if (m_status)
+    if ((type->type == TYPE_FUNCTION) && accept(TK_OPEN_CURLY_BRACKET))
     {
-        parse_identifier(&name);
+        List<Statement> body = {};
+        parse_function_definition(type, name, ptr);
     }
-
-    if (m_status)
+    else
     {
-        if (accept(TK_OPEN_ROUND_BRACKET))
+        List<Declaration> decl_list = {};
+        while (m_status)
         {
-            parse_function_declaration(type, name, ptr);
-        }
-        else
-        {
-            List<Statement::Variable> variables = {};
-            while (m_status)
+            Declaration* decl = nullptr;
+            if (parse_variable_definition(type, name, &decl))
             {
-                Statement::Variable* var = nullptr;
-                if (parse_variable_definition(type, name, &var))
-                {
-                    variables.insert(var);
-                }
-
-                if (accept(TK_SEMICOLON))
-                {
-                    m_stack->pop();
-                    break;
-                }
-                else if(expect(TK_COMMA))
-                {
-                    if (parse_type(base_type, &type))
-                    {
-                        parse_identifier(&name);
-                    }
-                }
+                decl_list.insert(decl);
             }
 
-            if (m_status)
+            if (accept(TK_SEMICOLON))
             {
-                Statement* stmt = new Statement();
-                stmt->type = STMT_VARIABLE_DECL;
-                stmt->data.variable_decl.variables = variables;
-
-                *ptr = stmt;
+                m_stack->pop();
+                break;
+            }
+            else if(expect(TK_COMMA))
+            {
+                parse_type(base_type, &type, &name);
             }
         }
     }
@@ -426,7 +407,7 @@ bool Parser::parse_type(Type* base_type, Type** ptr, strptr* name)
                 Type* it = nullptr;
                 if (sub_type->type == TYPE_FUNCTION)
                 {
-                    it = sub_type->data.function.ret_type;
+                    it = sub_type->data.function.return_type;
                 }
                 else if (sub_type->type == TYPE_PTR)
                 {
@@ -445,7 +426,7 @@ bool Parser::parse_type(Type* base_type, Type** ptr, strptr* name)
                         {
                             Type* func = new Type();
                             func->type = TYPE_FUNCTION;
-                            func->data.function.ret_type = type;
+                            func->data.function.return_type = type;
 
                             it->data.pointer = func;
                             type = func;
@@ -475,6 +456,10 @@ bool Parser::parse_type(Type* base_type, Type** ptr, strptr* name)
     {
         m_stack->pop();
 
+        Type* func = new Type();
+        func->type = TYPE_FUNCTION;
+        func->data.function.return_type = type;
+
         if (accept(TK_CLOSE_ROUND_BRACKET))
         {
             m_stack->pop();
@@ -486,7 +471,7 @@ bool Parser::parse_type(Type* base_type, Type** ptr, strptr* name)
                 Function::Parameter* param = nullptr;
                 if (parse_parameter(&param))
                 {
-                    type->data.function.parameters.insert(param);
+                    func->data.function.parameters.insert(param);
                 }
 
                 if (accept(TK_CLOSE_CURLY_BRACKET))
@@ -500,6 +485,8 @@ bool Parser::parse_type(Type* base_type, Type** ptr, strptr* name)
                 }
             }
         }
+
+        type = func;
     }
 
     if (m_status)
@@ -525,66 +512,20 @@ bool Parser::parse_identifier(strptr* id)
     return m_status;
 }
 
-bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement** ptr)
+bool Parser::parse_function_definition(Type* type, strptr name, Statement** ptr)
 {
-    uint8_t type = 0;
-    List<Function::Parameter> params = {};
     List<Statement> body = {};
 
-    expect(TK_OPEN_ROUND_BRACKET);
-    
-    if(!accept(TK_CLOSE_ROUND_BRACKET))
+    if (parse_body(&body))
     {
-        while(m_status)
-        {
-            Function::Parameter* param = nullptr;
-            if(parse_parameter(&param))
-            {
-                params.insert(param);
-            }
+        Declaration* decl = new Declaration();
+        decl->type = type;
+        decl->name = name;
+        decl->data.function.body = body;
 
-            if(m_status)
-            {
-                if(accept(TK_CLOSE_ROUND_BRACKET))
-                {
-                    break;
-                }
-                else
-                {
-                    expect(TK_COMMA);
-                }
-            }
-        }
-    }
-
-    expect(TK_CLOSE_ROUND_BRACKET);
-
-    if(m_status)
-    {
-        if(accept(TK_SEMICOLON))
-        {
-            m_stack->pop();
-            type = STMT_FUNCTION_DECL;
-        }
-        else if(accept(TK_OPEN_CURLY_BRACKET))
-        {
-            type = STMT_FUNCTION_DEF;
-            parse_body(&body);
-        }
-        else
-        {
-            unexpected_token(m_stack->peek().type, 0);
-        }
-    }
-
-    if(m_status)
-    {
         Statement* stmt = new Statement();
-        stmt->type = type;
-        stmt->data.function.name = name;
-        stmt->data.function.ret_type = ret_type;
-        stmt->data.function.parameters = params;
-        stmt->data.function.body = body;
+        stmt->type = STMT_DECL;
+        stmt->data.declarations.insert(decl);
 
         *ptr = stmt;
     }
@@ -592,7 +533,7 @@ bool Parser::parse_function_definition(Type* ret_type, strptr name, Statement** 
     return m_status;
 }
 
-bool Parser::parse_variable_definition(Type* type, strptr name, Statement::Variable** ptr)
+bool Parser::parse_variable_definition(Type* type, strptr name, Declaration** ptr)
 {
     Expression* value = nullptr;
     if(accept(TK_EQUAL))
@@ -603,12 +544,12 @@ bool Parser::parse_variable_definition(Type* type, strptr name, Statement::Varia
 
     if(m_status)
     {
-        Statement::Variable* var = new Statement::Variable();
-        var->name = name;
-        var->type = type;
-        var->value = value;
+        Declaration* decl = new Declaration();
+        decl->type = type;
+        decl->name = name;
+        decl->data.variable.value = value;
 
-        *ptr = var;
+        *ptr = decl;
     }
 
     return m_status;
@@ -625,13 +566,8 @@ bool Parser::parse_parameter(Function::Parameter** ptr)
         if (parse_type(&type))
         {
             type->flags.all = flags.all;
-            parse_type(type, &type);
+            parse_type(type, &type, &name);
         }
-    }
-
-    if(m_status)
-    {
-        parse_identifier(&name);
     }
 
     if(m_status)
@@ -718,7 +654,7 @@ bool Parser::parse_statement(Statement** ptr)
         case TK_STRUCT:
         case TK_TYPE:
         {
-            parse_definition(ptr);
+            parse_declaration(ptr);
             break;
         }
         case TK_OPEN_CURLY_BRACKET:
@@ -785,7 +721,7 @@ bool Parser::parse_for_stmt(Statement** ptr)
         }
         else
         {
-            parse_definition(&init);
+            parse_declaration(&init);
         }
     }
 

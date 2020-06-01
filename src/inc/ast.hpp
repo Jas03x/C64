@@ -57,29 +57,27 @@ enum
 enum
 {
     STMT_INVALID        = 0x00,
-    STMT_FUNCTION_DEF   = 0x01,
-    STMT_FUNCTION_DECL  = 0x02,
-    STMT_EXPR           = 0x03,
-    STMT_VARIABLE_DECL  = 0x04,
-    STMT_IF             = 0x05,
-    STMT_ELSE           = 0x06,
-    STMT_RETURN         = 0x07,
-    STMT_COMPOSITE_DEF  = 0x08,
-    STMT_COMPOSITE_DECL = 0x09,
-    STMT_FOR            = 0x0A,
-    STMT_WHILE          = 0x0B,
-    STMT_TYPEDEF        = 0x0C,
-    STMT_BLOCK          = 0x0D,
-    STMT_BREAK          = 0x0E,
-    STMT_CONTINUE       = 0x0F,
-    STMT_GOTO           = 0x10,
-    STMT_SWITCH         = 0x11,
-    STMT_CASE           = 0x12,
-    STMT_LABEL          = 0x13,
-    STMT_DEFAULT_CASE   = 0x14,
-    STMT_ENUM_DEF       = 0x15,
-    STMT_ENUM_DECL      = 0x16,
-    STMT_COMPOUND_STMT  = 0x17
+    STMT_EXPR           = 0x01,
+    STMT_DECL           = 0x02,
+    STMT_IF             = 0x03,
+    STMT_ELSE           = 0x04,
+    STMT_RETURN         = 0x05,
+    STMT_COMPOSITE_DEF  = 0x06,
+    STMT_COMPOSITE_DECL = 0x07,
+    STMT_FOR            = 0x08,
+    STMT_WHILE          = 0x09,
+    STMT_TYPEDEF        = 0x0A,
+    STMT_BLOCK          = 0x0B,
+    STMT_BREAK          = 0x0C,
+    STMT_CONTINUE       = 0x0D,
+    STMT_GOTO           = 0x0E,
+    STMT_SWITCH         = 0x0F,
+    STMT_CASE           = 0x10,
+    STMT_LABEL          = 0x11,
+    STMT_DEFAULT_CASE   = 0x12,
+    STMT_ENUM_DEF       = 0x13,
+    STMT_ENUM_DECL      = 0x14,
+    STMT_COMPOUND_STMT  = 0x15
 };
 
 enum TYPE
@@ -141,25 +139,26 @@ struct Function
         Type* type;
     };
 
-    Type* ret_type;
+    Type* return_type;
     List<Parameter> parameters;
-    List<Statement> body;
-};
-
-struct Variable
-{
-    Expression* value;
 };
 
 struct Declaration
 {
-    Type*  type;
     strptr name;
+    Type*  type;
 
     union
     {
-        Function function;
-        Variable variable;
+        struct
+        {
+            List<Statement> body;
+        } function;
+
+        struct
+        {
+            Expression* value;
+        } variable;
     } data;
 };
 
@@ -296,17 +295,11 @@ struct Statement
         List<Statement> statements;
     };
 
-    struct VariableDecl
-    {
-        List<Variable> variables;
-    };
-
     uint8_t type;
 
     union
     {
         Expression*  expr;
-        Function     function;
         Composite*   composite;
         Enumerator   enumerator;
         CondExec     cond_exec;
@@ -320,7 +313,7 @@ struct Statement
         Label        label;
         Block        block;
         CompoundStmt compound_stmt;
-        VariableDecl variable_decl;
+        List<Declaration> declarations;
     } data;
 };
 

@@ -56,8 +56,8 @@ private:
     bool parse_sub_expr(Expression** ptr);
 
     bool parse_composite_declaration(Statement** ptr);
-    bool parse_function_declaration(Type* ret_type, strptr name, Statement** ptr);
-    bool parse_variable_declaration(Type* type, strptr name, Statement::Variable** ptr);
+    bool parse_function_definition(Type* type, strptr name, Statement** ptr);
+    bool parse_variable_definition(Type* type, strptr name, Declaration** ptr);
 
 public:
     static AST* Parse(TokenStack& stack);
