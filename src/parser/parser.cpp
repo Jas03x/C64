@@ -145,7 +145,7 @@ bool Parser::parse_global_statement(Statement** ptr)
     return m_status;
 }
 
-bool Parser::parse_definition(Statement** ptr)
+bool Parser::parse_declaration(Statement** ptr)
 {
     Type* type = nullptr;
     Type::Flags flags = {};
@@ -155,7 +155,7 @@ bool Parser::parse_definition(Statement** ptr)
     if (accept(TK_STRUCT) || accept(TK_UNION))
     {
         Statement* comp_def = nullptr;
-        if (parse_composite_definition(&comp_def))
+        if (parse_composite_declaration(&comp_def))
         {
             if (accept(TK_SEMICOLON))
             {
@@ -172,7 +172,7 @@ bool Parser::parse_definition(Statement** ptr)
                     type->data.composite = comp_def->data.composite;
 
                     Statement* def = nullptr;
-                    if (parse_definition(type, &def))
+                    if (parse_declaration(type, &def))
                     {
                         Statement* cmp_stmt = new Statement();
                         cmp_stmt->type = STMT_COMPOUND_STMT;
@@ -194,19 +194,19 @@ bool Parser::parse_definition(Statement** ptr)
         if (parse_type(&type))
         {
             type->flags.all = flags.all;
-            parse_definition(type, ptr);
+            parse_declaration(type, ptr);
         }
     }
 
     return m_status;
 }
 
-bool Parser::parse_definition(Type* base_type, Statement** ptr)
+bool Parser::parse_declaration(Type* base_type, Statement** ptr)
 {
     Type* type = nullptr;
-    parse_type(base_type, &type);
-
     strptr name = {};
+    parse_type(base_type, &type, &name);
+
     if (m_status)
     {
         parse_identifier(&name);
@@ -216,7 +216,7 @@ bool Parser::parse_definition(Type* base_type, Statement** ptr)
     {
         if (accept(TK_OPEN_ROUND_BRACKET))
         {
-            parse_function_definition(type, name, ptr);
+            parse_function_declaration(type, name, ptr);
         }
         else
         {
@@ -257,7 +257,7 @@ bool Parser::parse_definition(Type* base_type, Statement** ptr)
     return m_status;
 }
 
-bool Parser::parse_composite_definition(Statement** ptr)
+bool Parser::parse_composite_declaration(Statement** ptr)
 {
     uint8_t stmt_type = STMT_INVALID;
     uint8_t comp_type = COMP_TYPE_INVALID;
@@ -266,7 +266,7 @@ bool Parser::parse_composite_definition(Statement** ptr)
     switch (tk.type)
     {
         case TK_STRUCT: { comp_type = COMP_TYPE_STRUCT; break; }
-        case TK_UNION: { comp_type = COMP_TYPE_UNION;  break; }
+        case TK_UNION:  { comp_type = COMP_TYPE_UNION;  break; }
         default:
         {
             unexpected_token(tk.type, 0);
@@ -397,11 +397,11 @@ bool Parser::parse_type(Type** ptr)
     return m_status;
 }
 
-bool Parser::parse_type(Type* base_type, Type** ptr)
+bool Parser::parse_type(Type* base_type, Type** ptr, strptr* name)
 {
     Type* type = base_type;
 
-    while (accept(TK_ASTERISK))
+    while (m_status && accept(TK_ASTERISK))
     {
         m_stack->pop();
 
@@ -410,6 +410,96 @@ bool Parser::parse_type(Type* base_type, Type** ptr)
         type_ptr->data.pointer = type;
 
         type = type_ptr;
+    }
+
+    if (m_status && accept(TK_IDENTIFIER))
+    {
+        parse_identifier(name);
+    }
+    else if (m_status && expect(TK_OPEN_ROUND_BRACKET))
+    {
+        Type* sub_type = nullptr;
+        if (parse_type(nullptr, &sub_type, name))
+        {
+            if (expect(TK_CLOSE_ROUND_BRACKET))
+            {
+                Type* it = nullptr;
+                if (sub_type->type == TYPE_FUNCTION)
+                {
+                    it = sub_type->data.function.ret_type;
+                }
+                else if (sub_type->type == TYPE_PTR)
+                {
+                    it = sub_type->data.pointer;
+                }
+                else
+                {
+                    error("invalid declaration\n");
+                }
+
+                while (m_status)
+                {
+                    if (it->data.pointer == nullptr)
+                    {
+                        if (accept(TK_OPEN_ROUND_BRACKET))
+                        {
+                            Type* func = new Type();
+                            func->type = TYPE_FUNCTION;
+                            func->data.function.ret_type = type;
+
+                            it->data.pointer = func;
+                            type = func;
+                        }
+                        else
+                        {
+                            it->data.pointer = type;
+                            type = sub_type;
+                        }
+
+                        break;
+                    }
+                    else
+                    {
+                        it = it->data.pointer;
+                        if (it->type != TYPE_PTR)
+                        {
+                            error("invalid declaration\n");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (m_status && accept(TK_OPEN_ROUND_BRACKET))
+    {
+        m_stack->pop();
+
+        if (accept(TK_CLOSE_ROUND_BRACKET))
+        {
+            m_stack->pop();
+        }
+        else
+        {
+            while (m_status)
+            {
+                Function::Parameter* param = nullptr;
+                if (parse_parameter(&param))
+                {
+                    type->data.function.parameters.insert(param);
+                }
+
+                if (accept(TK_CLOSE_CURLY_BRACKET))
+                {
+                    m_stack->pop();
+                    break;
+                }
+                else
+                {
+                    expect(TK_COMMA);
+                }
+            }
+        }
     }
 
     if (m_status)

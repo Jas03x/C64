@@ -98,7 +98,7 @@ enum TYPE
     TYPE_F64        = 0x0B,
     TYPE_PTR        = 0x0C,
     TYPE_ARRAY      = 0x0D,
-	TYPE_FUNC_PTR   = 0x0E,
+	TYPE_FUNCTION   = 0x0E,
     TYPE_COMPOSITE  = 0x0F
 };
 
@@ -138,13 +138,29 @@ struct Function
     struct Parameter
     {
         strptr name;
-        Type*  type;
+        Type* type;
     };
 
-    strptr name;
-    Type*  ret_type;
+    Type* ret_type;
     List<Parameter> parameters;
     List<Statement> body;
+};
+
+struct Variable
+{
+    Expression* value;
+};
+
+struct Declaration
+{
+    Type*  type;
+    strptr name;
+
+    union
+    {
+        Function function;
+        Variable variable;
+    } data;
 };
 
 struct Type
@@ -166,12 +182,6 @@ struct Type
         Type* elements;
     };
 
-    struct Func_Ptr
-    {
-        Type* ret_type;
-		List<Function::Parameter> parameters;
-    };
-
     uint8_t type;
     Flags flags;
 
@@ -179,7 +189,7 @@ struct Type
     {
         Type*      pointer;
         Array      array;
-		Func_Ptr   func_ptr;
+		Function   function;
         Composite* composite;
     } data;
 };
@@ -223,13 +233,6 @@ struct Expression
 
 struct Statement
 {
-    struct Variable
-    {
-        strptr      name;
-        Type*       type;
-        Expression* value;
-    };
-
     struct CondExec
     {
         Expression* condition;
