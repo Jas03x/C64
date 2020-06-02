@@ -55,7 +55,7 @@ private:
     bool parse_expr_args(Expression** ptr);
     bool parse_sub_expr(Expression** ptr);
 
-    bool parse_composite_declaration(Statement** ptr);
+    bool parse_composite_declaration(Declaration** ptr);
     bool parse_function_definition(Type* type, strptr name, Statement** ptr);
     bool parse_variable_definition(Type* type, strptr name, Declaration** ptr);
 

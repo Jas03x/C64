@@ -207,9 +207,8 @@ bool Parser::parse_declaration(Type* base_type, Statement** ptr)
     strptr name = {};
     parse_type(base_type, &type, &name);
 
-    if ((type->type == TYPE_FUNCTION) && accept(TK_OPEN_CURLY_BRACKET))
+    if (type->type == TYPE_FUNCTION)
     {
-        List<Statement> body = {};
         parse_function_definition(type, name, ptr);
     }
     else
@@ -238,16 +237,15 @@ bool Parser::parse_declaration(Type* base_type, Statement** ptr)
     return m_status;
 }
 
-bool Parser::parse_composite_declaration(Statement** ptr)
+bool Parser::parse_composite_declaration(Declaration** ptr)
 {
-    uint8_t stmt_type = STMT_INVALID;
-    uint8_t comp_type = COMP_TYPE_INVALID;
+    uint8_t type = COMP_TYPE_INVALID;
 
     Token tk = m_stack->pop();
     switch (tk.type)
     {
-        case TK_STRUCT: { comp_type = COMP_TYPE_STRUCT; break; }
-        case TK_UNION:  { comp_type = COMP_TYPE_UNION;  break; }
+        case TK_STRUCT: { type = COMP_TYPE_STRUCT; break; }
+        case TK_UNION:  { type = COMP_TYPE_UNION;  break; }
         default:
         {
             unexpected_token(tk.type, 0);
@@ -255,19 +253,19 @@ bool Parser::parse_composite_declaration(Statement** ptr)
         }
     }
 
-    strptr comp_name = {};
+    strptr name = {};
     if (m_status && accept(TK_IDENTIFIER))
     {
-        parse_identifier(&comp_name);
+        parse_identifier(&name);
     }
 
-    List<Statement> comp_body = {};
+    List<Statement>* body = nullptr;
     if (m_status)
     {
         if (accept(TK_OPEN_CURLY_BRACKET))
         {
             m_stack->pop();
-            stmt_type = STMT_COMPOSITE_DEF;
+            body = new List<Statement>();
             
             while (m_status)
             {
@@ -281,30 +279,31 @@ bool Parser::parse_composite_declaration(Statement** ptr)
                     Statement* stmt = nullptr;
                     if (parse_statement(&stmt))
                     {
-                        comp_body.insert(stmt);
+                        body->insert(stmt);
                     }
                 }
             }
         }
-        else if(expect(TK_SEMICOLON))
+        else
         {
-            
-            stmt_type = STMT_COMPOSITE_DECL;
+            expect(TK_SEMICOLON);
         }
     }
 
     if (m_status)
     {
         Composite* comp = new Composite();
-        comp->type = comp_type;
-        comp->name = comp_name;
-        comp->body = comp_body;
+        comp->type = type;
+        comp->body = body;
 
-        Statement* stmt = new Statement();
-        stmt->type = stmt_type;
-        stmt->data.composite = comp;
+        Type* c_type = new Type();
+        c_type->type = type;
+        c_type->data.composite = comp;
 
-        *ptr = stmt;
+        Declaration* decl = new Declaration();
+        decl->type = 
+
+        *ptr = decl;
     }
 
     return m_status;
@@ -514,14 +513,20 @@ bool Parser::parse_identifier(strptr* id)
 
 bool Parser::parse_function_definition(Type* type, strptr name, Statement** ptr)
 {
-    List<Statement> body = {};
+    List<Statement>* body = nullptr;
 
-    if (parse_body(&body))
+    if(accept(TK_OPEN_CURLY_BRACKET))
+    {
+        body = new List<Statement>();
+        parse_body(body);
+    }
+    
+    if (m_status)
     {
         Declaration* decl = new Declaration();
         decl->type = type;
         decl->name = name;
-        decl->data.function.body = body;
+        decl->data.function_body = body;
 
         Statement* stmt = new Statement();
         stmt->type = STMT_DECL;
@@ -547,7 +552,7 @@ bool Parser::parse_variable_definition(Type* type, strptr name, Declaration** pt
         Declaration* decl = new Declaration();
         decl->type = type;
         decl->name = name;
-        decl->data.variable.value = value;
+        decl->data.variable_value = value;
 
         *ptr = decl;
     }

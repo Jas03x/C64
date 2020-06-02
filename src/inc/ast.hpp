@@ -62,22 +62,20 @@ enum
     STMT_IF             = 0x03,
     STMT_ELSE           = 0x04,
     STMT_RETURN         = 0x05,
-    STMT_COMPOSITE_DEF  = 0x06,
-    STMT_COMPOSITE_DECL = 0x07,
-    STMT_FOR            = 0x08,
-    STMT_WHILE          = 0x09,
-    STMT_TYPEDEF        = 0x0A,
-    STMT_BLOCK          = 0x0B,
-    STMT_BREAK          = 0x0C,
-    STMT_CONTINUE       = 0x0D,
-    STMT_GOTO           = 0x0E,
-    STMT_SWITCH         = 0x0F,
-    STMT_CASE           = 0x10,
-    STMT_LABEL          = 0x11,
-    STMT_DEFAULT_CASE   = 0x12,
-    STMT_ENUM_DEF       = 0x13,
-    STMT_ENUM_DECL      = 0x14,
-    STMT_COMPOUND_STMT  = 0x15
+    STMT_FOR            = 0x06,
+    STMT_WHILE          = 0x07,
+    STMT_TYPEDEF        = 0x08,
+    STMT_BLOCK          = 0x09,
+    STMT_BREAK          = 0x0A,
+    STMT_CONTINUE       = 0x0B,
+    STMT_GOTO           = 0x0C,
+    STMT_SWITCH         = 0x0D,
+    STMT_CASE           = 0x0E,
+    STMT_LABEL          = 0x0F,
+    STMT_DEFAULT_CASE   = 0x10,
+    STMT_ENUM_DEF       = 0x11,
+    STMT_ENUM_DECL      = 0x12,
+    STMT_COMPOUND_STMT  = 0x13
 };
 
 enum TYPE
@@ -111,13 +109,6 @@ struct Expression;
 struct Statement;
 struct Type;
 
-struct Composite
-{
-    uint8_t type;
-    strptr  name;
-    List<Statement> body;
-};
-
 struct Enumerator
 {
     strptr name;
@@ -147,18 +138,16 @@ struct Declaration
 {
     strptr name;
     Type*  type;
-
-    union
+    
+    struct
     {
-        struct
+        union
         {
-            List<Statement> body;
-        } function;
+            Expression*      variable_value;
+            List<Statement>* function_body;
+        };
 
-        struct
-        {
-            Expression* value;
-        } variable;
+        void* ptr;
     } data;
 };
 
@@ -300,7 +289,6 @@ struct Statement
     union
     {
         Expression*  expr;
-        Composite*   composite;
         Enumerator   enumerator;
         CondExec     cond_exec;
         WhileLoop    while_loop;
