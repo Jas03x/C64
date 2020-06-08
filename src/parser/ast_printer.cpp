@@ -34,28 +34,10 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
 {
     switch(stmt->type)
     {
-        case STMT_FUNCTION_DEF:
+        case STMT_DECLARATION:
         {
-            print("FUNCTION DEF:\n");
-            print_function_def(indent, &stmt->data.function);
-            break;
-        }
-        case STMT_FUNCTION_DECL:
-        {
-            print("FUNCTION DECL:\n");
-            print_function_decl(indent, &stmt->data.function);
-            break;
-        }
-        case STMT_COMPOSITE_DECL:
-        {
-            print("COMPOSITE DECL:\n");
-            print_composite_stmt(indent, stmt);
-            break;
-        }
-        case STMT_COMPOSITE_DEF:
-        {
-            print("COMPOSITE DEF:\n");
-            print_composite_stmt(indent, stmt);
+            print("DECL:\n");
+            print_decl_list(indent, &stmt->data.declarations);
             break;
         }
         case STMT_EXPR:
@@ -94,25 +76,11 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
             print_expr(indent, stmt->data.ret_stmt.expression);
             break;
         }
-        case STMT_VARIABLE_DECL:
-        {
-            print_variable_def(indent, &stmt->data.variable_decl);
-            break;
-        }
         case STMT_COMPOUND_STMT:
         {
             print_compound_stmt(indent, &stmt->data.compound_stmt);
             break;
         }
-    }
-}
-
-void AST_Printer::print_variable_def(unsigned int indent, const Statement::VariableDecl* decl)
-{
-    for (List<Statement::Variable>::Element* it = decl->variables.head; it != nullptr; it = it->next)
-    {
-        print("VARIABLE DECL:\n");
-        print_variable_def((it->next == nullptr) ? indent : TAB::LINE, it->ptr);
     }
 }
 
@@ -456,106 +424,22 @@ void AST_Printer::print_type(unsigned int indent, const Type* type)
             print_type(TAB::SPACE, type->data.pointer);
             break;
         }
-        case TYPE_FUNC_PTR:
-        {
-            // TODO
-            break;
-        }
         case TYPE_ARRAY:
         {
             print("TYPE: ARRAY\n");
             print_array(TAB::LINE, &type->data.array);
             break;
         }
-        case TYPE_COMPOSITE:
-        {
-            print("TYPE: COMPOSITE\n");
-            m_tab_stack.push_back(TAB::SPACE);
-            print("NAME: %s\n", (type->data.composite->name.len > 0) ? type->data.composite->name.ptr : "NULL");
-            m_tab_stack.pop_back();
-            break;
-        }
     }
 
     m_tab_stack.pop_back();
 }
 
-void AST_Printer::print_function_decl(unsigned int indent, const Function* func)
+void AST_Printer::print_decl_list(unsigned int indent, const List<Declaration>* decl_list)
 {
     m_tab_stack.push_back(indent);
 
-    print("NAME: %s\n", (func->name.len > 0) ? func->name.ptr : "NULL");
-
-    print("DATATYPE:\n");
-    print_type(TAB::LINE, func->ret_type);
-
-    print("PARAMETERS:\n");
-    print_parameter_list(TAB::SPACE, &func->parameters);
-
-    m_tab_stack.pop_back();
-}
-
-void AST_Printer::print_function_def(unsigned int indent, const Function* func)
-{
-    m_tab_stack.push_back(indent);
-
-    print("NAME: %s\n", (func->name.len > 0) ? func->name.ptr : "NULL");
-
-    print("DATATYPE:\n");
-    print_type(TAB::LINE, func->ret_type);
-
-    print("PARAMETERS:\n");
-    print_parameter_list(TAB::LINE, &func->parameters);
-
-    print("BODY:\n");
-    print_body(TAB::SPACE, &func->body);
-
-    m_tab_stack.pop_back();
-}
-
-void AST_Printer::print_composite_stmt(unsigned int indent, const Statement* stmt)
-{
-    m_tab_stack.push_back(indent);
-
-    const Composite* comp = stmt->data.composite;
-
-    const char* type = nullptr;
-    switch (comp->type)
-    {
-        case COMP_TYPE_STRUCT: { type = "STRUCT"; break; }
-        case COMP_TYPE_UNION:  { type = "UNION";  break; }
-    }
-    print("TYPE: %s\n", type);
-
-    print("NAME: %s\n", (comp->name.len > 0) ? comp->name.ptr : "NULL");
-
-    if (stmt->type == STMT_COMPOSITE_DEF)
-    {
-        print("BODY:\n");
-        print_body(TAB::SPACE, &comp->body);
-    }
-
-    m_tab_stack.pop_back();
-}
-
-void AST_Printer::print_variable_def(unsigned int indent, const Statement::Variable* var)
-{
-    m_tab_stack.push_back(indent);
-
-    print("NAME: %s\n", (var->name.len > 0) ? var->name.ptr : "NULL");
-
-    print("DATATYPE:\n");
-    print_type(TAB::LINE, var->type);
-
-    if(var->value == nullptr)
-    {
-        print("VALUE: NULL\n");
-    }
-    else
-    {
-        print("VALUE:\n");
-        print_expr(TAB::SPACE, var->value);
-    }
+    TODO
 
     m_tab_stack.pop_back();
 }

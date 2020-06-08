@@ -41,11 +41,7 @@ private:
     void print_for_stmt(unsigned int indent, const Statement::ForLoop* loop);
     void print_while_stmt(unsigned int indent, const Statement::WhileLoop* loop);
     void print_if_stmt(unsigned int indent, const Statement::CondExec* stmt);
-    void print_function_decl(unsigned int indent, const Function* func);
-    void print_function_def(unsigned int indent, const Function* func);
-    void print_variable_def(unsigned int indent, const Statement::Variable* var);
-    void print_variable_def(unsigned int indent, const Statement::VariableDecl* var);
-    void print_composite_stmt(unsigned int indent, const Statement* stmt);
+    void print_decl_list(unsigned int indent, const List<Declaration>* decl);
     void print_compound_stmt(unsigned int indent, const Statement::CompoundStmt* stmt);
 
 public:

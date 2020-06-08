@@ -154,30 +154,39 @@ bool Parser::parse_declaration(Statement** ptr)
 
     if (accept(TK_STRUCT) || accept(TK_UNION))
     {
-        Statement* comp_def = nullptr;
-        if (parse_composite_declaration(&comp_def))
+        Statement* stmt_decl = nullptr;
+
+        Declaration* comp_decl = nullptr;
+        if(parse_composite_declaration(&comp_decl))
+        {
+            stmt_decl = new Statement();
+            stmt_decl->type = DECL_COMPOSITE;
+            stmt_decl->data.declarations.insert(comp_decl);
+        }
+
+        if (m_status)
         {
             if (accept(TK_SEMICOLON))
             {
-                *ptr = comp_def;
+                *ptr = stmt_decl;
                 m_stack->pop();
             }
             else
             {
-                if (comp_def->type == STMT_COMPOSITE_DEF)
+                if (comp_decl->data.composite.body != nullptr)
                 {
                     type = new Type();
                     type->type = TYPE_COMPOSITE;
                     type->flags.all = flags.all;
-                    type->data.composite = comp_def->data.composite;
+                    type->data.composite = comp_decl->data.composite.data;
 
-                    Statement* def = nullptr;
-                    if (parse_declaration(type, &def))
+                    Statement* instances = nullptr;
+                    if (parse_declaration(type, &instances))
                     {
                         Statement* cmp_stmt = new Statement();
                         cmp_stmt->type = STMT_COMPOUND_STMT;
-                        cmp_stmt->data.compound_stmt.statements.insert(comp_def);
-                        cmp_stmt->data.compound_stmt.statements.insert(def);
+                        cmp_stmt->data.compound_stmt.statements.insert(stmt_decl);
+                        cmp_stmt->data.compound_stmt.statements.insert(instances);
 
                         *ptr = cmp_stmt;
                     }
@@ -239,13 +248,13 @@ bool Parser::parse_declaration(Type* base_type, Statement** ptr)
 
 bool Parser::parse_composite_declaration(Declaration** ptr)
 {
-    uint8_t type = COMP_TYPE_INVALID;
+    uint8_t comp_type = COMP_TYPE_INVALID;
 
     Token tk = m_stack->pop();
     switch (tk.type)
     {
-        case TK_STRUCT: { type = COMP_TYPE_STRUCT; break; }
-        case TK_UNION:  { type = COMP_TYPE_UNION;  break; }
+        case TK_STRUCT: { comp_type = COMP_TYPE_STRUCT; break; }
+        case TK_UNION:  { comp_type = COMP_TYPE_UNION;  break; }
         default:
         {
             unexpected_token(tk.type, 0);
@@ -253,19 +262,19 @@ bool Parser::parse_composite_declaration(Declaration** ptr)
         }
     }
 
-    strptr name = {};
+    strptr decl_name = {};
     if (m_status && accept(TK_IDENTIFIER))
     {
-        parse_identifier(&name);
+        parse_identifier(&decl_name);
     }
 
-    List<Statement>* body = nullptr;
+    List<Statement>* decl_body = nullptr;
     if (m_status)
     {
         if (accept(TK_OPEN_CURLY_BRACKET))
         {
             m_stack->pop();
-            body = new List<Statement>();
+            decl_body = new List<Statement>();
             
             while (m_status)
             {
@@ -279,7 +288,7 @@ bool Parser::parse_composite_declaration(Declaration** ptr)
                     Statement* stmt = nullptr;
                     if (parse_statement(&stmt))
                     {
-                        body->insert(stmt);
+                        decl_body->insert(stmt);
                     }
                 }
             }
@@ -293,15 +302,13 @@ bool Parser::parse_composite_declaration(Declaration** ptr)
     if (m_status)
     {
         Composite* comp = new Composite();
-        comp->type = type;
-        comp->body = body;
-
-        Type* c_type = new Type();
-        c_type->type = type;
-        c_type->data.composite = comp;
-
+        comp->type = comp_type;
+        
         Declaration* decl = new Declaration();
-        decl->type = 
+        decl->data.composite.data = comp;
+        decl->type = DECL_COMPOSITE;
+        decl->name = decl_name;
+        decl->data.composite.body = decl_body;
 
         *ptr = decl;
     }
@@ -524,12 +531,13 @@ bool Parser::parse_function_definition(Type* type, strptr name, Statement** ptr)
     if (m_status)
     {
         Declaration* decl = new Declaration();
-        decl->type = type;
+        decl->type = DECL_FUNCTION;
         decl->name = name;
-        decl->data.function_body = body;
+        decl->data.function.type = type;
+        decl->data.function.body = body;
 
         Statement* stmt = new Statement();
-        stmt->type = STMT_DECL;
+        stmt->type = STMT_DECLARATION;
         stmt->data.declarations.insert(decl);
 
         *ptr = stmt;
@@ -550,9 +558,9 @@ bool Parser::parse_variable_definition(Type* type, strptr name, Declaration** pt
     if(m_status)
     {
         Declaration* decl = new Declaration();
-        decl->type = type;
+        decl->type = DECL_VARIABLE;
         decl->name = name;
-        decl->data.variable_value = value;
+        decl->data.variable.type = type;
 
         *ptr = decl;
     }

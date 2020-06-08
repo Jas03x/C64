@@ -6,7 +6,7 @@
 
 #include <list.hpp>
 
-enum
+enum EXPR_TYPE
 {
     EXPR_INVALID          = 0x0,
     EXPR_SUB_EXPR         = 0x1,
@@ -20,7 +20,7 @@ enum
     EXPR_COMPOUND_EXPR    = 0x9
 };
 
-enum
+enum EXPR_OP_TYPE
 {
     EXPR_OP_INVALID                = 0x00,
     EXPR_OP_ADD                    = 0x01,
@@ -54,28 +54,26 @@ enum
     EXPR_OP_COUNT                  = 0x1D
 };
 
-enum
+enum STMT_TYPE
 {
     STMT_INVALID        = 0x00,
     STMT_EXPR           = 0x01,
-    STMT_DECL           = 0x02,
-    STMT_IF             = 0x03,
-    STMT_ELSE           = 0x04,
-    STMT_RETURN         = 0x05,
-    STMT_FOR            = 0x06,
-    STMT_WHILE          = 0x07,
-    STMT_TYPEDEF        = 0x08,
-    STMT_BLOCK          = 0x09,
-    STMT_BREAK          = 0x0A,
-    STMT_CONTINUE       = 0x0B,
-    STMT_GOTO           = 0x0C,
-    STMT_SWITCH         = 0x0D,
-    STMT_CASE           = 0x0E,
-    STMT_LABEL          = 0x0F,
-    STMT_DEFAULT_CASE   = 0x10,
-    STMT_ENUM_DEF       = 0x11,
-    STMT_ENUM_DECL      = 0x12,
-    STMT_COMPOUND_STMT  = 0x13
+    STMT_IF             = 0x02,
+    STMT_ELSE           = 0x03,
+    STMT_RETURN         = 0x04,
+    STMT_FOR            = 0x05,
+    STMT_WHILE          = 0x06,
+    STMT_TYPEDEF        = 0x07,
+    STMT_BLOCK          = 0x08,
+    STMT_BREAK          = 0x09,
+    STMT_CONTINUE       = 0x0A,
+    STMT_GOTO           = 0x0B,
+    STMT_SWITCH         = 0x0C,
+    STMT_CASE           = 0x0D,
+    STMT_LABEL          = 0x0E,
+    STMT_DEFAULT_CASE   = 0x0F,
+    STMT_COMPOUND_STMT  = 0x10,
+    STMT_DECLARATION    = 0x11
 };
 
 enum TYPE
@@ -105,21 +103,33 @@ enum COMPOSITE_TYPE
     COMP_TYPE_UNION   = 0x2
 };
 
+enum DECL_TYPE
+{
+    DECL_INVALID    = 0x0,
+    DECL_VARIABLE   = 0x1,
+    DECL_FUNCTION   = 0x2,
+    DECL_COMPOSITE  = 0x3,
+    DECL_ENUMERATOR = 0x4
+};
+
 struct Expression;
 struct Statement;
 struct Type;
 
 struct Enumerator
 {
-    strptr name;
-    
     struct Value
     {
         strptr      name;
         Expression* value;
     };
 
-    List<Value> values;
+    uint8_t data_type;
+};
+
+struct Composite
+{
+    uint8_t type;
 };
 
 struct Function
@@ -127,7 +137,7 @@ struct Function
     struct Parameter
     {
         strptr name;
-        Type* type;
+        Type*  type;
     };
 
     Type* return_type;
@@ -136,18 +146,33 @@ struct Function
 
 struct Declaration
 {
-    strptr name;
-    Type*  type;
-    
-    struct
-    {
-        union
-        {
-            Expression*      variable_value;
-            List<Statement>* function_body;
-        };
+    uint8_t type;
+    strptr  name;
 
-        void* ptr;
+    union
+    {
+        struct
+        {
+            Type* type;
+        } variable;
+
+        struct
+        {
+            Type* type;
+            List<Statement>* body;
+        } function;
+
+        struct
+        {
+            Composite* data;
+            List<Statement>* body;
+        } composite;
+        
+        struct
+        {
+            Enumerator* data;
+            List<Statement>* body;
+        } enumerator;
     } data;
 };
 
@@ -175,10 +200,11 @@ struct Type
 
     union Data
     {
-        Type*      pointer;
-        Array      array;
-		Function   function;
-        Composite* composite;
+        Type*       pointer;
+        Array       array;
+		Function    function;
+        Composite*  composite;
+        Enumerator* enumerator;
     } data;
 };
 
