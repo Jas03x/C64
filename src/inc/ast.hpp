@@ -72,8 +72,7 @@ enum STMT_TYPE
     STMT_CASE           = 0x0D,
     STMT_LABEL          = 0x0E,
     STMT_DEFAULT_CASE   = 0x0F,
-    STMT_COMPOUND_STMT  = 0x10,
-    STMT_DECLARATION    = 0x11
+    STMT_DECLARATION    = 0x10
 };
 
 enum TYPE
@@ -171,7 +170,7 @@ struct Declaration
         struct
         {
             Enumerator* data;
-            List<Statement>* body;
+            List<Enumerator::Value>* body;
         } enumerator;
     } data;
 };
@@ -305,11 +304,6 @@ struct Statement
         List<Statement> statements;
     };
 
-    struct CompoundStmt
-    {
-        List<Statement> statements;
-    };
-
     uint8_t type;
 
     union
@@ -326,7 +320,6 @@ struct Statement
         Switch       switch_stmt;
         Label        label;
         Block        block;
-        CompoundStmt compound_stmt;
         List<Declaration> declarations;
     } data;
 };

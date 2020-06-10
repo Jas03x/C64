@@ -37,14 +37,14 @@ private:
 
     bool parse_global_statement(Statement** ptr);
     bool parse_declaration(Statement** ptr);
-    bool parse_declaration(Type* base_type, Statement** ptr);
+    bool parse_declaration(Type* base_type, List<Declaration>* decl_list);
     bool parse_statement(Statement** ptr);
     bool parse_for_stmt(Statement** ptr);
     bool parse_while_stmt(Statement** ptr);
     bool parse_return_statement(Statement** ptr);
-    bool parse_compound_stmt(Statement** ptr);
     bool parse_expression(Statement** ptr);
     bool parse_if_stmt(Statement** ptr);
+    bool parse_block_stmt(Statement** ptr);
 
     bool parse_expression(Expression** ptr);
     bool parse_expr_literal(Expression** ptr);
@@ -56,7 +56,7 @@ private:
     bool parse_sub_expr(Expression** ptr);
 
     bool parse_composite_declaration(Declaration** ptr);
-    bool parse_function_definition(Type* type, strptr name, Statement** ptr);
+    bool parse_function_definition(Type* type, strptr name, Declaration** ptr);
     bool parse_variable_definition(Type* type, strptr name, Declaration** ptr);
 
 public:

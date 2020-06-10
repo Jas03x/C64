@@ -67,7 +67,7 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
         case STMT_BLOCK:
         {
             print("BLOCK:\n");
-            print_body(TAB::SPACE, &stmt->data.compound_stmt.statements);
+            print_body(TAB::SPACE, &stmt->data.block.statements);
             break;
         }
         case STMT_RETURN:
@@ -76,19 +76,6 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
             print_expr(indent, stmt->data.ret_stmt.expression);
             break;
         }
-        case STMT_COMPOUND_STMT:
-        {
-            print_compound_stmt(indent, &stmt->data.compound_stmt);
-            break;
-        }
-    }
-}
-
-void AST_Printer::print_compound_stmt(unsigned int indent, const Statement::CompoundStmt* stmt)
-{
-    for (List<Statement>::Element* it = stmt->statements.head; it != nullptr; it = it->next)
-    {
-        print_statement((it->next == nullptr) ? indent : TAB::LINE, it->ptr);
     }
 }
 
@@ -439,7 +426,7 @@ void AST_Printer::print_decl_list(unsigned int indent, const List<Declaration>* 
 {
     m_tab_stack.push_back(indent);
 
-    TODO
+    
 
     m_tab_stack.pop_back();
 }

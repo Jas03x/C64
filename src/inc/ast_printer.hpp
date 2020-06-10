@@ -42,7 +42,6 @@ private:
     void print_while_stmt(unsigned int indent, const Statement::WhileLoop* loop);
     void print_if_stmt(unsigned int indent, const Statement::CondExec* stmt);
     void print_decl_list(unsigned int indent, const List<Declaration>* decl);
-    void print_compound_stmt(unsigned int indent, const Statement::CompoundStmt* stmt);
 
 public:
     static void Print(const AST* ast);
