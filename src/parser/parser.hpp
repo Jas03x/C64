@@ -30,7 +30,7 @@ private:
 
     bool parse_body(List<Statement>* body);
     bool parse_type(Type** ptr);
-    bool parse_type(Type* base_type, Type** ptr, strptr* name);
+    bool parse_complete_type(Type* base_type, Type** ptr, strptr* name);
     bool parse_type_flags(Type::Flags* flags);
     bool parse_identifier(strptr* id);
     bool parse_parameter(Function::Parameter** ptr);
@@ -55,6 +55,7 @@ private:
     bool parse_expr_args(Expression** ptr);
     bool parse_sub_expr(Expression** ptr);
 
+    bool parse_function_parameters(List<Function::Parameter>* params);
     bool parse_composite_declaration(Declaration** ptr);
     bool parse_function_definition(Type* type, strptr name, Declaration** ptr);
     bool parse_variable_definition(Type* type, strptr name, Declaration** ptr);

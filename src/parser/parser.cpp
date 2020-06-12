@@ -207,7 +207,7 @@ bool Parser::parse_declaration(Type* base_type, List<Declaration>* decl_list)
 {
     Type* type = nullptr;
     strptr name = {};
-    parse_type(base_type, &type, &name);
+    parse_complete_type(base_type, &type, &name);
 
     if (type->type == TYPE_FUNCTION)
     {
@@ -234,7 +234,7 @@ bool Parser::parse_declaration(Type* base_type, List<Declaration>* decl_list)
             }
             else if(expect(TK_COMMA))
             {
-                parse_type(base_type, &type, &name);
+                parse_complete_type(base_type, &type, &name);
             }
         }
     }
@@ -356,6 +356,7 @@ bool Parser::parse_type(Type** ptr)
         switch(tk.data.subtype)
         {
             case TK_TYPE_U8:   { data_type = TYPE_U8;   break; }
+            case TK_TYPE_I32:  { data_type = TYPE_I32;  break; }
             case TK_TYPE_U32:  { data_type = TYPE_U32;  break; }
             case TK_TYPE_VOID: { data_type = TYPE_VOID; break; }
             default:
@@ -380,120 +381,157 @@ bool Parser::parse_type(Type** ptr)
     return m_status;
 }
 
-bool Parser::parse_type(Type* base_type, Type** ptr, strptr* name)
+bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
 {
     Type* type = base_type;
 
+    // parse the pointer operators for base type
     while (m_status && accept(TK_ASTERISK))
     {
         m_stack->pop();
 
-        Type* type_ptr = new Type();
-        type_ptr->type = TYPE_PTR;
-        type_ptr->data.pointer = type;
+        Type* t_ptr = new Type();
+        t_ptr->type = TYPE_PTR;
+        t_ptr->data.pointer = type;
 
-        type = type_ptr;
+        type = t_ptr;
     }
 
-    if (m_status && accept(TK_IDENTIFIER))
+    if (m_status)
     {
-        parse_identifier(name);
-    }
-    else if (m_status && expect(TK_OPEN_ROUND_BRACKET))
-    {
-        Type* sub_type = nullptr;
-        if (parse_type(nullptr, &sub_type, name))
+        if (accept(TK_IDENTIFIER))
         {
-            if (expect(TK_CLOSE_ROUND_BRACKET))
+            if (parse_identifier(name))
             {
-                Type* it = sub_type;
-                while (m_status)
+                if (accept(TK_OPEN_ROUND_BRACKET))
                 {
-                    if (it->type == TYPE_PTR)
-                    {
-                        if (it->data.pointer == nullptr)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            it = it->data.pointer;
-                        }
-                    }
-                    else if (it->type == TYPE_FUNCTION)
-                    {
-                        break;
-                    }
-                    else
-                    {
-                        error("invalid declaration\n");
-                    }
-                }
+                    Type* func = new Type();
+                    func->type = TYPE_FUNCTION;
+                    func->data.function.return_type = type;
+                    parse_function_parameters(&func->data.function.parameters);
 
-                if (m_status)
-                {
-                    if (it->type == TYPE_PTR)
-                    {
-                        it->data.pointer = type;
-                    }
-                    else if (it->type == TYPE_FUNCTION)
-                    {
-                        it->data.function.return_type = type;
-                    }
+                    type = func;
                 }
-
-                type = sub_type;
             }
         }
-    }
-
-    if (m_status && accept(TK_OPEN_ROUND_BRACKET))
-    {
-        if (type->type == TYPE_FUNCTION)
-        {
-            error("invalid declaration\n");
-        }
-        else
+        else if (accept(TK_OPEN_ROUND_BRACKET))
         {
             m_stack->pop();
 
-            Type* func = new Type();
-            func->type = TYPE_FUNCTION;
-            func->data.function.return_type = type;
-
-            if (accept(TK_CLOSE_ROUND_BRACKET))
+            Type* ptr_head = nullptr, * ptr_tail = nullptr;
+            while (m_status && accept(TK_ASTERISK))
             {
                 m_stack->pop();
-            }
-            else
-            {
-                while (m_status)
-                {
-                    Function::Parameter* param = nullptr;
-                    if (parse_parameter(&param))
-                    {
-                        func->data.function.parameters.insert(param);
-                    }
 
-                    if (accept(TK_CLOSE_CURLY_BRACKET))
+                Type* t_ptr = new Type();
+                t_ptr->type = TYPE_PTR;
+
+                if (ptr_tail == nullptr) {
+                    ptr_head = t_ptr;
+                }
+                else {
+                    ptr_tail->data.pointer = t_ptr;
+                }
+
+                ptr_tail = t_ptr;
+            }
+
+            Type* sub_type = nullptr;
+            if (parse_complete_type(nullptr, &sub_type, name))
+            {
+                if (expect(TK_CLOSE_ROUND_BRACKET))
+                {
+                    if (accept(TK_OPEN_ROUND_BRACKET))
                     {
-                        m_stack->pop();
-                        break;
+                        Type* func = new Type();
+                        func->type = TYPE_FUNCTION;
+                        func->data.function.return_type = type;
+                        parse_function_parameters(&func->data.function.parameters);
+
+                        if ((sub_type != nullptr) && (sub_type->type == TYPE_FUNCTION))
+                        {
+                            if (ptr_head != nullptr)
+                            {
+                                ptr_tail->data.pointer = func;
+                                sub_type->data.function.return_type = ptr_head;
+                            }
+                            else
+                            {
+                                sub_type->data.function.return_type = func;
+                            }
+
+                            type = sub_type;
+                        }
+                        else if ((sub_type != nullptr) && (sub_type->type == TYPE_PTR))
+                        {
+                            sub_type->data.pointer = func;
+                            type = sub_type;
+                        }
+                        else
+                        {
+                            printf("invalid declaration\n");
+                        }
                     }
                     else
                     {
-                        expect(TK_COMMA);
+                        if (ptr_head != nullptr)
+
+                        {
+                            ptr_tail->data.pointer = type;
+                            type = ptr_head;
+                        }
+
+                        if (sub_type->type == TYPE_FUNCTION)
+                        {
+                            sub_type->data.function.return_type = type;
+                            type = sub_type;
+                        }
+                        else if (sub_type != nullptr)
+                        {
+                            error("exception: expected null sub_type\n");
+                        }
                     }
                 }
             }
-
-            type = func;
         }
     }
 
     if (m_status)
     {
         *ptr = type;
+    }
+
+    return m_status;
+}
+
+bool Parser::parse_function_parameters(List<Function::Parameter>* params)
+{
+    expect(TK_OPEN_ROUND_BRACKET);
+
+    if (accept(TK_CLOSE_ROUND_BRACKET))
+    {
+        m_stack->pop();
+    }
+    else
+    {
+        while (m_status)
+        {
+            Function::Parameter* param = nullptr;
+            if (parse_parameter(&param))
+            {
+                params->insert(param);
+            }
+
+            if (accept(TK_CLOSE_ROUND_BRACKET))
+            {
+                m_stack->pop();
+                break;
+            }
+            else
+            {
+                expect(TK_COMMA);
+            }
+        }
     }
 
     return m_status;
@@ -571,7 +609,7 @@ bool Parser::parse_parameter(Function::Parameter** ptr)
         if (parse_type(&type))
         {
             type->flags.all = flags.all;
-            parse_type(type, &type, &name);
+            parse_complete_type(type, &type, &name);
         }
     }
 
