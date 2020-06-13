@@ -29,7 +29,7 @@ private:
     Expression* process_expression(ExpressionStack* stack, Expression* lhs, uint8_t min);
 
     bool parse_body(List<Statement>* body);
-    bool parse_type(Type** ptr);
+    bool parse_base_type(Type** ptr);
     bool parse_complete_type(Type* base_type, Type** ptr, strptr* name);
     bool parse_type_flags(Type::Flags* flags);
     bool parse_identifier(strptr* id);

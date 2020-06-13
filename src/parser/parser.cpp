@@ -184,7 +184,7 @@ bool Parser::parse_declaration(Statement** ptr)
     }
     else
     {
-        if (parse_type(&type))
+        if (parse_base_type(&type))
         {
             type->flags.all = flags.all;
             parse_declaration(type, &decl_list);
@@ -346,7 +346,7 @@ bool Parser::parse_type_flags(Type::Flags* ptr)
     return m_status;
 }
 
-bool Parser::parse_type(Type** ptr)
+bool Parser::parse_base_type(Type** ptr)
 {
     uint8_t data_type = 0;
 
@@ -420,7 +420,7 @@ bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
             m_stack->pop();
 
             // read the sub pointers
-            Type* ptr_head = nullptr, * ptr_tail = nullptr;
+            Type *ptr_head = nullptr, *ptr_tail = nullptr;
             while (m_status && accept(TK_ASTERISK))
             {
                 m_stack->pop();
@@ -445,7 +445,7 @@ bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
                 expect(TK_CLOSE_ROUND_BRACKET);
             }
 
-            // recursively find the root type
+            // find the root type
             Type* root_type = sub_type;
             if(root_type != nullptr)
             {
@@ -478,7 +478,6 @@ bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
 
             if(m_status)
             {
-                // the function returns a function pointer
                 if (accept(TK_OPEN_ROUND_BRACKET))
                 {
                     Type* func = new Type();
@@ -510,7 +509,6 @@ bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
                     }
                     else
                     {
-                        // set the sub type pointers to point to the function
                         if(ptr_head != nullptr)
                         {
                             ptr_tail->data.pointer = func;
@@ -611,6 +609,10 @@ bool Parser::parse_function_definition(Type* type, strptr name, Declaration** pt
         body = new List<Statement>();
         parse_body(body);
     }
+    else
+    {
+        expect(TK_SEMICOLON);
+    }
     
     if (m_status)
     {
@@ -657,7 +659,7 @@ bool Parser::parse_parameter(Function::Parameter** ptr)
 
     if (parse_type_flags(&flags))
     {
-        if (parse_type(&type))
+        if (parse_base_type(&type))
         {
             type->flags.all = flags.all;
             parse_complete_type(type, &type, &name);

@@ -423,8 +423,16 @@ void AST_Printer::print_type(unsigned int indent, const Type* type)
 
             print("RETURN:\n");
             print_type(TAB::LINE, type->data.function.return_type);
-            print("PARAMS:\n");
-            print_parameter_list(TAB::SPACE, &type->data.function.parameters);
+
+            if(type->data.function.parameters.count == 0)
+            {
+                print("PARAMS: NONE\n");
+            }
+            else
+            {
+                print("PARAMS:\n");
+                print_parameter_list(TAB::SPACE, &type->data.function.parameters);
+            }
 
             m_tab_stack.pop_back();
             break;
@@ -508,8 +516,15 @@ void AST_Printer::print_decl_function(unsigned int indent, const Declaration* de
     print("TYPE:\n");
     print_type(TAB::LINE, decl->data.function.type);
 
-    print("BODY:\n");
-    print_body(TAB::SPACE, decl->data.function.body);
+    if(decl->data.function.body == nullptr)
+    {
+        print("BODY: NULL\n");
+    }
+    else
+    {
+        print("BODY:\n");
+        print_body(TAB::SPACE, decl->data.function.body);
+    }
 
     m_tab_stack.pop_back();
 }
