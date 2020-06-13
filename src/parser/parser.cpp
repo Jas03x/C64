@@ -447,35 +447,45 @@ bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
                         func->type = TYPE_FUNCTION;
                         func->data.function.return_type = type;
                         parse_function_parameters(&func->data.function.parameters);
-
-                        if ((sub_type != nullptr) && (sub_type->type == TYPE_FUNCTION))
+                        
+                        if(sub_type != nullptr)
                         {
-                            if (ptr_head != nullptr)
+                            if (sub_type->type == TYPE_FUNCTION)
                             {
-                                ptr_tail->data.pointer = func;
-                                sub_type->data.function.return_type = ptr_head;
-                            }
-                            else
-                            {
-                                sub_type->data.function.return_type = func;
-                            }
+                                if (ptr_head != nullptr)
+                                {
+                                    ptr_tail->data.pointer = func;
+                                    sub_type->data.function.return_type = ptr_head;
+                                }
+                                else
+                                {
+                                    sub_type->data.function.return_type = func;
+                                }
 
-                            type = sub_type;
-                        }
-                        else if ((sub_type != nullptr) && (sub_type->type == TYPE_PTR))
-                        {
-                            sub_type->data.pointer = func;
-                            type = sub_type;
+                                type = sub_type;
+                            }
+                            else if (sub_type->type == TYPE_PTR)
+                            {
+                                sub_type->data.pointer = func;
+                                type = sub_type;
+                            }
                         }
                         else
                         {
-                            printf("invalid declaration\n");
+                            if(ptr_head != nullptr)
+                            {
+                                ptr_tail->data.pointer = func;
+                                type = ptr_head;
+                            }
+                            else
+                            {
+                                type = func;
+                            }
                         }
                     }
                     else
                     {
                         if (ptr_head != nullptr)
-
                         {
                             ptr_tail->data.pointer = type;
                             type = ptr_head;
@@ -591,6 +601,7 @@ bool Parser::parse_variable_definition(Type* type, strptr name, Declaration** pt
         decl->type = DECL_VARIABLE;
         decl->name = name;
         decl->data.variable.type = type;
+        decl->data.variable.value = value;
 
         *ptr = decl;
     }

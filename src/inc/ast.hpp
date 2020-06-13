@@ -153,6 +153,7 @@ struct Declaration
         struct
         {
             Type* type;
+            Expression* value;
         } variable;
 
         struct

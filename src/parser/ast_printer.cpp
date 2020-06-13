@@ -36,7 +36,6 @@ void AST_Printer::print_statement(unsigned int indent, const Statement* stmt)
     {
         case STMT_DECLARATION:
         {
-            print("DECL:\n");
             print_decl_list(indent, &stmt->data.declarations);
             break;
         }
@@ -417,6 +416,24 @@ void AST_Printer::print_type(unsigned int indent, const Type* type)
             print_array(TAB::LINE, &type->data.array);
             break;
         }
+        case TYPE_FUNCTION:
+        {
+            print("TYPE: FUNCTION\n");
+            m_tab_stack.push_back(TAB::SPACE);
+
+            print("RETURN:\n");
+            print_type(TAB::LINE, type->data.function.return_type);
+            print("PARAMS:\n");
+            print_parameter_list(TAB::SPACE, &type->data.function.parameters);
+
+            m_tab_stack.pop_back();
+            break;
+        }
+        case TYPE_COMPOSITE:
+        {
+            print("TYPE: COMPOSITE\n");
+            break;
+        }
     }
 
     m_tab_stack.pop_back();
@@ -424,9 +441,93 @@ void AST_Printer::print_type(unsigned int indent, const Type* type)
 
 void AST_Printer::print_decl_list(unsigned int indent, const List<Declaration>* decl_list)
 {
+    for (List<Declaration>::Element* it = decl_list->head; it != nullptr; it = it->next)
+    {
+        Declaration* decl = it->ptr;
+
+        switch(decl->type)
+        {
+            case DECL_VARIABLE:
+            {
+                print("DECL:\n");
+                print_decl_variable(indent, decl);
+                break;
+            }
+            case DECL_FUNCTION:
+            {
+                print("DECL:\n");
+                print_decl_function(indent, decl);
+                break;
+            }
+            case DECL_COMPOSITE:
+            {
+                print("DECL: COMPOSITE\n");
+                print_decl_composite(indent, decl);
+                break;
+            }
+            case DECL_ENUMERATOR:
+            {
+                print("DECL: ENUMERATOR\n");
+                print_decl_enumerator(indent, decl);
+                break;
+            }
+        }
+    }
+}
+
+void AST_Printer::print_decl_variable(unsigned int indent, const Declaration* decl)
+{
     m_tab_stack.push_back(indent);
 
+    print("NAME: %.*s\n", decl->name.len, decl->name.ptr);
+
+    bool init_value = (decl->data.variable.value != nullptr);
+
+    print("TYPE:\n");
+    print_type(init_value ? TAB::LINE : TAB::SPACE, decl->data.variable.type);
     
+    if (init_value)
+    {
+        print("VALUE:\n");
+        print_expr(TAB::SPACE, decl->data.variable.value);
+    }
+    else
+    {
+        print("VALUE: NULL\n");
+    }
+
+    m_tab_stack.pop_back();
+}
+
+void AST_Printer::print_decl_function(unsigned int indent, const Declaration* decl)
+{
+    m_tab_stack.push_back(indent);
+    
+    print("NAME: %.*s\n", decl->name.len, decl->name.ptr);
+
+    print("TYPE:\n");
+    print_type(TAB::LINE, decl->data.function.type);
+
+    print("BODY:\n");
+    print_body(TAB::SPACE, decl->data.function.body);
+
+    m_tab_stack.pop_back();
+}
+
+void AST_Printer::print_decl_composite(unsigned int indent, const Declaration* decl)
+{
+    m_tab_stack.push_back(indent);
+
+    print("NAME: %.*s\n", decl->name.len, decl->name.ptr);
+
+    m_tab_stack.pop_back();
+}
+
+void AST_Printer::print_decl_enumerator(unsigned int indent, const Declaration* decl)
+{
+    m_tab_stack.push_back(indent);
+
+    print("NAME: %.*s\n", decl->name.len, decl->name.ptr);
 
     m_tab_stack.pop_back();
 }
