@@ -399,6 +399,7 @@ bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
 
     if (m_status)
     {
+        // read the name and the function paramaters if applicable
         if (accept(TK_IDENTIFIER))
         {
             if (parse_identifier(name))
@@ -414,10 +415,11 @@ bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
                 }
             }
         }
-        else if (accept(TK_OPEN_ROUND_BRACKET))
+        else if (accept(TK_OPEN_ROUND_BRACKET)) // read the sub-type
         {
             m_stack->pop();
 
+            // read the sub pointers
             Type* ptr_head = nullptr, * ptr_tail = nullptr;
             while (m_status && accept(TK_ASTERISK))
             {
@@ -436,70 +438,108 @@ bool Parser::parse_complete_type(Type* base_type, Type** ptr, strptr* name)
                 ptr_tail = t_ptr;
             }
 
+            // recursively read the sub type
             Type* sub_type = nullptr;
             if (parse_complete_type(nullptr, &sub_type, name))
             {
-                if (expect(TK_CLOSE_ROUND_BRACKET))
-                {
-                    if (accept(TK_OPEN_ROUND_BRACKET))
-                    {
-                        Type* func = new Type();
-                        func->type = TYPE_FUNCTION;
-                        func->data.function.return_type = type;
-                        parse_function_parameters(&func->data.function.parameters);
-                        
-                        if(sub_type != nullptr)
-                        {
-                            if (sub_type->type == TYPE_FUNCTION)
-                            {
-                                if (ptr_head != nullptr)
-                                {
-                                    ptr_tail->data.pointer = func;
-                                    sub_type->data.function.return_type = ptr_head;
-                                }
-                                else
-                                {
-                                    sub_type->data.function.return_type = func;
-                                }
+                expect(TK_CLOSE_ROUND_BRACKET);
+            }
 
-                                type = sub_type;
-                            }
-                            else if (sub_type->type == TYPE_PTR)
-                            {
-                                sub_type->data.pointer = func;
-                                type = sub_type;
-                            }
+            // recursively find the root type
+            Type* root_type = sub_type;
+            if(root_type != nullptr)
+            {
+                while(true)
+                {
+                    if(root_type->type == TYPE_FUNCTION)
+                    {
+                        Type* r = root_type->data.function.return_type;
+                        if(r == nullptr) {
+                            break;
+                        } else {
+                            root_type = r;
                         }
-                        else
-                        {
-                            if(ptr_head != nullptr)
-                            {
-                                ptr_tail->data.pointer = func;
-                                type = ptr_head;
-                            }
-                            else
-                            {
-                                type = func;
-                            }
+                    }
+                    else if(root_type->type == TYPE_PTR)
+                    {
+                        Type* p = root_type->data.pointer;
+                        if(p == nullptr) {
+                            break;
+                        } else {
+                            root_type = p;
                         }
                     }
                     else
                     {
-                        if (ptr_head != nullptr)
-                        {
-                            ptr_tail->data.pointer = type;
-                            type = ptr_head;
-                        }
+                        error("debug: compiler exception\n");
+                    }
+                }
+            }
 
-                        if (sub_type->type == TYPE_FUNCTION)
+            if(m_status)
+            {
+                // the function returns a function pointer
+                if (accept(TK_OPEN_ROUND_BRACKET))
+                {
+                    Type* func = new Type();
+                    func->type = TYPE_FUNCTION;
+                    func->data.function.return_type = type;
+                    parse_function_parameters(&func->data.function.parameters);
+                    
+                    if(sub_type != nullptr)
+                    {
+                        if (root_type->type == TYPE_FUNCTION)
                         {
-                            sub_type->data.function.return_type = type;
+                            if (ptr_head != nullptr)
+                            {
+                                ptr_tail->data.pointer = func;
+                                root_type->data.function.return_type = ptr_head;
+                            }
+                            else
+                            {
+                                root_type->data.function.return_type = func;
+                            }
+
                             type = sub_type;
                         }
-                        else if (sub_type != nullptr)
+                        else if (root_type->type == TYPE_PTR)
                         {
-                            error("exception: expected null sub_type\n");
+                            root_type->data.pointer = func;
+                            type = sub_type;
                         }
+                    }
+                    else
+                    {
+                        // set the sub type pointers to point to the function
+                        if(ptr_head != nullptr)
+                        {
+                            ptr_tail->data.pointer = func;
+                            type = ptr_head;
+                        }
+                        else
+                        {
+                            type = func;
+                        }
+                    }
+                }
+                else
+                {
+                    // bind the sub type pointers to the main type
+                    if (ptr_head != nullptr)
+                    {
+                        ptr_tail->data.pointer = type;
+                        type = ptr_head;
+                    }
+
+                    // if the sub-type is a function, update the return type
+                    if (root_type->type == TYPE_FUNCTION)
+                    {
+                        root_type->data.function.return_type = type;
+                        type = sub_type;
+                    }
+                    else if (sub_type != nullptr)
+                    {
+                        error("exception: expected null sub_type\n");
                     }
                 }
             }
